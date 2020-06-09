@@ -1,0 +1,245 @@
+local Util = require("Kdm/Util")
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("SettlementSheet")
+local UiText = require("Kdm/UiText")
+local UiCounter = require("Kdm/UiCounter")
+local UiCheckbox = require("Kdm/UiCheckbox")
+
+---------------------------------------------------------------------------------------------------
+
+local SettlementSheet = {}
+
+SettlementSheet.MAX_TIMELINE_YEARS = 30
+SettlementSheet.MAX_TIMELINE_EVENTS = 7
+SettlementSheet.MAX_QUARRIES = 8
+SettlementSheet.MAX_SETTLEMENT_NOTES = 4
+
+SettlementSheet.survivalLimit = 1
+SettlementSheet.timeline = {}
+for i = 1, SettlementSheet.MAX_TIMELINE_YEARS do
+    SettlementSheet.timeline[i] = {
+        events = {}
+    }
+end
+
+SettlementSheet.UI_HEIGHT = 0.105
+
+---------------------------------------------------------------------------------------------------
+
+function SettlementSheet.Save()
+    return {
+        name = SettlementSheet.name,
+        survivalLimit = SettlementSheet.survivalLimit,
+        departBonuses = SettlementSheet.departBonuses,
+        arriveBonuses = SettlementSheet.arriveBonuses,
+        timeline = SettlementSheet.timeline,
+        quarriesAvailable = SettlementSheet.quarriesAvailable,
+        milestoneEvents = SettlementSheet.milestoneEvents,
+        settlementNotes = SettlementSheet.settlementNotes,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SettlementSheet.Init(settlementSheetObj, saveState)
+    Log.Debugf("Creating settlement sheet")
+
+    saveState = saveState or {}
+
+    SettlementSheet.name = saveState.name
+    SettlementSheet.survivalLimit = saveState.survivalLimit or SettlementSheet.survivalLimit
+    SettlementSheet.departBonuses = saveState.departBonuses
+    SettlementSheet.arriveBonuses = saveState.arriveBonuses
+    if saveState.timeline then
+        for year = 1, SettlementSheet.MAX_TIMELINE_YEARS do
+            if saveState.timeline[year] then
+                SettlementSheet.timeline[year].checked = saveState.timeline[year].checked
+                SettlementSheet.timeline[year].events = saveState.timeline[year].events or {}
+            end
+        end
+    end
+    SettlementSheet.quarriesAvailable = saveState.quarriesAvailable or {}
+    SettlementSheet.milestoneEvents = saveState.milestoneEvents or {}
+    SettlementSheet.settlementNotes = saveState.settlementNotes or {}
+
+    local fontColor = { 0, 0, 0, 100 }
+    local scale = { 0.01666667, 0.01666667, 0.01666667 }
+    UiText.Create({
+        object = settlementSheetObj,
+        name = "SettlementName",
+        value = SettlementSheet.name,
+        label = "When the settlement is named, returning survivors gain +1 survival",
+        position = { -0.30, SettlementSheet.UI_HEIGHT, -0.865 },
+        width = 24000,
+        height = 1000,
+        fontColor = fontColor,
+        fontSize = 900,
+        scale = scale,
+        changeFunc = function(_, value)
+            Log.Debugf("Changed settlement name to %s", value)
+            SettlementSheet.name = value
+        end,
+    })
+
+    UiCounter.Create({
+        object = settlementSheetObj,
+        name = "SurvivalLimit",
+        value = SettlementSheet.survivalLimit,
+        position = { 0.20, SettlementSheet.UI_HEIGHT, -0.84 },
+        size = 800,
+        fontColor = fontColor,
+        scale = { 0.05, 0.05, 0.05 },
+        changeFunc = function(uiCounter, delta)
+            Log.Debugf("Changed survival limit by %d", delta)
+            SettlementSheet.survivalLimit = SettlementSheet.survivalLimit + delta
+            UiCounter.Set(uiCounter, SettlementSheet.survivalLimit)
+        end,
+    })
+
+    UiText.Create({
+        object = settlementSheetObj,
+        name = "DepartBonuses",
+        value = SettlementSheet.departBonuses,
+        position = { 0.815, SettlementSheet.UI_HEIGHT, -0.88 },
+        width = 9900,
+        height = 750,
+        fontColor = fontColor,
+        fontSize = 600,
+        scale = scale,
+        changeFunc = function(_, value)
+            Log.Debugf("Changed depart bonuses to %s", value)
+            SettlementSheet.departBonuses = value
+        end,
+    })
+    UiText.Create({
+        object = settlementSheetObj,
+        name = "ArriveBonuses",
+        value = SettlementSheet.arriveBonuses,
+        position = { 0.815, SettlementSheet.UI_HEIGHT, -0.84 },
+        width = 9900,
+        height = 750,
+        fontColor = fontColor,
+        fontSize = 600,
+        scale = scale,
+        changeFunc = function(_, value)
+            Log.Debugf("Changed arrive bonuses to %s", value)
+            SettlementSheet.arriveBonuses = value
+        end,
+    })
+
+    local x = -0.9515
+    local z1 = -0.693
+    local z30 = 0.588
+    local dz = (z30 - z1) / 29
+
+    local x2 = -0.74
+    local x8 = 0.85
+    local dx = (x8 - x2) / 6
+    for year = 1, SettlementSheet.MAX_TIMELINE_YEARS do
+        local timelineYear = SettlementSheet.timeline[year]
+        local z = z1 + (year - 1) * dz
+        UiCheckbox.Create({
+            object = settlementSheetObj,
+            name = "Year"..year,
+            value = timelineYear.checked,
+            position = { x, SettlementSheet.UI_HEIGHT, z },
+            size = 400,
+            color = fontColor,
+            scale = { 0.05, 0.05, 0.05 },
+            changeFunc = function(uiCheckbox)
+                local checked = not timelineYear.checked
+                Log.Debugf("Checking timeline year %d: %s", year, tostring(checked))
+                timelineYear.checked = checked
+                UiCheckbox.Set(uiCheckbox, checked)
+            end
+        })
+
+        for event = 1, SettlementSheet.MAX_TIMELINE_EVENTS do
+            UiText.Create({
+                object = settlementSheetObj,
+                name = "Year"..year.."Event"..event,
+                value = timelineYear.events[event],
+                alignment = 3,
+                position = { x2 + (event - 1) * dx, SettlementSheet.UI_HEIGHT, z },
+                width = 7500,
+                height = 750,
+                fontColor = fontColor,
+                fontSize = 600,
+                scale = scale,
+                changeFunc = function(_, value)
+                    Log.Debugf("Changed year %d event %d to %s", year, event, value)
+                    timelineYear.events[event] = value
+                end,
+            })
+        end
+    end
+
+    local x1 = -0.841274
+    local x2 = -0.53
+    local dx = x2 - x1
+    local z1 = 0.731
+    local z4 = 0.864
+    local dz = (z4 - z1) / 3
+    for col = 1, 2 do
+        for row = 1, 4 do
+            local quarry = col + (row - 1) * 2
+            UiText.Create({
+                object = settlementSheetObj,
+                name = "Quarry"..quarry,
+                value = SettlementSheet.quarriesAvailable[quarry],
+                position = { x1 + (col - 1) * dx, SettlementSheet.UI_HEIGHT, z1 + (row - 1) * dz },
+                width = 7000,
+                height = 750,
+                fontColor = fontColor,
+                fontSize = 600,
+                scale = scale,
+                changeFunc = function(_, value)
+                    Log.Debugf("Changed quarry %d to %s", quarry, value)
+                    SettlementSheet.quarriesAvailable[quarry] = value
+                end,
+            })
+        end
+    end
+
+    local x = -0.259
+    for i = 1, 4 do
+        UiCheckbox.Create({
+            object = settlementSheetObj,
+            name = "MilestoneEvent"..i,
+            value = SettlementSheet.milestoneEvents[i],
+            position = { x, SettlementSheet.UI_HEIGHT, z1 + (i - 1) * dz },
+            size = 400,
+            color = fontColor,
+            scale = { 0.05, 0.05, 0.05 },
+            changeFunc = function(uiCheckbox)
+                local checked = not SettlementSheet.milestoneEvents[i]
+                Log.Debugf("Checking milestone event %d: %s", i, tostring(checked))
+                SettlementSheet.milestoneEvents[i] = checked
+                UiCheckbox.Set(uiCheckbox, checked)
+            end
+        })
+    end
+
+    local x = 0.64
+    for i = 1, 4 do
+        UiText.Create({
+            object = settlementSheetObj,
+            name = "SettlementNotes"..i,
+            value = SettlementSheet.settlementNotes[i],
+            position = { x, SettlementSheet.UI_HEIGHT, z1 + (i - 1) * dz },
+            width = 20000,
+            height = 750,
+            fontColor = fontColor,
+            fontSize = 600,
+            scale = scale,
+            changeFunc = function(_, value)
+                Log.Debugf("Changed settlement notes %d to %s", i, value)
+                SettlementSheet.settlementNotes[i] = value
+            end,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return SettlementSheet

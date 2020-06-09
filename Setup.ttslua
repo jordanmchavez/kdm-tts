@@ -1,0 +1,686 @@
+local Util = require("Kdm/Util")
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Setup")
+local Script = require("Kdm/Script")
+local ShowdownBoard = require("Kdm/ShowdownBoard")
+local PlayerBoard = require("Kdm/PlayerBoard")
+local SetupData = require("Kdm/SetupData")
+local EventManager = require("Kdm/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local Setup = {}
+
+for k, v in pairs(SetupData) do
+    Setup[k] = v
+end
+
+Setup.settingUpHunt = false
+Setup.settingUpShowdown = false
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddHuntCleanupStage(script, ignoreBlocking)
+    Assert.BoolOrNil(ignoreBlocking, "ignoreBlocking")
+
+    local cleanupStage = Script.Stage(script, "Cleanup Hunt Board")
+    Script.CleanAction(cleanupStage, {
+        from = "Hunt Cards",
+        types = {
+            "Hunt Events",
+            "Monster Hunt Events",
+            "Special Hunt Events",
+        },
+        ignoreBlocking = ignoreBlocking,
+    })
+    Script.CleanAction(cleanupStage, {
+        from = "Hunt Track",
+        types = {
+            "Hunt Events",
+            "Monster Hunt Events",
+            "Special Hunt Events",
+            "Monster Figurine",
+            "Hunt Party",
+        },
+        ignoreBlocking = ignoreBlocking,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.CleanupHunt()
+    startLuaCoroutine(self, "Setup_CleanupHuntCoroutine")
+end
+
+function Setup_CleanupHuntCoroutine()
+    Setup.settingUpHunt = false
+
+    local script = Script.Create("Cleanup Hunt")
+    Setup.AddHuntCleanupStage(script, true)    -- ignoreBlocking = true
+    Script.Run(script)
+
+    EventManager.FireEvent("onHuntCleanup")
+
+    Log.Printf("Cleaned up hunt.")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupHunt(monster, level)
+    Setup.setupHuntMonster, Setup.setupHuntLevel = monster, level
+    startLuaCoroutine(self, "Setup_SetupHuntCoroutine")
+end
+
+function Setup_SetupHuntCoroutine()
+    if Setup.settingUpHunt == true then
+        Log.Errorf("Hunt setup currently in progress, please wait until finished before setting up another hunt. If the hunt appears to be stuck, click 'Cleanup Hunt' from the 'Cleanup' menu to reset.")
+        return 1
+    end
+    Setup.settingUpHunt = true
+
+    local monster, level = Setup.setupHuntMonster, Setup.setupHuntLevel
+    Assert.Str(monster, "monster")
+    Assert.Str(monster, "level")
+
+    Log.Printf("Setting up hunt for %s %s...", monster, level)
+
+    local monsterSetup = SetupData.setups[monster]
+    Assert(monsterSetup, "No setup for %s", monster)
+    local levelSetup = monsterSetup.levels[level]
+    Assert(levelSetup, "No hunt setup for %s, %s", monster, level)
+
+    local script = Script.Create("Setup Hunt")
+    Setup.AddHuntCleanupStage(script, false)    -- ignoreBlocking = false
+
+    local spawnStage = Script.Stage(script, "Spawn Decks")
+    Script.TakeAction(spawnStage, { name = "Hunt Events", type = "Hunt Events", to = "Hunt Events", rotation = Script.FACE_DOWN })
+    Script.TakeAction(spawnStage, { name = monsterSetup.huntEventsDeck, type = "Monster Hunt Events",  to = "Monster Hunt Events", rotation = Script.FACE_DOWN })
+    Script.TakeAction(spawnStage, { name = "The Forest Gate", type = "Special Hunt Events", to = "The Forest Gate" })
+    Script.TakeAction(spawnStage, { name = "Herb Gathering", type = "Special Hunt Events", to = "Herb Gathering" })
+    Script.TakeAction(spawnStage, { name = "Mineral Gathering", type = "Special Hunt Events", to = "Mineral Gathering" })
+    Script.TakeAction(spawnStage, { name = "Sky Fishing", type = "Special Hunt Events", to = "Sky Fishing" })
+
+    if monsterSetup.resourcesDeck then
+        Script.TakeAction(spawnStage, { name = monsterSetup.resourcesDeck, type = "Monster Resources", to = "Monster Resources", rotation = Script.FACE_DOWN })
+    end
+
+    local shuffleStage = Script.Stage(script, "Shuffle Decks")
+    Script.Stage(script)
+    Script.ShuffleAction(shuffleStage, { from = "Hunt Events" })
+    Script.ShuffleAction(shuffleStage, { from = "Monster Hunt Events" })
+    if monsterSetup.resourcesDeck then
+        Script.ShuffleAction(shuffleStage, { from = "Monster Resources" })
+    end
+
+    local huntTrackStage = Script.Stage(script, "Setup Hunt Track")
+    for i, c in ipairs(monsterSetup.huntTrack) do
+        if c == 'H' then
+            Script.TakeAction(huntTrackStage, { from = "Hunt Events", type = "Hunt Events", to = "Hunt Track "..tostring(i) })
+        elseif c == 'M' then
+            Script.TakeAction(huntTrackStage, { from = "Monster Hunt Events", type = "Monster Hunt Events", to = "Hunt Track "..tostring(i) })
+        elseif c == 'O' then
+            -- Overwhelming Darkness, no card
+        elseif c == 'F' then
+            Script.MoveAction(huntTrackStage, { from = "The Forest Gate", to = "Hunt Track "..tostring(i) })
+        else
+            Script.Error("Unrecognized setup element %s at position %d in hunt setup %s %s", tostring(c), i, monster.level)
+            return 1
+        end
+    end
+
+    Script.TakeAction(huntTrackStage, {
+        name = monster,
+        type = "Monster Figurine",
+        to = "Hunt Track "..levelSetup.monsterHuntPosition,
+        rotation = { 0, -90, 0 },
+        set = { use_snap_points = true },
+    })
+
+    Script.TakeAction(huntTrackStage, {
+        name = "Hunt Party",
+        type = "Hunt Party",
+        to = levelSetup.partyHuntPosition and "Hunt Track "..levelSetup.partyHuntPosition or "Hunt Track Start",
+        rotation = { 0, 90, 0 },
+    })
+
+    _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj then
+        Setup.CleanupHunt()
+        Log.Broadcastf("Found an object %s(%s) blocking the %s. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag, locationBlocked)
+        return 1
+    end
+
+    EventManager.FireEvent("onHuntStart")
+
+    Setup.settingUpHunt = false
+    Log.Printf("Hunt setup finished. May your lanterns guide you in the darkness.")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddShowdownCleanupStage(script, ignoreBlocking)
+    local cleanupStage = Script.Stage(script, "Cleanup Showdown and Monster Boards")
+
+    local types = {
+        "AI",
+        "Hit Locations",
+        "Terrain",
+        "Terrain Tiles",
+        "Monster Figurine",
+        "Token",
+    }
+
+    -- TODO: replace with a single terrain swatch clean
+    Script.CleanAction(cleanupStage, { from = "Terrain", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 1", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 2", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 3", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 4", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 5", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 6", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 7", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Terrain 8", types = types, ignoreBlocking = ignoreBlocking })
+    Script.CleanAction(cleanupStage, { from = "Monster Board", tags = { "Deck" }, types = types, ignoreBlocking = ignoreBlocking })
+
+    -- don't block for the huge showdown board clean
+    Script.CleanAction(cleanupStage, { ignoreBlocking = true, from = "Showdown Board", types = types })
+
+    return cleanupStage
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.CleanupShowdown()
+    startLuaCoroutine(self, "Setup_CleanupShowdownCoroutine")
+end
+
+function Setup_CleanupShowdownCoroutine()
+    Setup.settingUpShowdown = false
+
+    local script = Script.Create("Cleanup Showdown")
+    Setup.AddShowdownCleanupStage(script, true) -- ignoreBlocking = true
+    Script.Run(script)
+
+    for _, attribute in ipairs({ "movement", "toughness", "speed", "damage", "accuracy", "luck" }) do
+        ShowdownBoard.SetAttribute(attribute, 0)
+    end
+
+    Log.Printf("Cleaned up showdown.")
+
+    EventManager.FireEvent("onShowdownCleanup")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupShowdown(monster, level)
+    Setup.setupShowdownMonster, Setup.setupShowdownLevel = monster, level
+    startLuaCoroutine(self, "Setup_SetupShowdownCoroutine")
+end
+
+function Setup_SetupShowdownCoroutine()
+    if Setup.settingUpShowdown then
+        Log.Errorf("Showdown setup currently in progress, please wait until finished before setting up another hunt. If the showdown appears to be stuck, click 'Cleanup Showdown' from the 'Cleanup' menu to reset.")
+        return 1
+    end
+
+    local monster, level = Setup.setupShowdownMonster, Setup.setupShowdownLevel
+
+    local monsterSetup = SetupData.setups[monster]
+    Assert(monsterSetup, "No setup for %s", monster)
+    local levelSetup = monsterSetup.levels[level]
+    Assert(levelSetup, "No setup for %s, %s", monster, level)
+    local showdownSetup = levelSetup.showdown
+    Assert(showdownSetup, "No showdown setup for %s, %s", monster, level)
+
+    local setupData = {
+        monster = monster,
+        level = level,
+
+        monsterSetup = monsterSetup,
+        levelSetup = levelSetup,
+        showdownSetup = showdownSetup,
+
+        savedAiDeck = nil,
+        savedHitLocationsDeck = nil,
+
+        nextMiscLocation = 1,
+
+        nextTraitLocation = 1,
+        traitOverflowCol = 21,
+        traitOverflowRow = 2,
+
+        nextTerrainLocation = 1,
+        terrainOverflowCol = 2,
+        terrainOverflowRow = 2,
+
+        unfixedTerrain = {},
+        savedTerrainTiles = {},
+    }
+
+    Setup.settingUpShowdown = true
+
+    Log.Printf("Setting up showdown against %s %s...", monster, level)
+
+    local rules = showdownSetup.rules or monsterSetup.rules
+    Rules.SpawnRules(rules[1], rules[2])
+
+    local script = Script.Create("Setup Showdown")
+
+    local cleanupStage = Setup.AddShowdownCleanupStage(script, false) -- ignoreBlocking = false
+
+    ---------------------------------------------------------------------------
+    -- spawn objects
+
+    local spawnStage = Script.Stage(script, "Spawn Objects")
+
+    Script.TakeAction(spawnStage, { name = monsterSetup.info, type = "AI", to = "Monster Info" })
+    Script.TakeAction(spawnStage, { name = monsterSetup.basicAction, type = "AI", to = "Basic Action" })
+
+    Script.TakeAction(spawnStage, { name = monsterSetup.basicAiDeck, type = "AI", to = "Unused Basic AI", rotation = Script.FACE_DOWN })
+
+    if monsterSetup.advancedAiDeck then
+        Script.TakeAction(spawnStage, { name = monsterSetup.advancedAiDeck, type = "AI", to = "Unused Advanced AI", rotation = Script.FACE_DOWN })
+    end
+
+    if monsterSetup.legendaryAiDeck then
+        Script.TakeAction(spawnStage, { name = monsterSetup.legendaryAiDeck, type = "AI", to = "Unused Legendary AI", rotation = Script.FACE_DOWN })
+    end
+
+    Script.TakeAction(spawnStage, { name = monsterSetup.specialAiDeck, type = "AI", to = "Unused Special AI", rotation = Script.FACE_DOWN, saveId = "Special AI Deck" })
+
+    Script.TakeAction(spawnStage, { name = monsterSetup.hitLocationsDeck, type = "Hit Locations", to = "HL", rotation = Script.FACE_DOWN, saveId = "Hit Locations Deck" })
+
+    Script.TakeAction(spawnStage, { name = "Terrain", type = "Terrain", to = "Terrain", rotation = Script.FACE_DOWN })
+
+    Script.TakeAction(spawnStage, { name = "Terrain Tiles", type = "Terrain Tiles", to = "Terrain Tiles" })
+
+    for _, miscObject in ipairs(showdownSetup.miscObjects or monsterSetup.miscObjects or {}) do
+        Setup.AddMiscObject(miscObject.name, miscObject.type, spawnStage, setupData)
+    end
+
+    if monsterSetup.resourcesDeck then
+        -- TODO: This replicate much of Script.CheckLocation, consider consolidating
+        local hits = Physics.cast({
+            origin    = Script.Position("Monster Resources"),
+            direction = { 0, -1, 0 },
+            type      = 3,
+            size      = Script.Size("Monster Resources"),
+        })
+        local monsterResourcesAlreadySpawned = false
+        for _, hit in ipairs(hits) do
+            local obj = hit.hit_object
+            if obj.getName() == monsterSetup.resourcesDeck and obj.getGMNotes() == "Monster Resources" then
+                Log.Debugf("Found monster resources: %s (%s), skipping spawn", obj.getName(), obj.getGUID())
+                monsterResourcesAlreadySpawned = true
+                break
+            end
+        end
+        if not monsterResourcesAlreadySpawned then
+            Script.CleanAction(cleanupStage, { from = "Monster Resources", types = { "Monster Resources" }, false })
+            Script.TakeAction(spawnStage, { name = monsterSetup.resourcesDeck, type = "Monster Resources", to = "Monster Resources", rotation = Script.FACE_DOWN })
+        end
+    end
+
+    ---------------------------------------------------------------------------
+    -- misc deck merges with the special AI deck, so needs to be it's own stage to ensure special AI deck is fully spawned
+
+    local spawnMiscAiStage = Script.Stage(script, "Spawn Misc AI Deck")
+    if (showdownSetup.starting and showdownSetup.starting.misc) or showdownSetup.life then
+        Script.TakeAction(spawnMiscAiStage, { name = "Misc AI", type = "AI", to = "id:Special AI Deck", rotation = Script.FACE_DOWN })
+    end
+
+    ---------------------------------------------------------------------------
+    -- shuffle decks
+
+    local shuffleBeforeBuildStage = Script.Stage(script, "Shuffle Before Build")
+    Script.WaitAction(shuffleBeforeBuildStage, 60)
+    Script.ShuffleAction(shuffleBeforeBuildStage, { from = "Unused Basic AI" })
+    if monsterSetup.advancedAiDeck then
+        Script.ShuffleAction(shuffleBeforeBuildStage, { from = "Unused Advanced AI" })
+    end
+    if monsterSetup.legendaryAiDeck then
+        Script.ShuffleAction(shuffleBeforeBuildStage, { from = "Unused Legendary AI" })
+    end
+    Script.ShuffleAction(shuffleBeforeBuildStage, { from = "Terrain" })
+
+    ---------------------------------------------------------------------------
+    -- build AI decks and setup terrain
+
+    local buildStage = Script.Stage(script, "Build")
+
+    -- player positions
+    local playerPositions = showdownSetup.playerPositions or monsterSetup.playerPositions
+    local playerRotations = showdownSetup.playerRotations or monsterSetup.playerRotations or { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }
+    for i = 1, 4 do
+        local figurine = PlayerBoard.GetFigurine(PlayerBoard.GetPlayerBoard(i))
+        if figurine then
+            Script.MoveAction(buildStage, {
+                from = figurine,
+                to = playerPositions[i],
+                rotation = playerRotations[i],
+            })
+        end
+    end
+
+    -- starting cards
+    if showdownSetup.starting then
+        for _, card in ipairs(showdownSetup.starting.basic or {}) do
+            Setup.AddStartingCard(card, "Unused Basic AI", buildStage, setupData)
+        end
+        for _, card in ipairs(showdownSetup.starting.advanced or {}) do
+            Setup.AddStartingCard(card, "Unused Advanced AI", buildStage, setupData)
+        end
+        for _, card in ipairs(showdownSetup.starting.legendary or {}) do
+            Setup.AddStartingCard(card, "Unused Legendary AI", buildStage, setupData)
+        end
+        local allSpecial = Util.ConcatArrays((showdownSetup.starting.special or {}), (showdownSetup.starting.misc or {}))
+        for _, card in ipairs(allSpecial) do
+            Setup.AddStartingCard(card, "Unused Special AI", buildStage, setupData)
+        end
+    end
+    -- special case life, which "replaces" wound stack
+    if showdownSetup.life then
+        Script.TakeAction(buildStage, { name = "Life", type = "AI", from = "Unused Special AI", to = "Wound Stack", rotation = Script.FACE_UP })
+    end
+
+    -- custom cards
+    for _, card in ipairs(showdownSetup.customBasic or {}) do
+        Setup.AddAiCard(card, "Unused Basic AI", buildStage, setupData)
+    end
+    for _, card in ipairs(showdownSetup.customAdvanced or {}) do
+        Setup.AddAiCard(card, "Unused Advanced AI", buildStage, setupData)
+    end
+    for _, card in ipairs(showdownSetup.customLegendary or {}) do
+        Setup.AddAiCard(card, "Unused Legendary AI", buildStage, setupData)
+    end
+    for _, card in ipairs(showdownSetup.customSpecial or {}) do
+        Setup.AddAiCard(card, "Unused Special AI", buildStage, setupData)
+    end
+
+    -- random cards
+    for i = 1, (showdownSetup.basic or 0) do
+        Setup.AddAiCard(nil, "Unused Basic AI", buildStage, setupData)
+    end
+    for i = 1, (showdownSetup.advanced or 0) do
+        Setup.AddAiCard(nil, "Unused Advanced AI", buildStage, setupData)
+    end
+    for i = 1, (showdownSetup.legendary or 0) do
+        Setup.AddAiCard(nil, "Unused Legendary AI", buildStage, setupData)
+    end
+
+    -- remove any unused hit locations
+    for _, hl in ipairs(showdownSetup.removeHitLocations or {}) do
+        Script.TakeAction(buildStage, { name = hl, type = "Hit Locations", from = "HL", to = "Unused HL" })
+    end
+
+    -- spawn survivor statuses
+    if showdownSetup.survivorStatus then
+        for i = 1, 4 do
+            Script.TakeAction(buildStage, { name = showdownSetup.survivorStatus[i], from = "Unused Special AI", type = "AI", to = "Survivor Status "..i, rotation = Script.FACE_UP })
+        end
+    end
+
+    -- special terrain
+    for _, terrainSetup in ipairs(showdownSetup.specialTerrain or monsterSetup.specialTerrain or {}) do
+        if terrainSetup.terrain then
+            Setup.AddTerrain(terrainSetup.terrain, nil, false, buildStage, setupData)
+        end
+    end
+    -- fixed terrain
+    for _, terrainSetup in ipairs(showdownSetup.fixedTerrain or monsterSetup.fixedTerrain or {}) do
+        Setup.AddTerrain(terrainSetup.terrain, "Terrain", false, buildStage, setupData)
+    end
+    -- unfixed terrain
+    for _, terrain in ipairs(showdownSetup.unfixedTerrain or monsterSetup.unfixedTerrain or {}) do
+        Setup.AddTerrain(terrain, "Terrain", true, buildStage, setupData)
+    end
+    -- random terrain
+    for i = 1, (showdownSetup.randomTerrain or monsterSetup.randomTerrain or 0) do
+        Setup.AddTerrain(nil, "Terrain", true, buildStage, setupData)
+    end
+
+    ---------------------------------------------------------------------------
+
+    -- shuffle AI/HL
+    local shuffleStage = Script.Stage(script, "Shuffle Decks")
+    Script.WaitAction(shuffleStage, 60)
+    Script.ShuffleAction(shuffleStage, { from = "AI" })
+    Script.ShuffleAction(shuffleStage, { from = "HL" })
+
+    ---------------------------------------------------------------------------
+
+    local deckOrderStage = Script.Stage(script, "Deck Order")
+    Script.WaitAction(deckOrderStage, 30)
+    if showdownSetup.topAiCards or showdownSetup.bottomAiCards then
+        Script.OrderAction(deckOrderStage, {
+            from = "id:"..setupData.savedAiDeck,
+            top = showdownSetup.topAiCards,
+            bottom = showdownSetup.bottomAiCards,
+        })
+    end
+    if showdownSetup.topHitLocationCards then
+        Script.OrderAction(deckOrderStage, {
+            from = "id:Hit Locations Deck",
+            top = showdownSetup.topHitLocationCards,
+        })
+    end
+
+    ---------------------------------------------------------------------------
+
+    -- we have to break the script up into two pieces because the terrain tile spawning stage depends on the random terrain cards actually being drawn from the top of the deck
+    local _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj != nil then
+        Setup.CleanupShowdown()
+        Log.Broadcastf("Found an object %s(%s) blocking %s of the showdown setup. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag, locationBlocked)
+        return 1
+    end
+
+    local script = Script.Create("Showdown, part 2", true)
+
+    ---------------------------------------------------------------------------
+    -- spawn terrain tiles
+
+    local spawnTerrainTilesStage = Script.Stage(script, "Spawn Terrain Tiles")
+
+    for _, terrainSetup in ipairs(showdownSetup.specialTerrain or monsterSetup.specialTerrain or {}) do
+        if terrainSetup.terrainTile then
+            Script.TakeAction(spawnTerrainTilesStage, { name = terrainSetup.terrainTile, type = "Terrain Tiles", to = terrainSetup.position, rotation = terrainSetup.rotation })
+        end
+    end
+
+    for _, terrainSetup in ipairs(showdownSetup.fixedTerrain or monsterSetup.fixedTerrain or {}) do
+        local data = Setup.terrainData[terrainSetup.terrain]
+        Assert(data, "No terrain data for %s", terrainSetup.terrain)
+
+        for i, pos in ipairs(terrainSetup.positions) do
+            Setup.AddTerrainTile(data.terrainTile, pos, terrainSetup.rotations[i], spawnTerrainTilesStage, setupData)
+        end
+
+        for _, miscObject in ipairs(data.miscObjects or {}) do
+            Setup.AddMiscObject(miscObject.name, miscObject.type, spawnTerrainTilesStage, setupData)
+        end
+
+        for _, starting in ipairs(data.starting or {}) do
+            Setup.AddStartingCard(starting, nil, spawnTerrainTilesStage, setupData)
+        end
+    end
+
+    for _, unfixedTerrain in ipairs(setupData.unfixedTerrain) do
+        local data = Setup.terrainData[unfixedTerrain.terrain]
+        Assert(data, "No terrain data for %s", unfixedTerrain.terrain)
+
+        local count = data.count
+        if count == "*" then
+            count = levelSetup.level
+        end
+        if terrain == "Egg Sacs" and monster == "Spidicules" then
+            count = count * 2
+        end
+
+        for i = 1, count do
+            Log.Debugf("Adding %s -> %s", data.terrainTile, unfixedTerrain.location)
+            Setup.AddTerrainTile(data.terrainTile, unfixedTerrain.location, nil, spawnTerrainTilesStage, setupData)
+        end
+
+        for _, miscObject in ipairs(data.miscObjects or {}) do
+            Setup.AddMiscObject(miscObject.name, miscObject.type, spawnTerrainTilesStage, setupData)
+        end
+
+        for _, starting in ipairs(data.starting or {}) do
+            Setup.AddStartingCard(starting, nil, spawnTerrainTilesStage, setupData)
+        end
+    end
+
+    -- this has problem with slow loads
+    -- local lockFixedTerrainTilesStage = Script.Stage(script, "Lock Fixed Terrain Tiles")
+    -- Script.WaitAction(lockFixedTerrainTilesStage, 60)
+    -- Script.LockAction(lockFixedTerrainTilesStage, {
+    --     from = "Showdown Grid",
+    --     types = { "Terrain Tiles" },
+    -- })
+
+    -- must do this after terrain since some monsters spawn on top of terrain (Phoenix)
+    local spawnMonsterStage = Script.Stage(script, "Spawn Monster")
+    Script.TakeAction(spawnMonsterStage, {
+        name = monster,
+        type = "Monster Figurine",
+        to = showdownSetup.position or monsterSetup.position,
+        rotation = showdownSetup.rotation or monsterSetup.rotation or Script.FACE_UP,
+    })
+
+    local _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj != nil then
+        Setup.CleanupShowdown()
+        Log.Broadcastf("Found an object %s(%s) blocking %s of the showdown setup. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag, locationBlocked)
+        return 1
+    end
+
+    -- set monster stats
+    for _, attribute in ipairs({ "movement", "toughness", "speed", "damage", "accuracy", "evasion", "luck" }) do
+        ShowdownBoard.SetAttribute(attribute, showdownSetup[attribute] or 0)
+    end
+
+    Setup.settingUpShowdown = false
+    Log.Printf("Showdown setup finished. Death awaits.")
+
+    EventManager.FireEvent("onShowdownStart")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddStartingCard(card, from, stage, setupData)
+    if setupData.nextTraitLocation <= Script.MAX_TRAIT_MOOD_LOCATIONS then
+        Script.TakeAction(stage, { name = card, type = "AI", from = from, to = "Trait/Mood "..setupData.nextTraitLocation, rotation = Script.FACE_UP })
+        setupData.nextTraitLocation = setupData.nextTraitLocation + 1
+    else
+        Log.Errorf("Not enough trait/mood spaces for '%s'!", card)
+        local to = string.format("(%d, %d)", setupData.traitOverflowCol, setupData.traitOverflowRow)
+        Script.TakeAction(stage, { name = card, type = "AI", from = location, to = to, rotation = Script.FACE_UP })
+        setupData.traitOverflowRow = setupData.traitOverflowRow + 3
+        if setupData.traitOverflowRow > 16 then
+            setupData.traitOverflowRow = 2
+            setupData.traitOverflowCol = setupData.traitOverflowCol - 2
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddAiCard(card, from, stage, setupData)
+    if setupData.savedAiDeck then
+        Script.TakeAction(stage, {
+            name = card,
+            type = "AI",
+            from = from,
+            to = "id:"..setupData.savedAiDeck,
+        })
+    else
+        Script.TakeAction(stage, {
+            name = card,
+            type = "AI",
+            from = from,
+            to = "AI",
+            saveId = "Ai Deck",
+        })
+        setupData.savedAiDeck = "Ai Deck"
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddTerrain(terrain, from, recordUnfixed, stage, setupData)
+    local location = nil
+    if setupData.nextTerrainLocation <= Script.MAX_TERRAIN_LOCATIONS then
+        location = "Terrain "..setupData.nextTerrainLocation
+        setupData.nextTerrainLocation = setupData.nextTerrainLocation + 1
+    else
+        Log.Errorf("Not enough terrain spaces for '%s'!", terrain)
+        location = string.format("(%d, %d)", setupData.terrainOverflowCol, setupData.terrainOverflowRow)
+        setupData.terrainOverflowRow = setupData.terrainOverflowRow + 3
+        if setupData.terrainOverflowRow >= 16 then
+            setupData.terrainOverflowRow = 2
+            setupData.terrainOverflowCol = setupData.terrainOverflowCol + 2
+        end
+    end
+
+    local spawnFunc = nil
+    if recordUnfixed then
+        spawnFunc = function(obj)
+            table.insert(setupData.unfixedTerrain, { terrain = obj.getName(), location = location })
+        end
+    end
+
+    Script.TakeAction(stage, {
+        name = terrain,
+        type = "Terrain",
+        from = from,
+        to = location,
+        rotation = Script.FACE_UP,
+        spawnFunc = spawnFunc,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddTerrainTile(terrainTile, location, rotation, stage, setupData)
+    if not setupData.savedTerrainTiles[terrainTile] then
+        Script.TakeAction(stage, {
+            name = terrainTile,
+            type = "Terrain Tiles",
+            from = "Terrain Tiles",
+            to = location,
+            rotation = rotation or Script.FACE_UP,
+            saveId = terrainTile,
+        })
+        setupData.savedTerrainTiles[terrainTile] = true
+    else
+        Script.CloneAction(stage, {
+            from = "id:"..terrainTile,
+            to = location,
+            rotation = rotation or Script.FACE_UP,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.AddMiscObject(name, type, stage, setupData)
+    Script.TakeAction(stage, { name = name, type = type, to = "Misc "..setupData.nextMiscLocation })
+    if setupData.nextMiscLocation < Script.MAX_MISC_LOCATIONS then
+        setupData.nextMiscLocation = setupData.nextMiscLocation + 1
+    else
+        Log.Errorf("Ran out of misc locations for %s, %s", setupData.monster, setupData.level)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Setup

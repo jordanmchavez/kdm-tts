@@ -1,0 +1,140 @@
+-- A countdown latch for tracking and doing blocking waits on object spawns.
+
+local Util = require("Kdm/Util")
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Latch")
+local EventManager = require("Kdm/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local Latch = {}
+
+latch_idToLatch = {}
+latch_nextId = 0
+
+---------------------------------------------------------------------------------------------------
+
+function Assert_Latch(value)
+    if value == nil then
+        Assert.Fail("Required latch arg is nil")
+    end
+
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("Required latch arg has type %s", t)
+    end
+
+    Assert(value.tag == "Latch", "Required latch arg had wrong tag, full object: %s", Util.TabStr(value))
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- Used to assign consistent identifiers to spawned objects.
+-- We can't rely on GUIDs since they can change for objects coming out of/going into containers/decks.
+local function Latch_NextId(obj)
+    Assert(obj != nil, "obj")
+    latch_nextId = latch_nextId + 1
+    return string.format("%s_%d", obj.getName(), latch_nextId)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Latch.Create(name, count)
+    Assert.Str(name, "name")
+    Assert.NumOrNil(count, "count")
+    return {
+        tag = "Latch",
+        name = name,
+        count = count or 0,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Latch.AddObject(latch, obj)
+    Assert_Latch(latch, "latch")
+    Assert.Obj(obj, "obj")
+
+    Log.Debugf("Adding object %s (%s) to latch %s", obj.getName(), obj.getGUID(), latch.name)
+
+    local id = Latch_NextId(obj)
+    obj.SetVar("Latch.id", id)
+    latch.count = latch.count + 1
+    latch_idToLatch[id] = latch
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- If a spawned object goes directly into a container, it's callback_function won't be invoked, and
+-- therefore our wait latch never gets decremented. We rely on onObjectEnterContainer to catch such cases,
+-- and the object/latch map to know which latch to decrement.
+function Latch.RemoveObject(obj, source)
+    Assert.Str(source, "source")
+
+    if obj == nil then
+        -- this can sometimes happen on very fast object spawning/deleting
+        --Log.Debugf("RemoveObject called on dead object")
+        return
+    end
+
+    Assert.Obj(obj, "obj")
+
+    local id = obj.GetVar("Latch.id")
+    if id == nil then
+        Log.Debugf("Object %s (%s) has no id in RemoveObject from %s, must have been handled elsewhere.", obj.getName(), obj.getGUID(), source)
+        return nil
+    end
+
+    local latch = latch_idToLatch[id]
+    Assert(latch, "Object %s (%s, %s) has no associated latch!", obj.getName(), obj.getGUID(), id)
+
+    Log.Debugf("Decrementing latch %s for object %s (%s, %s) in %s", latch.name, obj.getName(), obj.getGUID(), id, source)
+
+    latch.count = latch.count - 1
+    latch_idToLatch[id] = nil
+    obj.SetVar("Latch.id", nil)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Latch.Wait(latch, timeoutSeconds)
+    Assert_Latch(latch, "latch")
+    Assert.Num(timeoutSeconds, "timeoutSeconds")
+
+    Log.Debugf("Waiting on latch %s for %f seconds", latch.name, timeoutSeconds)
+
+    local timeout = os.clock() + timeoutSeconds
+    while os.clock() < timeout do
+        if latch.count == 0 then
+            Log.Debugf("Latch %s done", latch.name)
+            return
+        end
+        coroutine.yield(0)
+    end
+
+    Log.Debugf("Latch %s timed out", latch.name)
+    return false
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Latch_onObjectEnterContainer(container, obj)
+    Latch.RemoveObject(obj, "onObjectEnterContainer")
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Latch_onObjectDestroy(obj)
+    Latch.RemoveObject(obj, "onObjectDestroy")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Latch.Init()
+    EventManager.AddHandler("onObjectEnterContainer", Latch_onObjectEnterContainer)
+    EventManager.AddHandler("onObjectDestroy", Latch_onObjectDestroy)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Latch

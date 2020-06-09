@@ -1,0 +1,848 @@
+local RulesData = {}
+
+RulesData.index = {
+    ["Core Rules"] = {
+        {
+            name = "Introduction",
+            keywords = { "Introduction" },
+            state = 1,
+        },
+        {
+            name = "Prologue",
+            keywords = { "Prologue" },
+            state = 2,
+        },
+        {
+            name = "First Story",
+            keywords = { "First", "Story" },
+            state = 11,
+        },
+        {
+            name = "Survival Guide",
+            keywords = { "Survival", "Guide" },
+            state = 18,
+        },
+        {
+            name = "Survivors",
+            keywords = { "Survivors" },
+            state = 20,
+        },
+        {
+            name = "Monsters",
+            keywords = { "Monsters" },
+            state = 24,
+        },
+        {
+            name = "Resources",
+            keywords = { "Resources" },
+            state = 28,
+        },
+        {
+            name = "Terrain",
+            keywords = { "Terrain" },
+            state = 29,
+        },
+        {
+            name = "Hunt Phase",
+            keywords = { "Hunt", "Phase" },
+            state = 30,
+        },
+        {
+            name = "Showdown Phase",
+            keywords = { "Showdown:", "Phase" },
+            state = 32,
+        },
+        {
+            name = "Settlement Phase",
+            keywords = { "Settlement", "Phase" },
+            state = 40,
+        },
+        {
+            name = "Severe Injuries",
+            keywords = { "Severe", "Injuries", "Injury" },
+            state = 43,
+        },
+        {
+            name = "Brain Trauma",
+            keywords = { "Brain", "Trauma" },
+            state = 44,
+        },
+        {
+            name = "Hunt Events 1-11",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 1,
+            huntEventEnd = 11,
+            state = 45,
+        },
+        {
+            name = "Hunt Events 12-25",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 12,
+            huntEventEnd = 25,
+            state = 46,
+        },
+        {
+            name = "Hunt Events 26-38",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 26,
+            huntEventEnd = 38,
+            state = 47,
+        },
+        {
+            name = "Hunt Events 39-53",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 39,
+            huntEventEnd = 53,
+            state = 48,
+        },
+        {
+            name = "Hunt Events 54-69",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 54,
+            huntEventEnd = 69,
+            state = 49,
+        },
+        {
+            name = "Hunt Events 70-79",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 70,
+            huntEventEnd = 79,
+            state = 50,
+        },
+        {
+            name = "Hunt Events 80-94",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 80,
+            huntEventEnd = 94,
+            state = 51,
+        },
+        {
+            name = "Hunt Events 95-100",
+            keywords = { "Hunt", "Events" },
+            huntEventStart = 95,
+            huntEventEnd = 100,
+            state = 52,
+        },
+        {
+            name = "Age",
+            keywords = { "Age", "XP" },
+            state = 53,
+        },
+        {
+            name = "Armored Strangers",
+            keywords = { "Armored", "Strangers" },
+            state = 54,
+        },
+        {
+            name = "Birth of a Savior",
+            keywords = { "Birth", "Savior" },
+            state = 55,
+        },
+        {
+            name = "Bold",
+            keywords = { "Bold", "Courage" },
+            state = 56,
+        },
+        {
+            name = "Bone Witch",
+            keywords = { "Bone", "Witch" },
+            state = 57,
+        },
+        {
+            name = "Cooking",
+            keywords = { "Cooking" },
+            state = 58,
+        },
+        {
+            name = "Crush & Devour",
+            keywords = { "Crush", "Devour", "Screaming", "Antelope" },
+            state = 59,
+        },
+        {
+            name = "Endless Screams",
+            keywords = { "Endless", "Screams" },
+            state = 60,
+        },
+        {
+            name = "Game Over",
+            keywords = { "Game", "Over" },
+            state = 61,
+        },
+        {
+            name = "Hands of Heat",
+            keywords = { "Hands", "Heat" },
+            state = 62,
+        },
+        {
+            name = "Herb Gathering",
+            keywords = { "Herb", "Gathering" },
+            state = 63,
+        },
+        {
+            name = "Hooded Knight",
+            keywords = { "Hooded", "Knight" },
+            state = 64,
+        },
+        {
+            name = "Insight",
+            keywords = { "Insight", "Understanding" },
+            state = 65,
+        },
+        {
+            name = "Intimacy",
+            keywords = { "Intimacy" },
+            state = 66,
+        },
+        {
+            name = "King's Curse",
+            keywords = { "King's", "Curse", "Man", "Regal" },
+            state = 67,
+        },
+        {
+            name = "King's Step",
+            keywords = { "King's", "Step", "Man" },
+            state = 68,
+        },
+        {
+            name = "Lantern Research",
+            keywords = { "Lantern", "Research" },
+            state = 69,
+        },
+        {
+            name = "Legendary Lungs",
+            keywords = { "Legendary", "Lungs", "Butcher" },
+            state = 70,
+        },
+        {
+            name = "Legendary Monsters",
+            keywords = { "Legendary", "Monsters" },
+            state = 71,
+        },
+        {
+            name = "Mineral Gathering",
+            keywords = { "Mineral", "Gathering", "Mining" },
+            state = 72,
+        },
+        {
+            name = "Overwhelming Darkness",
+            keywords = { "Overwhelming", "Darkness" },
+            state = 73,
+        },
+        {
+            name = "Oxidation",
+            keywords = { "Oxidation" },
+            state = 74,
+        },
+        {
+            name = "Phoenix Feather",
+            keywords = { "Phoenix", "Feather" },
+            state = 75,
+        },
+        {
+            name = "Principle Conviction",
+            keywords = { "Principle", "Conviction" },
+            state = 76,
+        },
+        {
+            name = "Principle Death",
+            keywords = { "Principle", "Death" },
+            state = 77,
+        },
+        {
+            name = "Principle New Life",
+            keywords = { "Principle", "New", "Life" },
+            state = 78,
+        },
+        {
+            name = "Principle Society",
+            keywords = { "Principle", "Society" },
+            state = 79,
+        },
+        {
+            name = "Regal Visit",
+            keywords = { "Regal", "Visit", "The", "Hand" },
+            state = 80,
+        },
+        {
+            name = "Returning Survivors",
+            keywords = { "Returning", "Survivors" },
+            state = 81,
+        },
+        {
+            name = "Run Away",
+            keywords = { "Run", "Away" },
+            state = 82,
+        },
+        {
+            name = "See the Truth",
+            keywords = { "See", "Truth", "Courage" },
+            state = 83,
+        },
+        {
+            name = "Showdown: Butcher",
+            keywords = { "Showdown:", "Butcher" },
+            state = 84,
+        },
+        {
+            name = "Showdown: The Hand",
+            keywords = { "Showdown:", "The", "Hand" },
+            state = 85,
+        },
+        {
+            name = "Showdown: King's Man",
+            keywords = { "Showdown:", "King's", "Man" },
+            state = 86,
+        },
+        {
+            name = "Showdown: Phoenix",
+            keywords = { "Showdown:", "Phoenix" },
+            state = 87,
+        },
+        {
+            name = "Showdown: Screaming Antelope",
+            keywords = { "Showdown:", "Screaming", "Antelope" },
+            state = 88,
+        },
+        {
+            name = "Showdown: White Lion",
+            keywords = { "Showdown:", "White", "Lion" },
+            state = 89,
+        },
+        {
+            name = "White Secret",
+            keywords = { "White", "Secret", "Understanding" },
+            state = 90,
+        },
+        {
+            name = "White Speaker",
+            keywords = { "White", "Speaker" },
+            state = 91,
+        },
+        {
+            name = "Zero Presence",
+            keywords = { "Zero", "Presence" },
+            state = 92,
+        },
+        {
+            name = "Watched",
+            keywords = { "Watched" },
+            state = 93,
+        },
+        {
+            name = "Showdown: Watcher",
+            keywords = { "Showdown:", "Watcher" },
+            state = 94,
+        },
+        {
+            name = "Blackout",
+            keywords = { "Blackout" },
+            state = 95,
+        },
+        {
+            name = "Showdown: Gold Smoke Knight",
+            keywords = { "Showdown:", "Gold", "Smoke", "Knight" },
+            state = 96,
+        },
+        {
+            name = "Hammer and Nail",
+            keywords = { "Hammer", "Nail", "Gold", "Smoke", "Knight" },
+            state = 97,
+        },
+        {
+            name = "Game Variants",
+            keywords = { "Game", "Variants" },
+            state = 98,
+        },
+        {
+            name = "Glossary",
+            keywords = { "Glossary" },
+            state = 99,
+        },
+    },
+    ["Dragon King Rules"] = {
+        {
+            name = "Dragon King Rules",
+            keywords = { "Dragon", "King", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "Glowing", "Crater",
+            keywords = { "Glowing", "Crater" },
+            state = 3,
+        },
+        {
+            name = "Showdown: Dragon King",
+            keywords = { "Showdown:", "Dragon", "King" },
+            state = 4,
+        },
+        {
+            name = "Meltdown",
+            keywords = { "Meltdown" },
+            state = 5,
+        },
+        {
+            name = "Foundlings",
+            keywords = { "Foundlings" },
+            state = 6,
+        },
+        {
+            name = "Intimacy (Dragon King)",
+            keywords = { "Intimacy" },
+            state = 7,
+        },
+        {
+            name = "Midnight's Children",
+            keywords = { "Midnight's", "Children" },
+            state = 8,
+        },
+        {
+            name = "Awake",
+            keywords = { "Awake" },
+            state = 9,
+        },
+        {
+            name = "Unveil the Sky",
+            keywords = { "Unveil", "Sky" },
+            state = 10,
+        },
+        {
+            name = "Faces in the Sky",
+            keywords = { "Faces", "Sky" },
+            state = 11,
+        },
+        {
+            name = "The Tomb",
+            keywords = { "The ", "Tomb" },
+            state = 12,
+        },
+        {
+            name = "Showdown: The Tyrant",
+            keywords = { "Showdown:", "Tyrant" },
+            state = 13,
+        },
+        {
+            name = "Death of the Dragon King",
+            keywords = { "Death", "of", "the", "Dragon", "King" },
+            state = 14,
+        },
+    },
+    ["Dung Beetle Knight Rules"] = {
+        {
+            name = "Dung Beetle Knight Rules",
+            keywords = { "Dung", "Beetle", "Knight", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "Rumbling in the Dark",
+            keywords = { "Rumbling", "Dark" },
+            state = 3,
+        },
+        {
+            name = "Showdown: Dung Beetle Knight",
+            keywords = { "Showdown:", "Dung", "Beetle", "Knight" },
+            state = 6,
+        },
+        {
+            name = "Spelunking of Death",
+            keywords = { "Spelunking", "of", "Death" },
+            state = 7,
+        },
+        {
+            name = "Underground Sow",
+            keywords = { "Underground", "Sow" },
+            state = 8,
+        },
+        {
+            name = "Black Harvest",
+            keywords = { "Black", "Harvest" },
+            state = 9,
+        },
+        {
+            name = "Secret Meeting",
+            keywords = { "Secret", "Meeting" },
+            state = 10,
+        },
+    },
+    ["Flower Knight Rules"] = {
+        {
+            name = "Flower Knight Rules",
+            keywords = { "Flower", "Knight", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "A Crone's Tale",
+            keywords = { "A", "Crone's", "Tale" },
+            state = 3,
+        },
+        {
+            name = "Showdown: Flower Knight",
+            keywords = { "Showdown:", "Flower", "Knight" },
+            state = 6,
+        },
+        {
+            name = "The Forest Wants What it Wants (Flower Knight)",
+            keywords = { "The", "Forest", "Wants", "What", "It", "Wants" },
+            state = 7,
+        },
+        {
+            name = "Breakthrough",
+            keywords = { "Breakthrough" },
+            state = 8,
+        },
+        {
+            name = "Sense Memory",
+            keywords = { "Sense", "Memory" },
+            state = 9,
+        },
+        {
+            name = "A Warm Virus",
+            keywords = { "A", "Warm", "Virus" },
+            state = 10,
+        },
+        {
+            name = "Necrotoxic Mistletoe",
+            keywords = { "Necrotoxic", "Mistletoe" },
+            state = 11,
+        },
+    },
+    ["Gorm Rules"] = {
+        {
+            name = "Gorm Rules",
+            keywords = { "Gorm", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "The Approaching Storm",
+            keywords = { "The", "Approaching", "Storm" },
+            state = 2,
+        },
+        {
+            name = "Fetid Grotto",
+            keywords = { "Fetid", "Grotto" },
+            state = 3,
+        },
+        {
+            name = "The Final March",
+            keywords = { "The", "Final", "March" },
+            state = 4,
+        },
+        {
+            name = "Showdown: Gorm",
+            keywords = { "Showdown:", "Gorm" },
+            state = 5,
+        },
+        {
+            name = "Melting Horror",
+            keywords = { "Melting", "Horror" },
+            state = 6,
+        },
+    },
+    ["Lion God Rules"] = {
+        {
+            name = "Lion God Rules",
+            keywords = { "Lion", "God", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "The Silver City",
+            keywords = { "The", "Silver", "City" },
+            state = 2,
+        },
+        {
+            name = "Showdown: Lion God",
+            keywords = { "Showdown:", "Lion", "God" },
+            state = 5,
+        },
+        {
+            name = "Necropolis",
+            keywords = { "Necropolis" },
+            state = 6,
+        },
+        {
+            name = "The Knowledge Worm",
+            keywords = { "The", "Knowledge", "Worm" },
+            state = 7,
+        },
+        {
+            name = "A Gracious Host",
+            keywords = { "A", "Gracious", "Host" },
+            state = 8,
+        },
+        {
+            name = "Death Reading",
+            keywords = { "Death", "Reading" },
+            state = 9,
+        },
+    },
+    ["Lion Knight Rules"] = {
+        {
+            name = "Lion Knight Rules",
+            keywords = { "Lion", "Knight", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "An Uninvited Guest",
+            keywords = { "An", "Uninvited", "Guest" },
+            state = 3,
+        },
+        {
+            name = "Places Everyone!",
+            keywords = { "Places", "Everyone!" },
+            state = 4,
+        },
+        {
+            name = "Showdown: Lion Knight",
+            keywords = { "Showdown:", "Lion", "Knight" },
+            state = 5,
+        },
+        {
+            name = "Intermission",
+            keywords = { "Intermission" },
+            state = 6,
+        },
+        {
+            name = "Strange Caravan",
+            keywords = { "Strange", "Caravan" },
+            state = 7,
+        },
+        {
+            name = "Finale",
+            keywords = { "Finale" },
+            state = 8,
+        },
+    },
+    ["Lonely Tree Rules"] = {
+        {
+            name = "Lonely Tree Rules",
+            keywords = { "Lonely", "Tree", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "The Lonely Lady",
+            keywords = { "The", "Lonely", "Lady" },
+            state = 2,
+        },
+        {
+            name = "Showdown: Lonely Tree",
+            keywords = { "Showdown:", "Lonely", "Tree" },
+            state = 6,
+        },
+    },
+    ["Manhunter Rules"] = {
+        {
+            name = "Manhunter Rules",
+            keywords = { "Manhunter", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "The Hanged Man",
+            keywords = { "The", "Hanged", "Man" },
+            state = 2,
+        },
+        {
+            name = "Showdown: Manhunter",
+            keywords = { "Showdown:", "Manhunter" },
+            state = 5,
+        },
+        {
+            name = "Lottery",
+            keywords = { "Lottery" },
+            state = 6,
+        },
+        {
+            name = "Death Pit",
+            keywords = { "Death", "Pit" },
+            state = 7,
+        },
+        {
+            name = "Sonorous Rest",
+            keywords = { "Sonorous", "Rest" },
+            state = 8,
+        },
+        {
+            name = "Bleeding Heart",
+            keywords = { "Bleeding", "Heart" },
+            state = 9,
+        },
+        {
+            name = "Tools of War",
+            keywords = { "Tools", "of", "War" },
+            state = 10,
+        },
+    },
+    ["Slenderman Rules"] = {
+        {
+            name = "Slenderman Rules",
+            keywords = { "Slenderman", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "It's Already Here",
+            keywords = { "It's", "Its", "Already", "Here" },
+            state = 2,
+        },
+        {
+            name = "Showdown: Slenderman",
+            keywords = { "Showdown:", "Slenderman" },
+            state = 5,
+        },
+        {
+            name = "A Dark Place",
+            keywords = { "A", "Dark", "Place" },
+            state = 6,
+        },
+        {
+            name = "Light-Forging",
+            keywords = { "Light", "Forging" },
+            state = 7,
+        },
+        {
+            name = "Forgotten Fear",
+            keywords = { "Forgotten", "Fear" },
+            state = 8,
+        },
+    },
+    ["Spidicules Rules"] = {
+        {
+            name = "Spidicules Rules",
+            keywords = { "Spidicules", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "Young Rivals",
+            keywords = { "Young", "Rivals" },
+            state = 3,
+        },
+        {
+            name = "Showdown: Spidicules",
+            keywords = { "Showdown:", "Spidicules" },
+            state = 5,
+        },
+        {
+            name = "The Forest Wants What it Wants (Spidicules)",
+            keywords = { "The", "Forest", "Wants", "What", "it", "Wants" },
+            state = 6,
+        },
+        {
+            name = "Spidisisyphus",
+            keywords = { "Spidisisyphus" },
+            state = 7,
+        },
+        {
+            name = "Puppet's Embalming",
+            keywords = { "Puppet's", "Embalming" },
+            state = 8,
+        },
+        {
+            name = "Silk Surgery",
+            keywords = { "Silk", "Surgery" },
+            state = 9,
+        },
+        {
+            name = "Taken",
+            keywords = { "Taken" },
+            state = 10,
+        },
+    },
+    ["Sunstalker Rules"] = {
+        {
+            name = "Sunstalker Rules",
+            keywords = { "Sunstalker", "Rulebook", "Rules" },
+            state = 1,
+        },
+        {
+            name = "Promise Under the Sun",
+            keywords = { "Promise", "Under", "the", "Sun" },
+            state = 3,
+        },
+        {
+            name = "Showdown: Sunstalker",
+            keywords = { "Showdown:", "Sunstalker" },
+            state = 5,
+        },
+        {
+            name = "Conquer Your Shadow",
+            keywords = { "Conquer", "Your", "Shadow" },
+            state = 6,
+        },
+        {
+            name = "Sky Fishing",
+            keywords = { "Sky", "Fishing" },
+            state = 7,
+        },
+        {
+            name = "The Pool and the Sun",
+            keywords = { "Pool", "and", "the", "Sun" },
+            state = 8,
+        },
+        {
+            name = "Intimacy (Sunstalker)",
+            keywords = { "Intimacy" },
+            state = 9,
+        },
+        {
+            name = "The Great Sky Gift",
+            keywords = { "The", "Great", "Sky", "Gift" },
+            state = 10,
+        },
+        {
+            name = "Birth of Color",
+            keywords = { "Birth", "Color" },
+            state = 11,
+        },
+        {
+            name = "Final Gift",
+            keywords = { "Final", "Gift" },
+            state = 12,
+        },
+        {
+            name = "Umbilical Symbiosis",
+            keywords = { "Umbilical", "Symbiosis" },
+            state = 13,
+        },
+        {
+            name = "Edged Tonometry",
+            keywords = { "Edged", "Tonometry" },
+            state = 14,
+        },
+        {
+            name = "Sun Dipping",
+            keywords = { "Sun", "Dipping" },
+            state = 15,
+        },
+        {
+            name = "Warriors of the Sun",
+            keywords = { "Warriors", "of", "the", "Sun" },
+            state = 16,
+        },
+        {
+            name = "The Great Devourer",
+            keywords = { "The", "Great", "Devourer" },
+            state = 17,
+        },
+    },
+    ["White Gigalion Rules"] = {
+        {
+            name = "White Gigalion Introduction",
+            keywords = { "White", "Gigalion", "Introduction" },
+            state = 1,
+        },
+        {
+            name = "White Gigalion Rules",
+            keywords = { "White", "Gigalion", "Rulebook", "Rules" },
+            state = 2,
+        },
+        {
+            name = "Vignette: The Gigantic Cat",
+            keywords = { "White", "Gigalion", "Vignette:", "the", "Gigantic", "Cat" },
+            state = 3,
+        },
+        {
+            name = "Showdown: White Gigalion",
+            keywords = { "Showdown:", "White", "Gigalion" },
+            state = 4,
+        },
+    },
+}
+
+return RulesData

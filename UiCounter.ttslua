@@ -1,0 +1,124 @@
+local Assert = require("Kdm/Assert")
+local Ui = require("Kdm/Ui")
+
+local UiCounter = {}
+
+---------------------------------------------------------------------------------------------------
+
+function UiCounter.Create(params)
+    Assert.Tab(params, "params")
+    local object = params.object
+    Assert.Obj(object, "params.object")
+    local name = params.name
+    Assert.Str(name, "params.name")
+    Assert.Num(params.value, "params.value")
+    Assert.Vec(params.position, "params.position")
+    Assert.VecOrNil(params.scale, "params.scale")
+    Assert.Num(params.size, "params.size")
+    Assert.NumOrNil(params.fontSize, "params.fontSize")
+    Assert.ColOrNil(params.fontColor, "params.fontColor")
+    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
+    Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
+
+    local uiCounter = {
+        tag = "UiCounter",
+        name = name,
+        object = object,
+    }
+
+    local scale = params.scale or Ui.SCALE
+    uiCounter.valueButton = {
+        index = Ui.RecordButtonAndGetIndex(object),
+
+        label = tostring(params.value),
+
+        position = params.position,
+        width = params.size,
+        height = params.size * 0.6,
+
+        scale = scale,
+        font_size = params.fontSize or (params.size / 1.2),
+        font_color = params.fontColor or Ui.LIGHT_BROWN,
+        color = params.backgroundColor or Ui.BACKGROUND_COLOR,
+
+        click_function = "Ui_Dud",
+        function_owner = self,
+    }
+    object.createButton(uiCounter.valueButton)
+
+    local scaleRatio = scale[1] / Ui.SCALE[1]
+    local pmXOffset = params.size * 0.0001333 * scaleRatio
+    local pmZOffset = params.size * 0.00018 * scaleRatio
+    local pmSize = params.size * 0.3
+    local pmFontSize = params.size * 0.4
+
+    local index = Ui.RecordButtonAndGetIndex(object)
+    local minusClickFunctionName = "UiCounter_"..object.getGUID().."_"..index.."_"..name.."_CounterMinusClick"
+    self.setVar(minusClickFunctionName, function (_, _, altClick) params.changeFunc(uiCounter, altClick and -10 or -1) end)
+
+    uiCounter.minusButton = {
+        index = index,
+
+        label = "-",
+
+        position = {
+            params.position[1] - pmXOffset,
+            params.position[2],
+            params.position[3] - pmZOffset,
+        },
+
+        scale = params.scale or Ui.SCALE,
+        width = pmSize,
+        height = pmSize,
+        font_size = pmFontSize,
+        font_color = params.fontColor or Ui.LIGHT_BROWN,
+        color = params.backgroundColor or Ui.BACKGROUND_COLOR,
+
+        click_function = minusClickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(uiCounter.minusButton)
+
+    local index = Ui.RecordButtonAndGetIndex(object)
+    local plusClickFunctionName = "UiCounter_"..object.getGUID().."_"..index.."_"..name.."_CounterPlusClick"
+    self.setVar(plusClickFunctionName, function (_, _, altClick) params.changeFunc(uiCounter, altClick and 10 or 1) end)
+    uiCounter.plusButton = {
+        index = index,
+
+        label = "+",
+
+        position = {
+            params.position[1] + pmXOffset,
+            params.position[2],
+            params.position[3] - pmZOffset,
+        },
+
+        scale = params.scale or Ui.SCALE,
+        width = pmSize,
+        height = pmSize,
+        font_size = pmFontSize,
+        font_color = params.fontColor or Ui.LIGHT_BROWN,
+        color = params.backgroundColor or Ui.BACKGROUND_COLOR,
+
+        click_function = plusClickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(uiCounter.plusButton)
+
+    return uiCounter
+end
+
+---------------------------------------------------------------------------------------------------
+
+function UiCounter.Set(uiCounter, value)
+    Assert.Tab(uiCounter)
+    Assert(uiCounter.tag == "UiCounter")
+    Assert.Num(value, "value")
+
+    uiCounter.valueButton.label = tostring(value)
+    uiCounter.object.editButton(uiCounter.valueButton)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return UiCounter

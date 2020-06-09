@@ -1,0 +1,141 @@
+local Weapons = {
+    weaponStats = {
+        ["Founding Stone"] = { speed = 2, accuracy = 7, strength = 1 },
+        ["Fist & Tooth"] = { speed = 2, accuracy = 8, strength = 0, Deadly = 1 },
+
+        ["Beacon Shield"] = { speed = 1, accuracy = 6, strength = 5 },
+        ["Dragon Slayer"] = { speed = 1, accuracy = 6, strength = 9, Slow = true, Sharp = true },
+        ["Lanter Dagger"] = { speed = 2, accuracy = 7, strength = 1, Sharp = true },
+        ["Lantern Glaive"] = { speed = 2, accuracy = 6, strength = 4, Sharp = true },
+        ["Lantern Sword"] = { speed = 3, accuracy = 5, strength = 3, Sharp = true },
+        ["Perfect Slayer"] = { speed = 3, accuracy = 6, strength = 14, Slow = true, Sharp = true },
+        ["Ring Whip"] = { speed = 2, accuracy = 5, strength = 0, Sharp = true },
+        ["Scrap Shield"] = { speed = 2, accuracy = 7, strength = 3 },
+
+        ["Bone Axe"] = { speed = 2, accuracy = 6, strength = 3 },
+        ["Bone Blade"] = { speed = 2, accuracy = 6, strength = 2 },
+        ["Bone Club"] = { speed = 2, accuracy = 6, strength = 5 },
+        ["Bone Dagger"] = { speed = 3, accuracy = 7, strength = 1 },
+        ["Bone Darts"] = { speed = 1, accuracy = 7, strength = 3 },
+        ["Bone Pickaxe"] = { speed = 1, accuracy = 8, strength = 2 },
+        ["Bone Sickle"] = { speed = 2, accuracy = 8, strength = 1 },
+
+        ["Cat Fang Knife"] = { speed = 3, accuracy = 6, strength = 2 },
+        ["Cat Gut Bow"] = { speed = 2, accuracy = 7, strength = 3 },
+        ["Claw Head Arrow"] = { speed = 1, accuracy = 6, strength = 6, Slow = true },
+        ["Dense Bone Arrows"] = { speed = 1, accuracy = 5, strength = 6, Sharp = true },
+        ["Hooked Claw Knife"] = { speed = 3, accuracy = 6, strength = 7 },
+        ["King Spear"] = { speed = 2, accuracy = 6, strength = 3 },
+        ["Lion Beast Katar"] = { speed = 2, accuracy = 7, strength = 3, Deadly = 1 },
+        ["Oxidized Beast Katar"] = { speed = 2, accuracy = 7, strength = 5, Deadly = 1, Sharp = true },
+
+        ["Blast Shield"] = { speed = 1, accuracy = 7, strength = 4 },
+        ["Blast Sword"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Dragon Bite Bolt"] = { speed = 1, accuracy = 6, strength = 6, Slow = true },
+        ["Dragon Chakram"] = { speed = 2, accuracy = 6, strength = 3 },
+        ["Nuclear Knife"] = { speed = 3, accuracy = 6, strength = 3 },
+        ["Nuclear Scythe"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Talon Knife"] = { speed = 2, accuracy = 6, strength = 4 },
+
+        ["Oxidized Beacon Shield"] = { speed = 1, accuracy = 6, strength = 6 },
+        ["Oxidized Lantern Dagger"] = { speed = 3, accuracy = 6, strength = 4, Sharp = true },
+        ["Oxidized Lantern Glaive"] = { speed = 2, accuracy = 5, strength = 6, Sharp = true },
+        ["Oxidized Lantern Sword"] = { speed = 3, accuracy = 5, strength = 5, Sharp = true },
+
+        ["Acid-Tooth Dagger"] = { speed = 2, accuracy = 7, strength = 2 },
+        ["Black Sword"] = { speed = 3, accuracy = 5, strength = 10 },
+        ["Gaxe"] = { speed = 1, accuracy = 6, strength = 4 },
+        ["Greater Gaxe"] = { speed = 2, accuracy = 6, strength = 4, Deadly = 1 },
+        ["Knuckle Shield"] = { speed = 3, accuracy = 7, strength = 1 },
+        ["Rib Blade"] = { speed = 1, accuracy = 6, strength = 5, Slow = true, Deadly = 1 },
+        ["Riot Mace"] = { speed = 2, accuracy = 5, strength = 5, Deadly = 1 },
+
+        ["Fetorsaurus"] = { speed = 2, accuracy = 5, strength = 9 },
+        ["Griswaldo"] = { speed = 3, accuracy = 4, strength = 15, Sharp = true, Deadly = 1 },
+
+        ["Hunter Whip"] = { speed = 3, accuracy = 6, strength = 3 },
+        ["Leather Shield"] = { speed = 1, accuracy = 8, strength = 1 },
+
+        ["Arc Bow"] = { speed = 1, accuracy = 6, strength = 9, Slow = true },
+        ["Feather Shield"] = { speed = 3, accuracy = 7, strength = 0 },
+        ["Hollowpoint Arrow"] = { speed = 1, accuracy = 6, strength = 11, Slow = true },
+        ["Hollow Sword"] = { speed = 3, accuracy = 5, strength = 3 },
+        ["Sonic Tomahawk"] = { speed = 3, accuracy = 5, strength = 2 },
+
+        ["Arm of the First Tree"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Aya's Sword"] = { speed = 2, accuracy = 7, strength = 3 },
+        ["Aya's Spear"] = { speed = 2, accuracy = 7, strength = 3 },
+        ["Speaker Cult Knife"] = { speed = 3, accuracy = 6, strength = 4, Deadly = 1, Sharp = true },
+        ["Sword of Silence"] = { speed = 2, accuracy = 5, strength = 6 },
+        ["Xmaxe"] = { speed = 2, accuracy = 5, strength = 0 },
+
+        ["Adventure Sword"] = { speed = 3, accuracy = 6, strength = 0 },
+        ["Butcher Cleaver"] = { speed = 2, accuracy = 5, strength = 5 },
+        ["Calcified Juggernaut Blade"] = { speed = 1, accuracy = 5, strength = 9, Slow = true },
+        ["Celestial Spear"] = { speed = 2, accuracy = 5, strength = 4 },
+        ["Excalibur"] = { speed = 2, accuracy = 4, strength = 4 },
+        ["Gloom-Coated Arrow"] = { speed = 5, accuracy = 6, strength = 5, Deadly = 1 },
+        ["Gloom Hammer"] = { speed = 2, accuracy = 7, strength = 13, Deadly = 1 },
+        ["Gloom Katana"] = { speed = 4, accuracy = 5, strength = 0 },
+        ["Grinning Visage"] = { speed = 2, accuracy = 7, strength = 4 },
+        ["Hazmat Shield"] = { speed = 2, accuracy = 4, strength = 7 },
+        ["Lantern Halberd"] = { speed = 2, accuracy = 4, strength = 7 },
+        ["Lion Knight's Left Claw"] = { speed = 2, accuracy = 5, strength = 4 },
+        ["Lion Knight's Right Claw"] = { speed = 2, accuracy = 8, strength = 8 },
+        ["Muramasa"] = { speed = 6, accuracy = 6, strength = 6, Sharp = true, Deadly = 2 },
+        ["Prism Mace"] = { speed = 3, accuracy = 6, strength = 10 },
+        ["Regal Edge"] = { speed = 1, accuracy = 5, strength = 2, Sharp = true },
+        ["Replica Flower Sword"] = { speed = 2, accuracy = 6, strength = 6 },
+        ["Steel Shield"] = { speed = 1, accuracy = 6, strength = 6 },
+        ["Steel Sword"] = { speed = 1, accuracy = 4, strength = 5, Sharp = true, Slow = true },
+        ["Sunring Bow"] = { speed = 2, accuracy = 4, strength = 4 },
+        ["The Weaver"] = { speed = 3, accuracy = 6, strength = 2 },
+        ["Thunder Maul"] = { speed = 2, accuracy = 6, strength = 10},
+        ["Twilight Sword"] = { speed = 1, accuracy = 9, strength = 9 },
+        ["Vespertine Arrow"] = { speed = 2, accuracy = 6, strength = 0, Deadly = 4 },
+        ["Vespertine Bow"] = { speed = 3, accuracy = 6, strength = 4, Deadly = 1 },
+
+        ["Amber Edge"] = { speed = 1, accuracy = 6, strength = 4, Slow = true },
+        ["Amber Poleaxe"] = { speed = 2, accuracy = 6, strength = 3 },
+        ["Hooded Scrap Katar"] = { speed = 2, accuracy = 7, strength = 4 },
+        ["Silk Whip"] = { speed = 2, accuracy = 6, strength = 3 },
+        ["Thowing Knife"] = { speed = 4, accuracy = 9, strength = 2},
+
+        ["Rawhide Whip"] = { speed = 3, accuracy = 7, strength = 1 },
+
+        ["Denticle Axe"] = { speed = 2, accuracy = 6, strength = 5 },
+        ["Ink Blood Bow"] = { speed = 2, accuracy = 7, strength = 8, Deadly = 1 },
+        ["Ink Sword"] = { speed = 4, accuracy = 4, strength = 4, Deadly = 3 },
+        ["Skleaver = 1, 5, 10 "] = {},
+        ["Sky Harpoon"] = { speed = 1, accuracy = 5, strength = 5 },
+        ["Sunshark Arrows"] = { speed = 1, accuracy = 4, strength = 6, Sharp = true },
+        ["Sunshark Bow"] = { speed = 3, accuracy = 6, strength = 0, Sharp = true },
+        ["Sunspot Dart"] = { speed = 4, accuracy = 7, strength = 3, Deadly = 1 },
+
+        ["Beast Knuckle"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Lance of Longinus"] = { speed = 2, accuracy = 6, strength = 9 },
+
+        ["Calcified Zanbato"] = { speed = 1, accuracy = 5, strength = 8, Slow = true, Deadly = 1 },
+        ["Counterweighted Axe"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Finger of God"] = { speed = 2, accuracy = 5, strength = 5 },
+        ["Rainbow Katana"] = { speed = 4, accuracy = 4, strength = 4 },
+        ["Scrap Dagger"] = { speed = 3, accuracy = 7, strength = 2 },
+        ["Scrap Sword"] = { speed = 2, accuracy = 5, strength = 3 },
+        ["Skullcap Hammer"] = { speed = 2, accuracy = 7, strength = 3 },
+        ["Whistling Mace"] = { speed = 3, accuracy = 6, strength = 3 },
+        ["Zanbato"] = { speed = 1, accuracy = 6, strength = 6, Slow = true, Deadly = 1 },
+
+        ["Calcified Digging Claw"] = { speed = 1, accuracy = 4, strength = 5, Sharp = true },
+        ["Digging Claw"] = { speed = 1, accuracy = 4, strength = 5 },
+    }
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Weapons.GetStats(name)
+    return Weapons.weaponStats[name]
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Weapons

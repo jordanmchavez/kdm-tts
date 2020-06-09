@@ -1,0 +1,43 @@
+local Assert = require("Kdm/Assert")
+local Ui = require("Kdm/Ui")
+
+local UiButton = {}
+
+function UiButton.Create(params)
+    Assert.Tab(params, "params")
+    local object = params.object
+    Assert.Obj(object, "params.object")
+    local name = params.name
+    Assert.Str(name, "params.name")
+    Assert.Vec(params.position, "params.position")
+    Assert.VecOrNil(params.scale, "params.scale")
+    Assert.Num(params.width, "params.width")
+    Assert.Num(params.height, "params.height")
+    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
+    Assert.Func(params.clickFunc, "params.clickFunc")
+
+    local uiButton = {
+        tag = "UiButton",
+        object = object,
+        name = name,
+    }
+
+    local index = Ui.RecordButtonAndGetIndex(object)
+    local clickFunctionName = "UiButton_"..object.getGUID().."_"..index.."_"..name.."_Click"
+    self.setVar(clickFunctionName, params.clickFunc)
+    uiButton.button = {
+        index = index,
+        position = params.position,
+        scale = params.scale or Ui.SCALE,
+        width = params.width,
+        height = params.height,
+        color = params.backgroundColor or Ui.BACKGROUND_COLOR,
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(uiButton.button)
+
+    return uiButton
+end
+
+return UiButton

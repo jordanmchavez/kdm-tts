@@ -1,0 +1,209 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("ShowdownBoard")
+local UiCounter = require("Kdm/UiCounter")
+local UiButton = require("Kdm/UiButton")
+local Script = require("Kdm/Script")
+local Expansions = require("Kdm/Expansions")
+local EventManager = require("Kdm/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local ShowdownBoard = {}
+
+SHOWDOWN_BOARD_DECKS_TO_SHUFFLE = {
+    ["Fighting Arts"] = true,
+    ["Disorders"] = true,
+    ["Tactics"] = true,
+    ["Vermin"] = true,
+    ["Basic Resources"] = true,
+    ["Monster Resources"] = true,
+    ["Terrain"] = true,
+}
+
+SHOWDOWN_BOARD_UI_HEIGHT = 10.75
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.GetMovement()
+    return ShowdownBoard.movement
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.GetToughness()
+    return ShowdownBoard.toughness
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.GetSpeed()
+    return ShowdownBoard.speed
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.GetEvasion()
+    return ShowdownBoard.evasion
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.GetLuck()
+    return ShowdownBoard.luck
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.SetAttribute(attribute, value)
+    Assert.Str(attribute)
+    Assert.Num(value)
+
+    Assert(ShowdownBoard[attribute] != nil, "No such attribute: %s", attribute)
+
+    Log.Debugf("Setting monster attribute %s to %d", attribute, value)
+
+    local oldValue = ShowdownBoard[attribute]
+    if oldValue != value then
+        ShowdownBoard[attribute] = value
+        UiCounter.Set(ShowdownBoard[attribute.."UiCounter"], value)
+        EventManager.FireEvent("onMonsterChangeAttribute", attribute, value)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard_ResetDeckCoroutine()
+    local deck = ShowdownBoard.resetDeck
+
+    if not Expansions.HasDeck(deck) then
+        Log.Broadcastf("There are no %s cards for the current expansions.", deck)
+        return 1
+    end
+
+    Log.Debugf("Resetting deck %s", deck)
+
+    local script = Script.Create("Reset "..deck)
+
+    cleanupStage = Script.Stage(script, "Cleanup")
+    Script.CleanAction(cleanupStage, { from = deck, types = { deck }})
+
+    spawnStage = Script.Stage(script, "Spawn")
+    Script.TakeAction(spawnStage, {
+        name = deck,
+        type = deck,
+        to = deck,
+        rotation = Script.FACE_DOWN,
+    })
+
+    if SHOWDOWN_BOARD_DECKS_TO_SHUFFLE[deck] then
+        shuffleStage = Script.Stage(script, "Shuffle")
+        Script.ShuffleAction(shuffleStage, { from = deck })
+    end
+
+    local _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj != nil then
+        Log.Broadcastf("Found object %s(%s) in the way of the %s deck. Please move out of the way then try resetting the deck again.", blockingObj.getName(), blockingObj.tag, deck)
+    end
+
+    return 1
+end
+
+local function ShowdownBoard_ResetDeck(deck)
+    ShowdownBoard.resetDeck = deck
+    startLuaCoroutine(self, "ShowdownBoard_ResetDeckCoroutine")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.Save()
+    return {
+        movement = ShowdownBoard.movement,
+        toughness = ShowdownBoard.toughness,
+        damage = ShowdownBoard.damage,
+        speed = ShowdownBoard.speed,
+        accuracy = ShowdownBoard.accuracy,
+        evasion = ShowdownBoard.evasion,
+        luck = ShowdownBoard.luck,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ShowdownBoard.Init(showdownBoardObj, saveState)
+    saveState = saveState or {}
+
+    ShowdownBoard.movement = saveState.movement or 0
+    ShowdownBoard.toughness = saveState.toughness or 0
+    ShowdownBoard.damage = saveState.damage or 0
+    ShowdownBoard.speed = saveState.speed or 0
+    ShowdownBoard.accuracy = saveState.accuracy or 0
+    ShowdownBoard.evasion = saveState.evasion or 0
+    ShowdownBoard.luck = saveState.luck or 0
+
+    local attributes = { "movement", "toughness", "speed", "damage", "accuracy", "evasion", "luck" }
+    local x = 5.04
+    local z = 0.01
+    local dz = 0.555
+    local size = 1000
+
+    for i, attribute in ipairs(attributes) do
+        ShowdownBoard[attribute.."UiCounter"] = UiCounter.Create({
+            object = showdownBoardObj,
+            name = attribute,
+            value = ShowdownBoard[attribute],
+            position = { x, SHOWDOWN_BOARD_UI_HEIGHT, z + ((i - 1) * dz) },
+            size = size,
+            changeFunc = function(uiCounter, delta)
+                ShowdownBoard.SetAttribute(attribute, ShowdownBoard[attribute] + delta)
+            end
+        })
+    end
+
+    local x0 = -7.325
+    local z0 = -1.455
+    local dx = 0.82
+    local dz = 1.396
+
+    local deckGrid = {
+        { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
+        { "Disorders", "Severe Injuries", "Tactics" },
+        { "Weapon Specializations/Masteries", "Armor Sets", "Vermin" },
+        { "Strange Resources", "Basic Resources" },
+    }
+    for row, deckRow in ipairs(deckGrid) do
+        local z = z0 + ((row - 1) * dz)
+        for col, deck in ipairs(deckRow) do
+            local x = x0 + ((col - 1) * dx)
+
+            UiButton.Create({
+                object = showdownBoardObj,
+                name = deck.."Reset",
+                clickFunc = function() ShowdownBoard_ResetDeck(deck) end,
+                position = {
+                    x = x,
+                    y = SHOWDOWN_BOARD_UI_HEIGHT,
+                    z = z,
+                },
+                width = 1850.0,
+                height = 500.0,
+            })
+        end
+    end
+
+    UiButton.Create({
+        object = showdownBoardObj,
+        name = "TerrainReset",
+        position = {
+            x = -3.88,
+            y = SHOWDOWN_BOARD_UI_HEIGHT,
+            z = -3.84,
+        },
+        width = 500.0,
+        height = 2800.0,
+        clickFunc = function() ShowdownBoard_ResetDeck("Terrain") end,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+return ShowdownBoard

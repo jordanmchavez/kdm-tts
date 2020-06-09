@@ -1,0 +1,529 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Archive")
+local Guids = require("Kdm/Guids")
+
+---------------------------------------------------------------------------------------------------
+
+local Archive = {}
+
+Archive.index = {}
+Archive.reverseIndex = {
+    ["Kingdom Death: Monster Archive"] = {
+        { "Core Rules", "Rulebook" },
+        { "Innovation Archive", "Innovations" },
+        { "Core Abilities", "Abilities" },
+        { "Core Fighting Arts", "Fighting Arts" },
+        { "Core Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Core Disorders", "Disorders" },
+        { "Core Severe Injuries", "Severe Injuries" },
+        { "Core Weapon Specializations/Masteries", "Weapon Specializations/Masteries" },
+        { "Core Armor Sets", "Armor Sets" },
+        { "Core Vermin", "Vermin" },
+        { "Core Strange Resources", "Strange Resources" },
+        { "Core Basic Resources", "Basic Resources" },
+        { "Core Terrain", "Terrain" },
+        { "Core Hunt Events", "Hunt Events" },
+        { "Core Settlement Events", "Settlement Events" },
+        { "Terrain Tiles", "Terrain Tiles" },
+        { "The Forest Gate", "Special Hunt Events" },
+        { "Herb Gathering", "Special Hunt Events" },
+        { "Mineral Gathering", "Special Hunt Events" },
+        { "Starting Gear", "Gear" },
+        { "Core Rare Gear", "Gear" },
+        { "Promo Gear", "Gear" },
+        { "Barber Surgeon Gear", "Gear" },
+        { "Blacksmith Gear", "Gear" },
+        { "Bone Smith Gear", "Gear" },
+        { "Catarium Gear", "Gear" },
+        { "Giga-Catarium Gear", "Gear" },
+        { "Exhausted Lantern Hoard Gear", "Gear" },
+        { "Green Armor" , "Gear" },
+        { "Leather Worker Gear", "Gear" },
+        { "Mask Maker Gear", "Gear" },
+        { "Organ Grinder Gear", "Gear" },
+        { "Plumery Gear", "Gear" },
+        { "Skinnery Gear", "Gear" },
+        { "Stone Circle Gear", "Gear" },
+        { "Weapon Crafter Gear", "Gear" },
+        { "Misc AI", "AI" },
+        { "Battle Pressure", "Hit Locations" },
+        { "Hunt Party", "Hunt Party" },
+
+        { "Butcher", "Monster Figurine" },
+        { "Butcher Info", "AI" },
+        { "Butcher Basic Action", "AI" },
+        { "Butcher Basic AI", "AI" },
+        { "Butcher Advanced AI", "AI" },
+        { "Butcher Special AI", "AI" },
+        { "Butcher Hit Locations", "Hit Locations" },
+
+        { "Gold Smoke Knight", "Monster Figurine" },
+        { "Gold Smoke Knight Info", "AI" },
+        { "Gold Smoke Knight Basic Action", "AI" },
+        { "Gold Smoke Knight Basic AI", "AI" },
+        { "Gold Smoke Knight Advanced AI", "AI" },
+        { "Gold Smoke Knight Legendary AI", "AI" },
+        { "Gold Smoke Knight Special AI", "AI" },
+        { "Gold Smoke Knight Hit Locations", "Hit Locations" },
+
+        { "King's Man", "Monster Figurine" },
+        { "King's Man Info", "AI" },
+        { "King's Man Basic Action", "AI" },
+        { "King's Man Basic AI", "AI" },
+        { "King's Man Advanced AI", "AI" },
+        { "Familiar Face", "AI" },    -- legendary AI
+        { "King's Man Special AI", "AI" },
+        { "King's Man Hit Locations", "Hit Locations" },
+
+        { "Phoenix", "Monster Figurine" },
+        { "Phoenix Info", "AI" },
+        { "Phoenix Basic Action", "AI" },
+        { "Phoenix Basic AI", "AI" },
+        { "Phoenix Advanced AI", "AI" },
+        { "Phoenix Legendary AI", "AI" },
+        { "Phoenix Special AI", "AI" },
+        { "Phoenix Hit Locations", "Hit Locations" },
+        { "Phoenix Resources", "Monster Resources" },
+        { "Phoenix Hunt Events", "Monster Hunt Events" },
+
+        { "Screaming Antelope", "Monster Figurine" },
+        { "Screaming Antelope Info", "AI" },
+        { "Screaming Antelope Basic Action", "AI" },
+        { "Screaming Antelope Basic AI", "AI" },
+        { "Screaming Antelope Advanced AI", "AI" },
+        { "Screaming Antelope Legendary AI", "AI" },
+        { "Screaming Antelope Special AI", "AI" },
+        { "Screaming Antelope Hit Locations", "Hit Locations" },
+        { "Screaming Antelope Resources", "Monster Resources" },
+        { "Screaming Antelope Hunt Events", "Monster Hunt Events" },
+
+        { "The Hand", "Monster Figurine" },
+        { "The Hand Info", "AI" },
+        { "The Hand Basic Action", "AI" },
+        { "The Hand Basic AI", "AI" },
+        { "The Hand Advanced AI", "AI" },
+        { "The Hand Special AI", "AI" },
+        { "The Hand Hit Locations", "Hit Locations" },
+
+        { "Watcher", "Monster Figurine" },
+        { "Watcher Info", "AI" },
+        { "Watcher Basic Action", "AI" },
+        { "Watcher Basic AI", "AI" },
+        { "Watcher Special AI", "AI" },
+        { "Watcher Hit Locations", "Hit Locations" },
+
+        { "White Lion", "Monster Figurine" },
+        { "White Lion Info", "AI" },
+        { "White Lion Basic Action", "AI" },
+        { "White Lion Basic AI", "AI" },
+        { "White Lion Advanced AI", "AI" },
+        { "White Lion Legendary AI", "AI" },
+        { "White Lion Special AI", "AI" },
+        { "White Lion Hit Locations", "Hit Locations" },
+        { "White Lion Resources", "Monster Resources" },
+        { "White Lion Hunt Events", "Monster Hunt Events" },
+
+        { "White Gigalion Rules", "Rulebook" },
+        { "White Gigalion", "Monster Figurine" },
+        { "White Gigalion Info", "AI" },
+        { "White Gigalion Basic Action", "AI" },
+        { "White Gigalion Hit Locations", "Hit Locations" },
+    },
+
+    ["Dragon King Archive"] = {
+        { "Dragon King Rules", "Rulebook" },
+        { "Dragon King", "Monster Figurine" },
+        { "Dragon King Info", "AI" },
+        { "Dragon King Basic Action", "AI" },
+        { "Dragon King Basic AI", "AI" },
+        { "Dragon King Advanced AI", "AI" },
+        { "Dragon King Legendary AI", "AI" },
+        { "Dragon King Special AI", "AI" },
+        { "Dragon King Hit Locations", "Hit Locations" },
+        { "Dragon King Hunt Events", "Monster Hunt Events" },
+        { "Dragon King Resources", "Monster Resources" },
+        { "Dragon King Innovations", "Innovations" },
+        { "Dragon King Abilities", "Abilities" },
+        { "Dragon King Fighting Arts", "Fighting Arts" },
+        { "Dragon King Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Dragon King Disorders", "Disorders" },
+        { "Scythe", "Weapon Specializations/Masteries" },
+        { "Dragon Armor", "Armor Sets", },
+        { "Dragon King Strange Resources", "Strange Resources" },
+        { "Dragon King Terrain", "Terrain" },
+        { "Gate", "Terrain" },
+        { "Gate", "Terrain Tiles" },
+        { "Dragon Armory Gear", "Gear" },
+        { "Dragon King Rare Gear", "Gear" },
+
+        { "The Tyrant", "Monster Figurine" },
+        { "The Tyrant Info", "AI" },
+        { "The Tyrant Basic Action", "AI" },
+        { "The Tyrant Basic AI", "AI" },
+        { "The Tyrant Advanced AI", "AI" },
+        { "The Tyrant Legendary AI", "AI" },
+        { "The Tyrant Special AI", "AI" },
+        { "The Tyrant Hit Locations", "Hit Locations" },
+    },
+    ["Dung Beetle Knight Archive"] = {
+        { "Dung Beetle Knight Rules", "Rulebook" },
+        { "Dung Beetle Knight", "Monster Figurine" },
+        { "Dung Beetle Knight Info", "AI" },
+        { "Dung Beetle Knight Basic Action", "AI" },
+        { "Dung Beetle Knight Basic AI", "AI" },
+        { "Dung Beetle Knight Advanced AI", "AI" },
+        { "Dung Beetle Knight Legendary AI", "AI" },
+        { "Dung Beetle Knight Special AI", "AI" },
+        { "Dung Beetle Knight Hit Locations", "Hit Locations" },
+        { "Dung Beetle Knight Hunt Events", "Monster Hunt Events" },
+        { "Dung Beetle Knight Resources", "Monster Resources" },
+        { "Dung Beetle Knight Innovations", "Innovations" },
+        { "Dung Beetle Knight Fighting Arts", "Fighting Arts" },
+        { "Beetle Strength", "Secret Fighting Arts" },
+        { "Dung Beetle Knight Disorders", "Disorders" },
+        { "Dung Beetle Knight Strange Resources", "Strange Resources" },
+        { "Dung Beetle Knight Tactics", "Tactics" },
+        { "Rolling Armor", "Armor Sets", },
+        { "Resin Dung Ball", "Terrain" },
+        { "Wet Resin Crafter Gear", "Gear" },
+        { "Dung Beetle Knight Rare Gear", "Gear" },
+    },
+    ["Flower Knight Archive"] = {
+        { "Flower Knight Rules", "Rulebook" },
+        { "Flower Knight", "Monster Figurine" },
+        { "Flower Knight Info", "AI" },
+        { "Flower Knight Basic Action", "AI" },
+        { "Flower Knight Basic AI", "AI" },
+        { "Flower Knight Advanced AI", "AI" },
+        { "Flower Knight Legendary AI", "AI" },
+        { "Flower Knight Special AI", "AI" },
+        { "Flower Knight Hit Locations", "Hit Locations" },
+        { "Flower Knight Resources", "Monster Resources" },
+        { "Flower Knight Hunt Events", "Monster Hunt Events" },
+        { "Petal Spiral - Forbidden Dance Consequence", "Innovations" },
+        { "Otherworldly Luck", "Fighting Arts" },
+        { "Flower Knight Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Flower Knight Disorders", "Disorders" },
+        { "Flower Knight Tactics", "Tactics" },
+        { "Flower Patches", "Terrain" },
+        { "Fairy Ring", "Terrain Tiles" },
+        { "Flower Knight Rare Gear", "Gear" },
+    },
+    ["Gorm Archive"] = {
+        { "Gorm Rules", "Rulebook" },
+        { "Gorm", "Monster Figurine" },
+        { "Gorm Info", "AI" },
+        { "Gorm Basic Action", "AI" },
+        { "Gorm Basic AI", "AI" },
+        { "Gorm Advanced AI", "AI" },
+        { "Gorm Legendary AI", "AI" },
+        { "Gorm Special AI", "AI" },
+        { "Gorm Hit Locations", "Hit Locations" },
+        { "Gorm Resources", "Monster Resources" },
+        { "Gorm Hunt Events", "Monster Hunt Events" },
+        { "Gorm Innovations", "Innovations" },
+        { "Gorm Fighting Arts", "Fighting Arts" },
+        { "Immovable Object", "Secret Fighting Arts" },
+        { "Gorm Disorders", "Disorders" },
+        { "Gorment Armor", "Armor Sets", },
+        { "Gorm Strange Resources", "Strange Resources" },
+        { "Gorm Climate", "Settlement Events" },
+        { "Gormery Gear", "Gear" },
+        { "Gormchymist Gear", "Gear" },
+    },
+    ["Lion God Archive"] = {
+        { "Lion God Rules", "Rulebook" },
+        { "Lion God", "Monster Figurine" },
+        { "Lion God Info", "AI" },
+        { "Lion God Basic Action", "AI" },
+        { "Lion God Basic AI", "AI" },
+        { "Lion God Advanced AI", "AI" },
+        { "Lion God Legendary AI", "AI" },
+        { "Lion God Special AI", "AI" },
+        { "Lion God Hit Locations", "Hit Locations" },
+        { "Lion God Hunt Events", "Monster Hunt Events" },
+        { "The Knowledge Worm", "Innovations" },
+        { "Lion God Fighting Arts", "Fighting Arts" },
+        { "Lion God Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Lion God Disorders", "Disorders" },
+        { "Lion God Strange Resources", "Strange Resources" },
+        { "Lion God Terrain", "Terrain" },
+        { "Lion God Rare Gear", "Gear" },
+    },
+    ["Lion Knight Archive"] = {
+        { "Lion Knight Rules", "Rulebook" },
+        { "Lion Knight", "Monster Figurine" },
+        { "Lion Knight Info", "AI" },
+        { "Lion Knight Basic Action", "AI" },
+        { "Lion Knight Basic AI", "AI" },
+        { "Lion Knight Advanced AI", "AI" },
+        { "Lion Knight Special AI", "AI" },
+        { "Lion Knight Hit Locations", "Hit Locations" },
+        { "Lion Knight Innovations", "Innovations" },
+        { "Lion Knight Fighting Arts", "Fighting Arts" },
+        { "Lion Knight Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Lion Knight Disorders", "Disorders" },
+        { "Lion Knight Tactics", "Tactics" },
+        { "Lion Knight Armor Sets", "Armor Sets" },
+        { "Lion Knight Rare Gear", "Gear" },
+        { "Balcony (Terrain)", "Terrain" },
+        { "Horn (Terrain)", "Terrain" },
+        { "Throne (Terrain)", "Terrain" },
+        { "Stage (Terrain)", "Terrain" },
+        { "Balcony", "Terrain Tiles" },
+        { "Horn", "Terrain Tiles" },
+        { "Throne", "Terrain Tiles" },
+        { "Stage", "Terrain Tiles" },
+    },
+    ["Lonely Tree Archive"] = {
+        { "Lonely Tree Rules", "Rulebook" },
+        { "Lonely Tree", "Monster Figurine" },
+        { "Lonely Fruit", "Terrain Tiles" },
+        { "Lonely Tree Info", "AI" },
+        { "Lonely Tree Basic Action", "AI" },
+        { "Lonely Tree Basic AI", "AI" },
+        { "Lonely Tree Advanced AI", "AI" },
+        { "Lonely Tree Legendary AI", "AI" },
+        { "Lonely Tree Special AI", "AI" },
+        { "Lonely Tree Hit Locations", "Hit Locations" },
+        { "Object of Desire", "Hunt Events" },
+        { "Lonely Tree Abilities", "Abilities" },
+        { "Lonely Tree Strange Resources", "Strange Resources" },
+        { "The Lonely Tree", "Terrain" },
+        { "Nightmare Fruit", "AI" },
+        { "Monster Fruit", "AI" },
+    },
+    ["Manhunter Archive"] = {
+        { "Manhunter Rules", "Rulebook" },
+        { "Manhunter", "Monster Figurine" },
+        { "Manhunter Info", "AI" },
+        { "Manhunter Basic Action", "AI" },
+        { "Manhunter Basic AI", "AI" },
+        { "Manhunter Advanced AI", "AI" },
+        { "Manhunter Legendary AI", "AI" },
+        { "Manhunter Special AI", "AI" },
+        { "Manhunter Hit Locations", "Hit Locations" },
+        { "Manhunter Innovations", "Innovations" },
+        { "Manhunter Fighting Arts", "Fighting Arts" },
+        { "Eternal Will", "Secret Fighting Arts" },
+        { "Manhunter Strange Resources", "Strange Resources" },
+        { "Manhunter Rare Gear", "Gear" },
+    },
+    ["Slenderman Archive"] = {
+        { "Slenderman Rules", "Rulebook" },
+        { "Slenderman", "Monster Figurine" },
+        { "Slenderman Info", "AI" },
+        { "Slenderman Basic Action", "AI" },
+        { "Slenderman Basic AI", "AI" },
+        { "Slenderman Advanced AI", "AI" },
+        { "Slenderman Legendary AI", "AI" },
+        { "Slenderman Special AI", "AI" },
+        { "Slenderman Hit Locations", "Hit Locations" },
+        { "Dark Water Research", "Innovations" },
+        { "Slenderman Fighting Arts", "Fighting Arts" },
+        { "Clarity of Darkness", "Secret Fighting Arts" },
+        { "Slenderman Disorders", "Disorders" },
+        { "Slenderman Strange Resources", "Strange Resources" },
+        { "Slenderman Settlement Events", "Settlement Events" },
+        { "Slenderman Rare Gear", "Gear" },
+    },
+    ["Spidicules Archive"] = {
+        { "Spidicules Rules", "Rulebook" },
+        { "Spidicules", "Monster Figurine" },
+        { "Spiderling", "AI" },
+        { "Spidicules Info", "AI" },
+        { "Spidicules Basic Action", "AI" },
+        { "Spidicules Basic AI", "AI" },
+        { "Spidicules Advanced AI", "AI" },
+        { "Spidicules Legendary AI", "AI" },
+        { "Spidicules Special AI", "AI" },
+        { "Spidicules Hit Locations", "Hit Locations" },
+        { "Spidicules Hunt Events", "Monster Hunt Events" },
+        { "Spidicules Resources", "Monster Resources" },
+        { "Spidicules Innovations", "Innovations" },
+        { "Spidicules Fighting Arts", "Fighting Arts" },
+        { "Spidicules Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Spidicules Disorders", "Disorders" },
+        { "Silk Armor", "Armor Sets", },
+        { "Spidicules Strange Resources", "Strange Resources" },
+        { "Spidicules Terrain", "Terrain" },
+        { "Spidicules Settlement Events", "Settlement Events" },
+        { "Silk Mill Gear", "Gear" },
+        { "Spidicules Rare Gear", "Gear" },
+    },
+    ["Sunstalker Archive"] = {
+        { "Sunstalker Rules", "Rulebook" },
+        { "Sunstalker", "Monster Figurine" },
+        { "Shades", "AI" },
+        { "Sunstalker Info", "AI" },
+        { "Sunstalker Basic Action", "AI" },
+        { "Sunstalker Basic AI", "AI" },
+        { "Sunstalker Advanced AI", "AI" },
+        { "Sunstalker Legendary AI", "AI" },
+        { "Sunstalker Special AI", "AI" },
+        { "Sunstalker Hit Locations", "Hit Locations" },
+        { "Sunstalker Hunt Events", "Monster Hunt Events" },
+        { "Sunstalker Resources", "Monster Resources" },
+        { "Sunstalker Innovations", "Innovations" },
+        { "Sky Fishing", "Special Hunt Events" },
+        { "Sunstalker Abilities", "Abilities" },
+        { "Sunstalker Fighting Arts", "Fighting Arts" },
+        { "Sunstalker Secret Fighting Arts", "Secret Fighting Arts" },
+        { "Sunstalker Disorders", "Disorders" },
+        { "Katana", "Weapon Specializations/Masteries" },
+        { "Cycloid Scale Armor", "Armor Sets", },
+        { "Sunstalker Strange Resources", "Strange Resources" },
+        { "2 Salt Sculptures", "Terrain" },
+        { "Sun Dial", "Terrain Tiles" },
+        { "Skyreef Sanctuary Gear", "Gear" },
+        { "Sunstalker Rare Gear", "Gear" },
+    },
+
+    ["Abilities Archive"] = { { "Abilities", "Abilities" } },
+    ["Fighting Arts Archive"] = { { "Fighting Arts", "Fighting Arts" } },
+    ["Secret Fighting Arts Archive"] = { { "Secret Fighting Arts", "Secret Fighting Arts" } },
+    ["Disorders Archive"] = { { "Disorders", "Disorders" } },
+    ["Severe Injuries Archive"] = { { "Severe Injuries", "Severe Injuries" } },
+    ["Tactics Archive"] = { { "Tactics", "Tactics" } },
+    ["Weapon Specializations/Masteries Archive"] = { { "Weapon Specializations/Masteries", "Weapon Specializations/Masteries" } },
+    ["Armor Sets Archive"] = { { "Armor Sets", "Armor Sets" } },
+    ["Vermin Archive"] = { { "Vermin", "Vermin" } },
+    ["Strange Resources Archive"] = { { "Strange Resources", "Strange Resources" } },
+    ["Basic Resources Archive"] = { { "Basic Resources", "Basic Resources" } },
+    ["Terrain Archive"] = { { "Terrain", "Terrain" } },
+    ["Terrain Tiles Archive"] = { { "Terrain Tiles", "Terrain Tiles" } },
+    ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
+    ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
+}
+
+-- These archives have no intermediate bag...you just pull the object directly
+Archive.singleItemArchives = {
+    ["Abilities Archive"]                        = true,
+    ["Fighting Arts Archive"]                    = true,
+    ["Secret Fighting Arts Archive"]             = true,
+    ["Disorders Archive"]                        = true,
+    ["Severe Injuries Archive"]                  = true,
+    ["Tactics Archive"]                          = true,
+    ["Weapon Specializations/Masteries Archive"] = true,
+    ["Armor Sets Archive"]                       = true,
+    ["Vermin Archive"]                           = true,
+    ["Strange Resources Archive"]                = true,
+    ["Basic Resources Archive"]                  = true,
+    ["Terrain Archive"]                          = true,
+    ["Terrain Tiles Archive"]                    = true,
+    ["Hunt Events Archive"]                      = true,
+    ["Rare Gear Archive"]                        = true
+}
+
+for archive, entries in pairs(Archive.reverseIndex) do
+    for _, entry in ipairs(entries) do
+        local name, type = entry[1], entry[2]
+        if not Archive.index[type] then
+            Archive.index[type] = {}
+        end
+        Archive.index[type][name] = archive
+    end
+end
+
+Archive.bags = {}
+Archive.bagX = -150
+Archive.bagY = -120
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.Get(name, type)
+    Assert.Str(name)
+    Assert.Str(type)
+
+    local typeIndex = Archive.index[type]
+    Assert(typeIndex, "Unknown type %s", type)
+    local archive = typeIndex[name]
+    Assert(archive, "%s (%s) is not in the archive", name, type)
+
+    Log.Debugf("Found %s (%s) in archive %s", name, type, archive)
+
+    if Archive.singleItemArchives[archive] then
+        -- for single item archives no need to pull intermediate bag
+        Log.Debugf("Using single-item archive %s for %s (%s)", archive, name, type)
+        return Guids.GetObject(archive)
+    end
+
+    local bag = Archive.bags[archive]
+    if bag then
+        -- reuse existing bag
+        Log.Debugf("Re-using already-spawned archive bag %s (%s) for %s (%s)", bag.getName(), bag.getGUID(), name, type)
+        return bag
+    end
+
+    -- spawn new bag and cache
+    local bag = Guids.GetObject(archive).takeObject({
+        position = { Archive.bagX, -10, Archive.bagZ },
+        smooth = false,
+    })
+    Assert(bag, "Couldn't take from %s", archive)
+    Log.Debugf("Spawned archive bag %s (%s) at (%f, %f) for %s (%s)", bag.getName(), bag.getGUID(), Archive.bagX, Archive.bagZ, name, type)
+
+    bag.setLock(true)
+    Archive.bags[archive] = bag
+
+    Archive.bagX = Archive.bagX + 10
+    if Archive.bagX > 150 then
+        Archive.bagX = -150
+        Archive.bagZ = Archive.bagZ - 10
+        if Archive.bagZ < 70 then
+            Archive.bagZ = 120
+        end
+    end
+
+    return bag
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.Clear()
+    for _, bag in ipairs(Archive.bags) do
+        bag.destruct()
+    end
+
+    local hits = Physics.cast({
+        origin    = { 0, 10, 95 },
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = { 300, 10, 50 },
+    })
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+        if obj.getGMNotes() == "Archive" then
+            Log.Debugf("Destroying archive %s (%s)", obj.getName(), obj.getGUID())
+            obj.destruct()
+        end
+    end
+
+    Archive.bags = {}
+    Archive.bagX = -150
+    Archive.bagZ = 120
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- objects = { { name="Dragon King Resources", type="Resources", archive="Dragon King Archive" }, ...}
+function Archive.Set(objects)
+    Assert.Tab(objects, "objects")
+
+    for i, obj in ipairs(objects) do
+        local name, type, archive = obj.name, obj.type, obj.archive
+        Assert.Str(name, "objects[%d].name", i)
+        Assert.Str(type, "objects[%d].type", i)
+        Assert.Str(archive, "objects[%d].archive", i)
+
+        local typeIndex = Archive.index[type]
+        Assert(typeIndex, "Unknown type %s", type)
+        Archive.index[type][name] = archive
+
+        Log.Debugf("Updated archive[%s][%s] = %s", type, name, archive)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Archive

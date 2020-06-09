@@ -1,0 +1,55 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local EventManager = {}
+
+local eventManager_handlers = {}
+local eventManager_globalHandlers = {}
+
+---------------------------------------------------------------------------------------------------
+
+function EventManager.AddHandler(event, handler)
+    Assert.Str(event, "event")
+    Assert.Func(handler, "handler")
+
+    local handlers = eventManager_handlers[event]
+    if handlers then
+        table.insert(handlers, handler)
+        return
+    end
+
+    Log.Debugf("EventManager now handling event %s", event)
+    eventManager_globalHandlers[event] = _G[event]
+
+    _G[event] = function(...)
+        local globalHandler = eventManager_globalHandlers[event]
+        if globalHandler then
+            globalHandler(...)
+        end
+
+        for _, handler in ipairs(eventManager_handlers[event]) do
+            handler(...)
+        end
+    end
+
+    eventManager_handlers[event] = { handler }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function EventManager.FireEvent(event, ...)
+    local globalHandler = eventManager_globalHandlers[event]
+    if globalHandler then
+        globalHandler(...)
+    end
+
+    for _, handler in ipairs(eventManager_handlers[event] or {}) do
+        handler(...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return EventManager

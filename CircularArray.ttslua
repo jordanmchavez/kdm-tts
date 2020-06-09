@@ -1,0 +1,90 @@
+local Assert = require("Kdm/Assert")
+local Util = require("Kdm/Util")
+
+---------------------------------------------------------------------------------------------------
+
+local CircularArray = {}
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.CircularArray(ca)
+    if type(ca) != "table" or ca.tag != "CircularArray" then
+        Assert.Fail("Not a circular array: %s", Util.TabStr(ca))
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CircularArray.Create(capacity)
+    Assert.Num(capacity, "capacity")
+    Assert(capacity > 0)
+
+    return {
+        tag = "CircularArray",
+        head = 1,
+        tail = 1,
+        capacity = capacity,
+        array = {}
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CircularArray.Size(ca)
+    Assert.CircularArray(ca)
+    if ca.head >= ca.tail then
+        return (ca.head - ca.tail)
+    else
+        return(ca.tail - ca.head)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CircularArray.Top(ca)
+    Assert.CircularArray(ca)
+    Assert(ca.head != ca.tail, "Circular array is empty")
+    if ca.head > 1 then
+        return ca.array[ca.head - 1]
+    else
+        return ca.array[ca.capacity]
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CircularArray.Push(ca, value)
+    Assert.CircularArray(ca)
+
+    ca.array[ca.head] = value
+
+    ca.head = ca.head + 1
+    if ca.head == ca.capacity then
+        ca.head = 1
+    end
+
+    if ca.head == ca.tail then
+        ca.array[ca.tail] = nil
+        ca.tail = ca.tail + 1
+        if ca.tail == ca.capacity then
+            ca.tail = 1
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CircularArray.Pop(ca)
+    Assert.CircularArray(ca)
+    Assert(ca.head != ca.tail, "Circular array is empty")
+
+    ca.head = ca.head - 1
+    if ca.head == 0 then
+        ca.head = ca.capacity
+    end
+    ca.array[ca.head] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+return CircularArray

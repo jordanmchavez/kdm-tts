@@ -1,0 +1,63 @@
+local Assert = require("Kdm/Assert")
+local Ui = require("Kdm/Ui")
+
+local UiCheckbox = {}
+
+---------------------------------------------------------------------------------------------------
+
+function UiCheckbox.Create(params)
+    Assert.Tab(params, "params")
+    local object = params.object
+    Assert.Obj(object, "params.object")
+    local name = params.name
+    Assert.Str(name, "params.name")
+    Assert.BoolOrNil(params.value, "params.value")
+    Assert.Vec(params.position, "params.position")
+    Assert.VecOrNil(params.scale, "params.scale")
+    Assert.Num(params.size, "params.size")
+    Assert.ColOrNil(params.color, "params.color")
+    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
+    Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
+
+    local uiCheckbox = {
+        tag = "UiCheckbox",
+        object = object,
+        name = name,
+    }
+
+    local index = Ui.RecordButtonAndGetIndex(object)
+    local clickFunctionName = "UiCheckbox_"..object.getGUID().."_"..index.."_"..name.."_Click"
+    self.setVar(clickFunctionName, function (_, _, altClick) params.changeFunc(uiCheckbox) end)
+
+    uiCheckbox.button = {
+        index = index,
+        label = params.value and "\u{25A0}" or "",
+        position = params.position,
+        scale = params.scale or Ui.SCALE,
+        width = params.size,
+        height = params.size,
+        font_size = params.size * 1.2,
+        font_color = params.color or Ui.DARK_BROWN,
+        color = Ui.BACKGROUND_COLOR,
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(uiCheckbox.button)
+
+    return uiCheckbox
+end
+
+---------------------------------------------------------------------------------------------------
+
+function UiCheckbox.Set(uiCheckbox, checked)
+    Assert.Tab(uiCheckbox, "uiCheckbox")
+    Assert(uiCheckbox.tag == "UiCheckbox", "uiCheckbox arg is not a UiCheckbox")
+    Assert.BoolOrNil(checked, "checked")
+
+    uiCheckbox.button.label = checked and "\u{25A0}" or ""
+    uiCheckbox.object.editButton(uiCheckbox.button)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return UiCheckbox

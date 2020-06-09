@@ -1,0 +1,59 @@
+local Assert = require("Kdm/Assert")
+local Ui = require("Kdm/Ui")
+
+local UiText = {}
+
+function UiText.Create(params)
+    Assert.Tab(params, "params")
+    local object = params.object
+    Assert.Obj(object, "params.object")
+    local name = params.name
+    Assert.Str(name, "params.name")
+    Assert.Str(params.name, "params.name")
+    Assert.StrOrNil(params.label, "params.label")
+    Assert.StrOrNil(params.value, "params.value")
+    Assert.NumOrNil(params.alignment, "params.alignment")
+    Assert.Vec(params.position, "params.position")
+    Assert.VecOrNil(params.scale, "params.scale")
+    Assert.Num(params.width, "params.width")
+    Assert.Num(params.height, "params.height")
+    Assert.Num(params.fontSize, "params.fontSize")
+    Assert.ColOrNil(params.fontColor, "params.fontColor")
+    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
+    Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
+
+    local uiText = {
+        tag = "UiText",
+        object = object,
+        name = name,
+    }
+
+    local index = Ui.RecordInputAndGetIndex(object)
+    local changeFunctionName = "UiText_"..object.getGUID().."_"..index.."_"..name.."_Change"
+    self.setVar(changeFunctionName, function (_, _, value) params.changeFunc(uiText, value) end)
+
+    uiText.input = {
+        index = index,
+
+        label = params.label,
+        value = params.value,
+        alignment = params.alignment or 1,
+
+        position = params.position,
+        scale = params.scale or Ui.SCALE,
+        width = params.width,
+        height = params.height,
+        font_size = params.fontSize,
+
+        font_color = params.fontColor or Ui.DARK_BROWN,
+        color = params.backgroundColor or Ui.BACKGROUND_COLOR,
+
+        input_function = changeFunctionName,
+        function_owner = self,
+    }
+    object.createInput(uiText.input)
+
+    return uiText
+end
+
+return UiText

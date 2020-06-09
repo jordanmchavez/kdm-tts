@@ -1,0 +1,88 @@
+local Util = require("Kdm/Util")
+
+---------------------------------------------------------------------------------------------------
+
+local Log = {}
+
+Log.debugPackages = {
+    --["G"] = true,
+    --["Rules"] = true,
+    --["Ui"] =    true,
+    --["ShowdownBoard"] = true,
+    --["Latch"] = true,
+    --["Script"] = true,
+    --["Expansions"] = true,
+    --["Setup"] = true,
+    --["SettlementBoard"] = true,
+    --["Grid"] = true,
+    --["Overlay"] = true,
+    --["SettlementSheet"] = true,
+    --["PopulationSheet"] = true,
+    --["EventManager"] = true,
+    --["DropZone"] = true,
+    --["CharSheet"] = true,
+    --["PlayerBoard"] = true,
+    --["Armor"] = true,
+    --["PlayerFigurine"] = true,
+    --["Monster"] = true,
+    --["TerrainTile"] = true,
+    --["BattleUi"] = true,
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Printf(package, fmt, ...)
+    fmt = fmt or ""
+    log(Util.SafeFormat("[%s] "..fmt or "", package, ...), nil, "print")
+    printToAll(Util.SafeFormat("[66aaff]"..fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Debugf(package, fmt, ...)
+    if Log.debugPackages[package] then
+        fmt = fmt or ""
+        local s = Util.SafeFormat("[%s] "..fmt, package, ...)
+        log(s, nil, "debug")
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Errorf(package, fmt, ...)
+    fmt = fmt or ""
+    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "error")
+    printToAll(Util.SafeFormat("[ee3333]"..fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Broadcastf(package, fmt, ...)
+    fmt = fmt or ""
+    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
+    broadcastToAll(Util.SafeFormat(fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Init()
+    logStyle("debug", { 1.0, 1.0, 1.0 }, "", "")
+    logStyle("print", { 0.0, 1.0, 1.0 }, "", "")
+    logStyle("error", { 1.0, 0.0, 0.0 }, "", "")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.ForPackage(package)
+    return {
+        Printf = function(fmt, ...) Log.Printf(package, fmt, ...) end,
+        Debugf = function(fmt, ...) Log.Debugf(package, fmt, ...) end,
+        Errorf = function(fmt, ...) Log.Errorf(package, fmt, ...) end,
+        Broadcastf = function(fmt, ...) Log.Broadcastf(package, fmt, ...) end,
+        Init = Log.Init,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Log

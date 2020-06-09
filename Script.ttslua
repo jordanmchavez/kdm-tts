@@ -1,0 +1,840 @@
+local Util = require("Kdm/Util")
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Script")
+local Guids = require("Kdm/Guids")
+local Latch = require("Kdm/Latch")
+local Archive = require("Kdm/Archive")
+local ScriptData = require("Kdm/ScriptData")
+
+---------------------------------------------------------------------------------------------------
+
+local Script = {}
+
+Script.FACE_UP = { 0, 180, 0 }
+Script.FACE_DOWN = { 0, 180, 180 }
+
+for k, v in pairs(ScriptData) do
+    Script[k] = v
+end
+
+Script.ignoreTags = { "Board", "Table" }
+
+-- just a buffer to spawn things higher over the the table
+Script.spawnHeight = 2
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Script(value)
+    if value == nil then
+        Assert.Fail("Required script arg is nil")
+    end
+
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("Required script arg has type %s", t)
+    end
+
+    if value.tag != "Script" then
+        Assert.Fail("Required script arg had wrong tag, full object: %s", Util.TabStr(value))
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Stage(value)
+    if value == nil then
+        Assert.Fail("Required stage arg is nil")
+    end
+
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("Required stage arg has type %s", t)
+    end
+
+    if value.tag != "Stage" then
+        Assert.Fail("Required stage arg had wrong tag, full object: %s", Util.TabStr(value))
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.Create(name, debug)
+    Assert.Str(name, "name")
+    Assert.BoolOrNil(debug, "debug")
+
+    return {
+        tag = "Script",
+        name = name,
+        debug = debug,
+        stages = {},
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.Stage(script, name)
+    Assert.Script(script)
+
+    local stage = { tag = "Stage", name = name, actions = {} }
+    table.insert(script.stages, stage)
+    return stage
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.CleanAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+    Assert.TabOrNil(params.types, "params.types")
+    Assert.TabOrNil(params.tags, "params.tags")
+    Assert.BoolOrNil(params.ignoreBlocking, "params.ignoreBlocking")
+
+    table.insert(stage.actions, {
+        action = "clean",
+        from = params.from,
+        types = params.types,
+        tags = params.tags,
+        ignoreBlocking = params.ignoreBlocking,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.TakeAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.StrOrNil(params.from, "params.from")
+    if params.from == nil then
+        Assert.Str(params.name, "params.name")
+    end
+    Assert.Str(params.type, "params.type")
+    Assert.Str(params.to, "params.to")
+    Assert.VecOrNil(params.rotation, "params.rotation")
+    Assert.FuncOrNil(params.spawnFunc, "params.spawnFunc")
+    Assert.BoolOrNil(params.smooth, "params.smooth")
+    Assert.StrOrNil(params.saveId, "params.saveId")
+    Assert.TabOrNil(params.set, "params.set")
+
+    table.insert(stage.actions, {
+        action = "take",
+        name = params.name,
+        type = params.type,
+        from = params.from,
+        to = params.to,
+        rotation = params.rotation,
+        smooth = params.smooth,
+        saveId = params.saveId,
+        set = params.set,
+        spawnFunc = params.spawnFunc,
+    })
+
+    Log.Debugf("Added take action for %s/%s to %s", params.name or "<top>", params.from or "Archive", params.to)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.CloneAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+    Assert.Str(params.to, "params.to")
+    Assert.VecOrNil(params.rotation, "params.rotation")
+
+    table.insert(stage.actions, {
+        action = "clone",
+        from = params.from,
+        to = params.to,
+        rotation = params.rotation,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.MoveAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert(params.from, "params.from")
+    Assert.Str(params.to, "params.to")
+    Assert.VecOrNil(params.rotation, "params.rotation")
+    Assert.BoolOrNil(params.smooth, "params.smooth")
+
+    table.insert(stage.actions, {
+        action = "move",
+        from = params.from,
+        to = params.to,
+        rotation = params.rotation,
+        smooth = params.smooth,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.ShuffleAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+
+    table.insert(stage.actions, {
+        action = "shuffle",
+        from = params.from,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.NameAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+    Assert.Str(params.name, "params.name")
+    Assert.Str(params.gmNotes, "params.gmNotes")
+
+    table.insert(stage.actions, {
+        action = "name",
+        from = params.from,
+        name = params.name,
+        gmNotes = params.gmNotes,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.ResetAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+
+    table.insert(stage.actions, {
+        action = "reset",
+        from = params.from,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.PutAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+    Assert.Str(params.to, "params.to")
+
+    table.insert(stage.actions, {
+        action = "put",
+        from = params.from,
+        to = params.to
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.LockAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Tab(params, "params")
+    Assert.Str(params.from, "params.from")
+    Assert.Tab(params.types, "params.types")
+
+    table.insert(stage.actions, {
+        action = "lock",
+        from = params.from,
+        types = params.types,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.PrintAction(stage, fmt, ...)
+    Assert.Stage(stage)
+    Assert.Str(fmt, "fmt")
+
+    table.insert(stage.actions, {
+        action = "print",
+        fmt = fmt,
+        args = table.pack(...),
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.WaitAction(stage, frames)
+    Assert.Stage(stage)
+    Assert.Num(frames, "frames")
+
+    table.insert(stage.actions, {
+        action = "wait",
+        frames = frames
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.OrderAction(stage, params)
+    Assert.Stage(stage)
+    Assert.Str(params.from, "params.from")
+    Assert.TabOrNil(params.top, "params.top")
+    Assert.TabOrNil(params.bottom, "params.bottom")
+    Assert(params.top or params.bottom, "Either top or bottom is required")
+
+    table.insert(stage.actions, {
+        action = "order",
+        from = params.from,
+        top = params.top,
+        bottom = params.bottom,
+    })
+end
+---------------------------------------------------------------------------------------------------
+
+function Script.Position(locationName)
+    Assert.Str(locationName, "locationName")
+
+    local location = Script.locations[locationName]
+    Assert(location, "No location named %s", locationName)
+
+    local wpos = Guids.GetObject(location.board).positionToWorld(location.position)
+    return {
+        x = wpos.x,
+        y = wpos.y + Script.spawnHeight,
+        z = wpos.z
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.Size(locationName)
+    Assert.Str(locationName, "locationName")
+
+    local location = Script.locations[locationName]
+    Assert(location, "No location named %s", locationName)
+
+    if location.size then
+        return location.size
+    end
+
+    Assert(location.corner1 and location.corner2, "Script location %s has neither 'size' nor 'corner1/corner2' defined", locationName)
+
+    local board = Guids.GetObject(location.board)
+    w1 = board.PositionToWorld(location.corner1)
+    w2 = board.PositionToWorld(location.corner2)
+    return {
+        x = math.abs(w1.x - w2.x),
+        y = math.abs(w1.y - w2.y),
+        z = math.abs(w1.z - w2.z),
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.CheckLocation(from, name)
+    local hits = Physics.cast({
+        origin    = Script.Position(from),
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = Script.Size(from),
+        debug     = false,
+    })
+
+    -- Lowest is important because we might have pulled other cards from this location that are "hovering" in mid-air, waiting to move next frame (like drawing AI cards to build the deck).
+    -- The lowest object should always be what we want.
+    local lowestCard = nil
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+
+        if obj.tag == "Deck" or obj.tag == "Bag" then
+            Log.Debugf("Found %s %s (%s)", obj.tag, obj.getName(), obj.getGUID())
+            return obj
+
+        elseif
+            (obj.tag == "Card") and
+            (name == nil or obj.getName() == name) and
+            (lowestCard == nil or obj.getPosition().y < lowestCard.getPosition().y) then
+            Log.Debugf("Found new lowest card card %s (%s) at %f", obj.getName(), obj.getGUID(), obj.getPosition().y)
+            lowestCard = obj
+
+        else
+            --Log.Debugf("Ignoring hit object %s (%s) because tag=%s", obj.getName(), obj.getGUID(), obj.tag)
+        end
+    end
+
+    if lowestCard != nil then
+        return lowestCard
+    end
+
+    Assert.Fail("Nothing found at location %s", from)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.FromLocation(action, scriptData)
+    for i = 1, 60 do
+        obj = Script.CheckLocation(action.from, action.name)
+        if obj.tag == "Card" or #obj.getObjects() > 1 then
+            Log.Debugf("Found object %s (%s) with tag %s", obj.getName(), obj.getGUID(), obj.tag)
+            return obj
+        end
+
+        -- A zero-card deck means we took the last card. We need to wait a frame for the deck to destroy itself
+        -- and the card to spawn.
+        Log.Debugf("Encountered zero-card deck %s (%s) at %s, waiting one frame...", obj.getName(), obj.getGUID(), from)
+        coroutine.yield(0)
+    end
+
+    Assert.Fail("Couldn't find %s at location %s", (name or "<any>"), from)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.From(action, scriptData)
+    if action.from == nil then
+        return Archive.Get(action.name, action.type), "arc"
+    end
+
+    if type(action.from) == "userdata" then
+        return action.from, "obj"
+    end
+
+    local split = Util.Split(action.from, ":")
+
+    if #split > 1 then
+        local type = split[1]
+        local name = split[2]
+
+        if type == "obj" then
+            return Guids.GetObject(name), "obj"
+
+        elseif type == "id" then
+            Assert(scriptData.savedObjects[action.from], "No savedObjects object for from string %s", action.from)
+            return scriptData.savedObjects[action.from], "id"
+        end
+        Assert.Fail("Unknown from format: %s", action.from)
+    end
+
+    return Script.FromLocation(action, scriptData), "loc"
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.To(action, scriptData)
+    local split = Util.Split(action.to, ":")
+
+    if #split > 1 then
+        local type = split[1]
+        local name = split[2]
+
+        if type == "obj" then
+            return Guids.GetObject(name), "obj"
+
+        elseif type == "id" then
+            Assert(scriptData.savedObjects[action.to], "No savedObjects object for from string %s", action.to)
+            return scriptData.savedObjects[action.to], "id"
+
+        else
+            Assert.Fail("Unknown from format: %s", action.to)
+        end
+
+    else
+        return action.to, "loc"
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.ObjectMatchesAction(obj, action)
+    if action.types and Util.ArrayContains(action.types, obj.GetGMNotes()) then
+        return true
+    end
+
+    if action.tags and Util.ArrayContains(action.tags, obj.tag) then
+        return true
+    end
+
+    return false
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- on error returns blockingObject, nameOfLocationBlocked
+function Script.DoClean(action, scriptData)
+    Log.Debugf("Cleaning %s", action.from)
+
+    local hits = Physics.cast({
+        origin    = Script.Position(action.from),
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = Script.Size(action.from),
+        debug     = scriptData.debug,
+    })
+
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+
+        if Util.ArrayContains(Script.ignoreTags, obj.tag) then
+            Log.Debugf("Ignoring hit object %s (%s) because tag=%s", obj.getName(), obj.getGUID(), obj.tag)
+
+        elseif Script.ObjectMatchesAction(obj, action) then
+            Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
+            obj.destruct()
+
+        elseif action.ignoreBlocking then
+            Log.Debugf("Ignoring hit object %s (%s) because ignoreBlocking=true", obj.getName(), obj.getGUID())
+
+        else    -- don't ignore blocking
+            Log.Debugf("Returning hit object %s (%s) as blocking", obj.getName(), obj.getGUID())
+            return obj, action.from
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.Set(obj, action)
+    if action.set then
+        for k, v in pairs(action.set) do
+            Log.Debugf("Setting %s=%s on %s (%s)", tostring(k), tostring(v), obj.getName(), obj.getGUID())
+            obj[k] = v
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoTake(action, scriptData)
+    Log.Debugf("Taking %s, type %s from %s to %s", action.name or "<top>", action.type or "<any>", action.from, action.to)
+    local from = Script.From(action, scriptData)
+    local to, toType = Script.To(action, scriptData)
+
+    local smooth = action.smooth
+    if smooth == nil then
+        smooth = false
+    end
+
+    if from.tag == "Card" then
+        -- It was the last card in the deck, just move it directly
+        Script.Set(from, action)
+        if toType == "loc" then
+            from.setPositionSmooth(Script.Position(action.to), false, not smooth)
+            if action.rotation then
+                from.setRotation(action.rotation)
+            end
+            Log.Debugf("Last card at %s, moved %s (%s) to %s", action.name, from.getName(), from.getGUID(), action.to)
+
+        else
+            local toName, toGuid = to.getName(), to.getGUID()
+            local newTo = to.putObject(from)
+            Assert(newTo, "Couldn't put %s (%s) into %s (%s)", from.getName(), from.getGUID(), toName, toGuid)
+            if toType == "id" then
+                -- it's possible the objects merged into a new deck, so replace any savedObjects ID with the new object
+                scriptData.savedObjects[action.to] = newTo
+            end
+            if newTo.getGUID() != toGuid then
+                Log.Debugf("Previous action.to %s (%s) merged and became %s (%s)", toName, toGuid, newTo.getName(), newTo.getGUID())
+            end
+            Log.Debugf("Last card %s, moved into %s (%s)", action.from, newTo.getName(), newTo.getGUID())
+        end
+        return
+    end
+
+    local guid = nil
+    if (from.tag == "Bag" or from.tag == "Deck") and action.name then
+        for _, obj in ipairs(from.getObjects()) do
+            if obj.name == action.name and obj.gm_notes == action.type then
+                guid = obj.guid
+                break
+            end
+        end
+        Assert(guid, "Couldn't find %s in %s (%s)", action.name, from.getName(), from.getGUID())
+    end
+    Log.Debugf("Taking %s with guid %s from %s/%s (%s)", action.name or "<rand>", guid or "<top>", from.getName(), from.tag, from.getGUID())
+
+    local toPos
+    if toType == "loc" then
+        toPos = Script.Position(action.to)
+    else
+        toPos = to.getPosition()
+        toPos.y = toPos.y + 5
+    end
+
+    local obj = from.takeObject({
+        guid     = guid,
+        position = toPos,
+        rotation = action.rotation,
+        smooth   = smooth,
+        callback_function = function(newObj)
+            if action.spawnFunc != nil then
+                action.spawnFunc(newObj)
+            end
+            Latch.RemoveObject(newObj, "spawnFunc")
+        end,
+    })
+    Assert(obj, "Couldn't take from id %s: %s (%s)", action.from, from.getName(), from.getGUID())
+    if action.name then
+        Assert(action.name == obj.getName(), "Spawned object %s (%s) doesn't match action.name %s (taken from %s (%s))", obj.getName(), obj.getGUID(), action.name, from.getName(), from.getGUID())
+    end
+
+    Script.Set(obj, action)
+
+    if toType != "loc" then
+        local toName, toGuid = to.getName(), to.getGUID()
+        local newTo = to.putObject(obj)
+        Assert(newTo, "Couldn't put %s (%s) into %s (%s)", obj.getName(), obj.getGUID(), toName, toGuid)
+        if toType == "id" then
+            -- it's possible the objects merged into a new deck, so replace any savedObjects ID with the new object
+            scriptData.savedObjects[action.to] = newTo
+        end
+        if newTo.getGUID() != toGuid then
+            Log.Debugf("Previous action.to %s (%s) merged and became %s (%s)", toName, toGuid, newTo.getName(), newTo.getGUID())
+        end
+        Log.Debugf("Put %s (%s)into %s  %s", obj.getName(), obj.getGUID(), action.from, newTo.getName(), newTo.getGUID())
+    else
+        Latch.AddObject(scriptData.latch, obj)
+    end
+
+    if action.saveId then
+        Log.Debugf("Saving object %s (%s) to %s", obj.getName(), obj.getGUID(), action.saveId)
+        scriptData.savedObjects["id:"..action.saveId] = obj
+    end
+
+    Log.Debugf("Spawned %s (%s) from %s to %s", obj.getName(), obj.getGUID(), action.from, action.to)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoClone(action, scriptData)
+    local from = Script.From(action, scriptData)
+    local obj = from.clone({ position = Script.Position(action.to) })
+    if action.rotation then
+        obj.setRotation(action.rotation)
+    end
+    Log.Debugf("Cloned %s (%s) to %s", from.getName(), from.getGUID(), obj.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoMove(action, scriptData)
+    local from = Script.From(action, scriptData)
+    local fast = not action.smooth
+    from.setPositionSmooth(Script.Position(action.to), false, fast)
+    if action.rotation then
+        from.setRotation(action.rotation)
+    end
+    Log.Debugf("Moved %s (%s) from %s to %s", from.getName(), from.getGUID(), tostring(action.from), action.to)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoShuffle(action, scriptData)
+    local from = Script.From(action, scriptData)
+    from.shuffle()
+    Log.Debugf("Shuffled %s (%s)", from.getName(), from.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoName(action, scriptData)
+    local from = Script.From(action, scriptData)
+    local oldName = from.getName()
+    local oldGmNotes = from.getGMNotes()
+    from.setName(action.name)
+    from.setGMNotes(action.gmNotes)
+    Log.Debugf("Naming %s/%s (%s) to %s/%s", oldName, oldGmNotes, guid, from.getName(), tostring(from.getGMNotes()))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoReset(action, scriptData)
+    local from = Script.From(action, scriptData)
+    from.reset()
+    Log.Debugf("Reset %s (%s)", from.getName(), from.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoPut(action, scriptData)
+    local from = Script.From(action, scriptData)
+    local to = Script.To(action, scriptData)
+    local fromName, fromGuid = from.getName(), from.getGUID()
+    local toName, toGuid = to.getName(), to.getGUID()
+    if not to.putObject(from) then
+        Assert.Fail("Failed to put object %s (%s) into %s (%s)", fromName, fromGuid, toName, toGuid)
+    end
+    Log.Debugf("Put %s (%s) into %s (%s)", fromName, fromGuid, toName, toGuid)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoLock(action, scriptData)
+    local hits = Physics.cast({
+        origin    = Script.Position(action.from),
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = Script.Size(action.from),
+        debug     = debug,
+    })
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+        if Script.ObjectMatchesAction(obj, action) then
+            Log.Debugf("Locking %s (%s)", obj.getName(), obj.getGUID())
+            obj.setLock(true)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoPrint(action, scriptData)
+    Log.Printf(action.fmt, table.unpack(action.args))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoWait(action, scriptData)
+    for i = 1, action.frames do
+        coroutine.yield(0)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Script.DoOrder(action, scriptData)
+    Log.Debugf("Reordering %s with top=%s and bottom=%s", action.from, Util.TabStr(action.top), Util.TabStr(action.bottom))
+    local from, fromType = Script.From(action, scriptData)
+    Assert(fromType == "id", "from must be an id: %s", action.from)
+    Assert(from.tag == "Deck", "from must be a deck: %s (%s)", from.getName(), from.getGUID())
+
+    local data = from.getData()
+    local oldDeck = data.ContainedObjects
+
+    local index = {}
+    for i, elem in ipairs(oldDeck) do
+        if not index[elem.Nickname] then
+            index[elem.Nickname] = { i }
+        else
+            table.insert(index[elem.Nickname], i)
+        end
+    end
+
+    local newDeck = {}
+    for _, card in ipairs(action.top or {}) do
+        local t = index[card]
+        Assert(t and #t > 0, "Deck %s (%s) doesn't have card %s", from.getName(), from.getGUID(), card)
+        local i = t[#t]
+        table.insert(newDeck, oldDeck[i])
+        oldDeck[i] = "-"
+        table.remove(t)
+    end
+
+    local bottom = {}
+    for _, card in ipairs(action.bottom or {}) do
+        local t = index[card]
+        Assert(t and #t > 0, "Deck %s (%s) doesn't have card %s", from.getName(), from.getGUID(), card)
+        local i = t[#t]
+        table.insert(bottom, oldDeck[i])
+        oldDeck[i] = "-"
+        table.remove(t)
+    end
+
+    for _, elem in ipairs(oldDeck) do
+        if elem != "-" then
+            table.insert(newDeck, elem)
+        end
+    end
+
+    for i = #bottom, 1, -1 do
+        table.insert(newDeck, bottom[i])
+    end
+
+    data.DeckIDs = {}
+    for _, elem in ipairs(newDeck) do
+        table.insert(data.DeckIDs, elem.CardID)
+    end
+    data.ContainedObjects = newDeck
+
+    from.destruct()
+
+    from = spawnObjectData({
+        data = data,
+    })
+
+    scriptData.savedObjects[action.from] = from
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- Must be in a coroutine to run.
+-- Returns map of savedObjMap, nil, nil on success.
+-- Only other return value is if we found an object blocking a location to clean with ignoreBlocking = false.
+-- In that case, we return: nil, blockingObject, blockedLocation
+function Script.Run(script)
+    Assert.Script(script)
+
+    Log.Debugf("Running script %s", script.name)
+
+    local scriptData = {
+        savedObjects = {},
+        debug = script.debug,
+    }
+
+    for stageIndex, stage in ipairs(script.stages) do
+        Log.Debugf("Running script %s, stage %d: %s", script.name, stageIndex, stage.name)
+
+        scriptData.latch = Latch.Create(script.name.."_Latch", 0)
+
+        for actionIndex, action in ipairs(stage.actions) do
+            if action.action == "clean" then
+                local blockingObj, blockedLocation = Script.DoClean(action, scriptData)
+                if blockingObj != nil then
+                    Util.Highlight(blockingObj)
+                    return nil, blockingObj, blockedLocation
+                end
+
+            elseif action.action == "take" then
+                Script.DoTake(action, scriptData)
+
+            elseif action.action == "clone" then
+                Script.DoClone(action, scriptData)
+
+            elseif action.action == "move" then
+                Script.DoMove(action, scriptData)
+
+            elseif action.action == "shuffle" then
+                Script.DoShuffle(action, scriptData)
+
+            elseif action.action == "name" then
+                Script.DoName(action, scriptData)
+
+            elseif action.action == "reset" then
+                Script.DoReset(action, scriptData)
+
+            elseif action.action == "put" then
+                Script.DoPut(action, scriptData)
+
+            elseif action.action == "lock" then
+                Script.DoLock(action, scriptData)
+
+            elseif action.action == "print" then
+                Script.DoPrint(action, scriptData)
+
+            elseif action.action == "wait" then
+                Script.DoWait(action, scriptData)
+
+            elseif action.action == "order" then
+                Script.DoOrder(action, scriptData)
+
+            else
+                Assert.Fail("Unrecognized action %d: %s in script %s, stage %d: %s", actionIndex, action.action, script.name, stageIndex, stage.name)
+            end
+        end
+
+        Archive.Clear()
+
+        coroutine.yield(0)
+
+        err = Latch.Wait(scriptData.latch, 10)
+        Assert(err == nil, "Timed out waiting for objects to spawn during stage %d of script", stageIndex)
+    end
+
+    return scriptData.savedObjects
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Script

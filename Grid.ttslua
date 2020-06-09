@@ -1,0 +1,93 @@
+local Assert = require("Kdm/Assert")
+local Guids = require("Kdm/Guids")
+
+---------------------------------------------------------------------------------------------------
+
+local Grid = {}
+
+Grid.MAX_COLS = 22
+Grid.MAX_ROWS = 16
+
+Grid.left   = 4.885550
+Grid.right  = -4.436194
+Grid.top    = -2.834642
+Grid.bottom = 3.801133
+
+Grid.colDelta    = (Grid.right - Grid.left) / (Grid.MAX_COLS - 1)
+Grid.rowDelta = (Grid.bottom - Grid.top) / (Grid.MAX_ROWS - 1)
+
+---------------------------------------------------------------------------------------------------
+
+function Grid.ColRow(lposition)
+    Assert.Vec(lposition, "lposition")
+
+    local col = (lposition.x - Grid.left) / Grid.colDelta
+    local row = (lposition.z - Grid.top) / Grid.rowDelta
+    return col, row
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Grid.XZ(col, row)
+    Assert.Num(col, "col")
+    Assert.Num(row, "row")
+
+    local x = Grid.left + (col * Grid.colDelta)
+    local z = Grid.top    + (row * Grid.rowDelta)
+    return x, z
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Grid.SnapColRow(lpos, size)
+    local col, row = Grid.ColRow(lpos)
+
+    local snapCol, snapRow
+    if size % 2 == 0 then
+        -- even size, snap to grid intersections (0.5, 1.5, 2.5, ...)
+        snapCol = math.floor(col) + 0.5
+        snapRow = math.floor(row) + 0.5
+    else
+        -- odd size, snap to grid cell centers (1.0, 2.0, 3.0, ...)
+        snapCol = math.floor(col + 0.5)
+        snapRow = math.floor(row + 0.5)
+    end
+
+    return snapCol, snapRow
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Grid.Snap(obj, size)
+    Assert.Obj(obj, "obj")
+    Assert.Num(size, "size")
+
+    local showdownBoard = Guids.GetObject("Showdown Board")
+
+    local wpos = obj.getPosition()
+    local lpos = showdownBoard.positionToLocal(wpos)
+
+    local snapCol, snapRow = Grid.SnapColRow(lpos, size)
+
+    local epsilon = 0.001
+    local radius = size / 2
+    if
+        (snapCol - radius) < -0.5 - epsilon or
+        (snapCol + radius) >= Grid.MAX_COLS + epsilon or
+        (snapRow - radius) < -0.5 - epsilon or
+        (snapRow + radius) >= Grid.MAX_ROWS + epsilon then
+        return wpos
+    end
+
+    local snapX, snapZ = Grid.XZ(snapCol, snapRow)
+
+    return showdownBoard.positionToWorld({
+        x = snapX,
+        y = lpos.y,
+        z = snapZ,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Grid

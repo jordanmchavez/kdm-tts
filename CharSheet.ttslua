@@ -1,0 +1,615 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("CharSheet")
+local Util = require("Kdm/Util")
+local UiCounter = require("Kdm/UiCounter")
+local UiCheckbox = require("Kdm/UiCheckbox")
+local UiButton = require("Kdm/UiButton")
+local UiText = require("Kdm/UiText")
+local EventManager = require("Kdm/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local CharSheet = {}
+
+local CHAR_SHEET_UI_Y = 0.105
+
+local charSheet_maxes = {
+    huntExperience = 16,
+    courage = 9,
+    understanding = 9,
+    weaponProficiencyRank = 8,
+}
+
+local charSheet_charSheetsByObject = {}
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_Save(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+
+    local saveState = {
+        name = charSheet.name,
+        gender = charSheet.gender,
+        skipNextHunt = charSheet.skipNextHunt,
+        survival = charSheet.survival,
+        movement = charSheet.movement,
+        speed = charSheet.speed,
+        accuracy = charSheet.accuracy,
+        strength = charSheet.strength,
+        evasion = charSheet.evasion,
+        luck = charSheet.luck,
+        huntExperience = charSheet.huntExperience,
+        insanity = charSheet.insanity,
+        brainLightInjury = charSheet.brainLightInjury,
+        courage = charSheet.courage,
+        understanding = charSheet.understanding,
+        weaponProficiency = charSheet.weaponProficiency,
+        weaponProficiencyRank = charSheet.weaponProficiencyRank,
+        packedCards = charSheet.packedCards
+    }
+    charSheet.object.script_state = JSON.encode(saveState)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_GetOrBlank(charSheet, name)
+    return charSheet[name] or ""
+end
+
+local function CharSheet_GetOrFalse(charSheet, name)
+    return charSheet[name] or false
+end
+
+local function CharSheet_GetOrZero(charSheet, name)
+    return charSheet[name] or 0
+end
+
+local function CharSheet_GetWithModifiersOrZero(charSheet, name)
+    local base = charSheet[name] or 0
+    local temp = charSheet.temporaryModifiers[name] or 0
+    local perm = charSheet.permanentModifiers[name] or 0
+    return base + temp + perm
+end
+
+local charSheet_getters = {
+    name = CharSheet_GetOrBlank,
+    weaponProficiency = CharSheet_GetOrBlank,
+
+    gender = CharSheet_GetOrBlank,
+
+    skipNextHunt = CharSheet_GetOrFalse,
+    brainLightInjury = CharSheet_GetOrFalse,
+
+    survival = CharSheet_GetOrZero,
+    insanity = CharSheet_GetOrZero,
+
+    movement = CharSheet_GetWithModifiersOrZero,
+    speed = CharSheet_GetWithModifiersOrZero,
+    accuracy = CharSheet_GetWithModifiersOrZero,
+    strength = CharSheet_GetWithModifiersOrZero,
+    evasion = CharSheet_GetWithModifiersOrZero,
+    luck = CharSheet_GetWithModifiersOrZero,
+
+    huntExperience = CharSheet_GetOrZero,
+    courage = CharSheet_GetOrZero,
+    understanding = CharSheet_GetOrZero,
+    weaponProficiencyRank = CharSheet_GetOrZero,
+}
+
+local function CharSheet_Get(charSheet, name)
+    return charSheet_getters[name](charSheet, name)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_SetName(charSheet, name, value)
+    charSheet[name] = value
+    if charSheet.figurine then
+        if not charSheet.name or charSheet.name == "" then
+            charSheet.figurine.setName("Unnamed Survivor")
+        else
+            charSheet.figurine.setName(charSheet.name)
+        end
+    end
+end
+
+local function CharSheet_SetPlain(charSheet, name, value)
+    charSheet[name] = value
+end
+
+local function CharSheet_SetGender(charSheet, name, value)
+    local other = (value == "male") and "female" or "male"
+    UiCheckbox.Set(charSheet[value.."UiCheckbox"], true)
+    UiCheckbox.Set(charSheet[other.."UiCheckbox"], false)
+    charSheet.gender = value
+end
+
+local function CharSheet_SetCheckbox(charSheet, name, value)
+    charSheet[name] = value
+    UiCheckbox.Set(charSheet[name.."UiCheckbox"], value)
+end
+
+local function CharSheet_SetCounter(charSheet, name, value)
+    charSheet[name] = value
+    UiCounter.Set(charSheet[name.."UiCounter"], value)
+end
+
+local function CharSheet_SetCounterWithModifiers(charSheet, name, value)
+    charSheet[name] = value
+    local temp = charSheet.temporaryModifiers[name] or 0
+    local perm = charSheet.permanentModifiers[name] or 0
+    UiCounter.Set(charSheet[name.."UiCounter"], value + temp + perm)
+end
+
+local function CharSheet_SetCheckboxSequence(charSheet, name, value)
+    local oldValue = charSheet[name] or 0
+
+    if value <= oldValue then
+        value = value - 1
+    end
+    charSheet[name] = value
+
+    for i = 1, value do
+        UiCheckbox.Set(charSheet[name..i.."UiCheckbox"], true)
+    end
+    for i = value + 1, charSheet_maxes[name] do
+        UiCheckbox.Set(charSheet[name..i.."UiCheckbox"], false)
+    end
+end
+
+local charSheet_setters = {
+    name = CharSheet_SetName,
+    weaponProficiency = CharSheet_SetPlain,
+
+    gender = CharSheet_SetGender,
+
+    skipNextHunt = CharSheet_SetCheckbox,
+    brainLightInjury = CharSheet_SetCheckbox,
+
+    survival = CharSheet_SetCounter,
+    insanity = CharSheet_SetCounter,
+
+    movement = CharSheet_SetCounterWithModifiers,
+    speed = CharSheet_SetCounterWithModifiers,
+    accuracy = CharSheet_SetCounterWithModifiers,
+    strength = CharSheet_SetCounterWithModifiers,
+    evasion = CharSheet_SetCounterWithModifiers,
+    luck = CharSheet_SetCounterWithModifiers,
+
+    huntExperience = CharSheet_SetCheckboxSequence,
+    courage = CharSheet_SetCheckboxSequence,
+    understanding = CharSheet_SetCheckboxSequence,
+    weaponProficiencyRank = CharSheet_SetCheckboxSequence,
+}
+
+function CharSheet_Set(charSheet, attribute, value)
+    charSheet_setters[attribute](charSheet, attribute, value)
+    Log.Debugf("Set %s to %s for charSheet %s", attribute, tostring(charSheet[attribute]), charSheet.object.getGUID())
+    CharSheet_Save(charSheet)
+    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, attribute, CharSheet_Get(charSheet, attribute))
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_CreateTexts(charSheet)
+    local changeFunc = function(uiText, value)
+        CharSheet_Set(charSheet, uiText.name, value)
+    end
+
+    local textInputs = {
+        name = { x = -0.04, z = -0.90, width = 2500, height = 200, label = "Enter your survivor's name" },
+        weaponProficiency = { x =  0.38, z =  0.71, width = 1500, height = 200 },
+    }
+
+    local object = charSheet.object
+    for name, params in pairs(textInputs) do
+        UiText.Create({
+            object = object,
+            name = name,
+            label = params.label,
+            value = charSheet[name],
+            position = { params.x, CHAR_SHEET_UI_Y, params.z },
+            width = params.width,
+            height = params.height,
+            fontSize = 150,
+            changeFunc = changeFunc,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_CreateCounters(charSheet)
+    local object = charSheet.object
+
+    local counters = {
+        survival = { x = -0.545, z = -0.48 },
+        insanity = { x = 0.475, z = -0.48 },
+    }
+
+    local changeFunc = function(uiCounter, delta)
+        local name = uiCounter.name
+        CharSheet_Set(charSheet, name, (charSheet[name] or 0) + delta)
+    end
+
+    for name, params in pairs(counters) do
+        charSheet[name.."UiCounter"] = UiCounter.Create({
+            object = object,
+            name = name,
+            value = CharSheet_Get(charSheet, name),
+            position = { params.x, CHAR_SHEET_UI_Y, params.z },
+            size = 700,
+            changeFunc = changeFunc,
+        })
+    end
+
+    local x = -0.27
+    local dx = 0.236
+    local z = -0.555
+    local dz = 0.31
+    local counters = {
+        movement = { x = x + (0 * dx), z = z },
+        speed = { x = x + (1 * dx), z = z },
+        accuracy = { x = x + (2 * dx), z = z },
+        strength = { x = x + (0 * dx), z = z + dz },
+        evasion = { x = x + (1 * dx), z = z + dz },
+        luck = { x = x + (2 * dx), z = z + dz },
+    }
+
+    for name, params in pairs(counters) do
+        charSheet[name.."UiCounter"] = UiCounter.Create({
+            object = object,
+            name = name,
+            value = CharSheet_Get(charSheet, name),
+            position = { params.x, CHAR_SHEET_UI_Y, params.z },
+            size = 470,
+            changeFunc = changeFunc,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_CreateCheckboxes(charSheet)
+    local object = charSheet.object
+
+    local size = 230
+
+    local checkBoxes = {
+        brainLightInjury = { x = 0.658, z = -0.726 },
+        skipNextHunt = { x = 0.435, z = -0.824 },
+    }
+
+    local changeFunc = function(uiCheckbox)
+        local name = uiCheckbox.name
+        CharSheet_Set(charSheet, name, not charSheet[name])
+    end
+
+    for name, params in pairs(checkBoxes) do
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = charSheet[name],
+            position = { params.x, CHAR_SHEET_UI_Y, params.z },
+            size = size,
+            changeFunc = changeFunc,
+        })
+    end
+
+    local checkBoxes = {
+        male  = { x = 0.559, z = -0.922 },
+        female = { x = 0.690, z = -0.922 },
+    }
+
+    for name, params in pairs(checkBoxes) do
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = charSheet.gender == name,
+            position = { params.x, CHAR_SHEET_UI_Y, params.z },
+            size = 230,
+            changeFunc = function(_)
+                CharSheet_Set(charSheet, "gender", name)
+            end
+        })
+    end
+
+    local x = -0.426
+    local z = -0.0322
+    local dx = 0.0723
+    local huntExperience = CharSheet_Get(charSheet, "huntExperience")
+    for i = 1, charSheet_maxes.huntExperience do
+        local name = "huntExperience"..i
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = (i <= huntExperience),
+            position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
+            size = size,
+            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "huntExperience", i),
+        })
+    end
+
+    local x = -0.657
+    local z = 0.368
+    local dx = 0.0727
+    local courage = CharSheet_Get(charSheet, "courage")
+    for i = 1, charSheet_maxes.courage do
+        local name = "courage"..i
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = (i <= courage),
+            position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
+            size = size,
+            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "courage", i),
+        })
+    end
+
+    local x = 0.075
+    local understanding = CharSheet_Get(charSheet, "understanding")
+    for i = 1, charSheet_maxes.understanding do
+        local name = "understanding"..i
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = (i <= understanding),
+            position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
+            size = size,
+            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "understanding", i),
+        })
+    end
+
+    x = -0.657
+    z = 0.769
+    dx = 0.0728
+    local weaponProficiencyRank = CharSheet_Get(charSheet, "weaponProficiencyRank")
+    for i = 1, charSheet_maxes.weaponProficiencyRank do
+        name = "weaponProficiencyRank"..i
+        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+            object = object,
+            name = name,
+            value = (i <= weaponProficiencyRank),
+            position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
+            size = size,
+            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "weaponProficiencyRank", i),
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_Create(object)
+    Log.Debugf("Creating CharSheet %s", object.getGUID())
+
+    local saveState = {}
+    if object.script_state then
+        saveState = JSON.decode(object.script_state) or {}
+    end
+    object.setLuaScript("--")
+
+    local charSheet = {
+        tag = "CharSheet",
+        object = object,
+
+        name = saveState.name,
+        gender = saveState.gender,
+        skipNextHunt = saveState.skipNextHunt,
+        survival = saveState.survival,
+        movement = saveState.movement or 5,
+        speed = saveState.speed,
+        accuracy = saveState.accuracy,
+        strength = saveState.strength,
+        evasion = saveState.evasion,
+        luck = saveState.luck,
+        huntExperience = saveState.huntExperience,
+        insanity = saveState.insanity,
+        brainLightInjury = saveState.brainLightInjury,
+        courage = saveState.courage,
+        understanding = saveState.understanding,
+        weaponProficiency = saveState.weaponProficiency,
+        weaponProficiencyRank = saveState.weaponProficiencyRank,
+
+        temporaryModifiers = {},
+        permanentModifiers = {},
+    }
+    CharSheet_CreateTexts(charSheet)
+    CharSheet_CreateCounters(charSheet)
+    CharSheet_CreateCheckboxes(charSheet)
+
+    charSheet_charSheetsByObject[object] = charSheet
+
+    return charSheet
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetForObject(object)
+    Assert.Obj(object)
+    return charSheet_charSheetsByObject[object]
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.LinkFigurine(charSheet, figurine)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+
+    Log.Debugf("Linking figurine %s (%s) to CharSheet %s", figurine.getName(), figurine.getGUID(), charSheet.object.getGUID())
+
+    if not charSheet.name or charSheet.name == "" then
+        figurine.setName("Unnamed Survivor")
+    else
+        figurine.setName(charSheet.name)
+    end
+    charSheet.figurine = figurine
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.UnlinkFigurine(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+
+    if charSheet.figurine then
+        Log.Debugf("Unlinking figurine %s (%s) to CharSheet %s", charSheet.figurine.getName(), charSheet.figurine.getGUID(), charSheet.object.getGUID())
+        charSheet.figurine.setName("")
+        charSheet.figurine = nil
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetName(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return charSheet.name
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetMovement(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "movement")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetAccuracy(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "accuracy")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetStrength(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "strength")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetEvasion(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "evasion")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetLuck(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "luck")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.HealAndReset(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+
+    for _, attribute in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
+        CharSheet.SetTemporaryModifier(charSheet, attribute, 0)
+    end
+
+    CharSheet_Set(charSheet, "brainLightInjury", false)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.SetTemporaryModifier(charSheet, attribute, modifier)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    Assert.Str(attribute, "attribute")
+    Assert.Num(modifier, "modifier")
+
+    Log.Debugf("Setting temporary modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
+
+    local oldValue = CharSheet_Get(charSheet, attribute)
+    charSheet.temporaryModifiers[attribute] = modifier
+    local newValue = CharSheet_Get(charSheet, attribute)
+    if newValue != oldValue then
+        UiCounter.Set(charSheet[attribute.."UiCounter"], newValue)
+        EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, attribute, newValue)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.SetPermanentModifier(charSheet, attribute, modifier)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    Assert.Str(attribute, "attribute")
+    Assert.Num(modifier, "modifier")
+
+    Log.Debugf("Setting permanent modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
+
+    local oldValue = CharSheet_Get(charSheet, attribute)
+    charSheet.permanentModifiers[attribute] = modifier
+    local newValue = CharSheet_Get(charSheet, attribute)
+    if newValue != oldValue then
+        UiCounter.Set(charSheet[attribute.."UiCounter"], newValue)
+        EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, attribute, newValue)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.SetModifiers(charSheet, temporaryModifiers, permanentModifiers)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    Assert.Tab(temporaryModifiers, "temporaryModifiers")
+    Assert.Tab(permanentModifiers, "permanentModifiers")
+
+    for _, attribute in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
+        local oldValue = CharSheet_Get(charSheet, attribute)
+        charSheet.temporaryModifiers[attribute] = temporaryModifiers[attribute] or 0
+        charSheet.permanentModifiers[attribute] = permanentModifiers[attribute] or 0
+        local newValue = CharSheet_Get(charSheet, attribute)
+        if newValue != oldValue then
+            UiCounter.Set(charSheet[attribute.."UiCounter"], newValue)
+            EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, attribute, newValue)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.SetPackedCards(charSheet, packedCards)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    charSheet.packedCards = packedCards
+    CharSheet_Save(charSheet)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetPackedCards(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return charSheet.packedCards
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_OnObjectSpawn(object)
+    if object.getGMNotes() == "Character Sheet" then
+        CharSheet_Create(object)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_OnObjectDestroy(object)
+    if charSheet_charSheetsByObject[object] then
+        Log.Debugf("CharSheet %s destroyed", object.getGUID())
+        charSheet_charSheetsByObject[object] = nil
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.Init()
+    EventManager.AddHandler("onObjectSpawn", CharSheet_OnObjectSpawn)
+    EventManager.AddHandler("onObjectDestroy", CharSheet_OnObjectDestroy)
+
+    for _, object in ipairs(getAllObjects()) do
+        if object.getGMNotes() == "Character Sheet" then
+            CharSheet_Create(object)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return CharSheet

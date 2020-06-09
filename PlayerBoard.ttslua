@@ -1,0 +1,904 @@
+local Assert = require("Kdm/Assert")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("PlayerBoard")
+local Guids = require("Kdm/Guids")
+local UiCounter = require("Kdm/UiCounter")
+local UiCheckbox = require("Kdm/UiCheckbox")
+local UiButton = require("Kdm/UiButton")
+local EventManager = require("Kdm/EventManager")
+local DropZone = require("Kdm/DropZone")
+local CharSheet = require("Kdm/CharSheet")
+local Overlay = require("Kdm/Overlay")
+local Armor = require("Kdm/Armor")
+local Weapons = require("Kdm/Weapons")
+
+---------------------------------------------------------------------------------------------------
+
+local PlayerBoard = {
+    playerBoards = {},
+    playerBoardsByObject = {},
+}
+
+local PLAYER_BOARD_UI_Y = 0.105
+
+local PLAYER_BOARD_ARMOR_LOCATIONS = { "head", "arms", "body", "waist", "legs" }
+local PLAYER_BOARD_HEAVY_INJURY_LOCATIONS = { "head", "arms", "body", "waist", "legs" }
+local PLAYER_BOARD_LIGHT_INJURY_LOCATIONS = { "arms", "body", "waist", "legs" }
+
+local PLAYER_BOARD_TEMPORARY_TOKEN_ATTRIBUTES = {
+    ["Movement Token"] = "movement",
+    ["Speed Token"] = "speed",
+    ["Accuracy Token"] = "accuracy",
+    ["Strength Token"] = "strength",
+    ["Evasion Token"] = "evasion",
+    ["Luck Token"] = "luck",
+}
+
+local PLAYER_BOARD_PERMANENT_TOKEN_ATTRIBUTES = {
+    ["Permanent Movement"] = "movement",
+    ["Permanent Speed"] = "speed",
+    ["Permanent Accuracy"] = "accuracy",
+    ["Permanent Strength"] = "strength",
+    ["Permanent Evasion"] = "evasion",
+    ["Permanent Luck"] = "luck",
+}
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.GetPlayerBoard(playerNumber)
+    Assert.Num(playerNumber)
+    return PlayerBoard.playerBoards[playerNumber]
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.GetFigurine(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    return playerBoard.figurine
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.GetCharSheet(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    return playerBoard.linkedCharSheet
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.GetColor(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    return Guids.GetObject("Player "..playerBoard.playerNumber.." Marker").getColorTint()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.GetWeapons(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    return playerBoard.linkedWeapons
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_UnlinkFigurine(playerBoard)
+    local figurine = playerBoard.figurine
+    if not figurine then
+        return
+    end
+
+    Log.Debugf("Unlinking figurine %s (%s) from player %d", figurine.getName(), figurine.getGUID(), playerBoard.playerNumber)
+    figurine.setColorTint({ 0, 0, 0 })
+    if playerBoard.linkedCharSheet then
+        CharSheet.UnlinkFigurine(playerBoard.linkedCharSheet)
+    end
+    playerBoard.figurine = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_LinkFigurine(playerBoard, figurine)
+    Log.Debugf("Linking figurine %s (%s) with player %d", figurine.getName(), figurine.getGUID(), playerBoard.playerNumber)
+
+    PlayerBoard_UnlinkFigurine(playerBoard)
+
+    for i, pb in ipairs(PlayerBoard.playerBoards) do
+        if pb.figurine == object then
+            PlayerBoard_UnlinkFigurine(pb)
+        end
+    end
+
+    playerBoard.figurine = figurine
+    local marker = Guids.GetObject("Player "..playerBoard.playerNumber.." Marker")
+    figurine.setColorTint(marker.getColorTint())
+
+    if playerBoard.linkedCharSheet then
+        CharSheet.LinkFigurine(playerBoard.linkedCharSheet, figurine)
+    end
+    playerBoard.figurine = figurine
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_HealAndReset(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    Log.Debugf("Healing and resetting %s", playerBoard.object.getName())
+
+    -- Clear injuries
+    for _, hitLocation in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
+        if playerBoard.lightInjuries[hitLocation] then
+            playerBoard.lightInjuries[hitLocation] = false
+            UiCheckbox.Set(playerBoard[hitLocation.."LightInjuryUiCheckbox"], false)
+        end
+    end
+    for _, hitLocation in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
+        if playerBoard.heavyInjuries[hitLocation] then
+            playerBoard.heavyInjuries[hitLocation] = false
+            UiCheckbox.Set(playerBoard[hitLocation.."HeavyInjuryUiCheckbox"], false)
+        end
+    end
+
+    -- Reset armor
+    for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+        if playerBoard.temporaryArmor[location] != 0 then
+            playerBoard.temporaryArmor[location] = 0
+            UiCounter.Set(playerBoard[location.."ArmorUiCounter"], playerBoard.gearArmor[location])
+        end
+    end
+
+    -- Clear temp tokens
+    for obj, _ in pairs(playerBoard.linkedTemporaryTokens) do
+        if obj != nil then
+            obj.destruct()
+        end
+    end
+    playerBoard.linkedTemporaryTokens = {}
+
+    -- Clear bleeding and lunacy tokens
+    for obj, _ in pairs(playerBoard.linkedMiscTokens) do
+        if obj != nil then
+            obj.destruct()
+        end
+    end
+    playerBoard.linkedMiscTokens = {}
+
+    -- reset char sheet
+    if playerBoard.linkedCharSheet then
+        CharSheet.HealAndReset(playerBoard.linkedCharSheet)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_PackCharSheet(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    if playerBoard.linkedCharSheet == nil then
+        return
+    end
+
+    local playerBoardObj = playerBoard.object
+    local charSheet = playerBoard.linkedCharSheet
+    local charSheetObj = charSheet.object
+
+    for _, attachment in ipairs(charSheetObj.getAttachments()) do
+        if attachment.gm_notes == "Character Cards" then
+            Log.Errorf("This character sheet already has cards packed, please unpack it first by dropping it on any player board.")
+            return
+        end
+    end
+
+    -- scan area covering the cards section of the player board
+    local corner1 = { 1.095649, 0.331540, 0.757645 }
+    local corner2 = { -0.640439, 0.331540, 0.381691 }
+    local center = {
+        (corner1[1] + corner2[1]) / 2,
+        (corner1[2] + corner2[2]) / 2,
+        (corner1[3] + corner2[3]) / 2,
+    }
+    local wcenter = playerBoardObj.positionToWorld(center)
+    local wcorner1 = playerBoardObj.positionToWorld(corner1)
+    local wcorner2 = playerBoardObj.positionToWorld(corner2)
+    local wsize = {
+        math.abs(wcorner1[1] - wcorner2[1]) + 2,
+        math.abs(wcorner1[2] - wcorner2[2]),
+        math.abs(wcorner1[3] - wcorner2[3]) + 4,
+    }
+
+    -- scan all cards
+    local hits = Physics.cast({
+        origin        = wcenter,
+        direction = { 0, -1, 0 },
+        type            = 3,
+        size            = wsize,
+        --debug         = true,
+    })
+    local cards = {}
+    for _, hit in ipairs(hits) do
+        local hitObj = hit.hit_object
+        if hitObj.tag == "Card" then
+            table.insert(cards, hitObj)
+        end
+    end
+
+    if #cards == 0 and playerBoard.figurine == nil then
+        Log.Printf("Nothing to pack!")
+        return
+    end
+
+    Log.Debugf("Putting player cards and figurine in bag")
+
+    local bag = spawnObject({
+        type = "bag",
+        position = charSheetObj.positionToWorld({ 0.546, 0.282, -0.24 }),
+        scale = { 0.5, 0.5, 0.5 },
+    })
+    local charName = CharSheet.GetName(charSheet)
+    charName = (charname and charName != "") and charName or "Unnamed Survivor"
+    bag.setName(charName.." Cards")
+    bag.setGMNotes("Character Cards")
+
+    local packedCards = {}
+    for _, card in ipairs(cards) do
+        local name = card.getName()
+        local pos = playerBoardObj.positionToLocal(card.getPosition())
+        Log.Debugf("Scooping %s at %f, %f, %f into bag", name, pos[1], pos[2], pos[3])
+        if not packedCards[name] then
+            packedCards[name] = {}
+        end
+        table.insert(packedCards[name], { pos, card.getRotation() })
+        bag.putObject(card)
+    end
+
+    if playerBoard.figurine then
+        local figurine = playerBoard.figurine
+        Log.Debugf("Scooping figurine %s (%s) into bag", figurine.getName(), figurine.getGUID())
+        PlayerBoard_UnlinkFigurine(playerBoard) -- putting it into a bag should take care of this, but just in case
+        bag.putObject(figurine)
+    end
+
+    CharSheet.SetPackedCards(charSheet, packedCards)
+    charSheetObj.addAttachment(bag)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_UnpackCharSheet(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    local playerBoardObj = playerBoard.object
+    local charSheet = playerBoard.linkedCharSheet
+    local charSheetObj = charSheet.object
+
+    local attachmentIndex = nil
+    for _, attachment in ipairs(charSheetObj.getAttachments()) do
+        if attachment.gm_notes == "Character Cards" then
+            attachmentIndex = attachment.index
+            Log.Debugf("Found Character Cards attachment at index %d", attachmentIndex)
+            break
+        end
+    end
+
+    if attachmentIndex == nil then
+        return
+    end
+
+    Log.Debugf("Unpacking character sheet %s (%s)", charSheetObj.getName(), charSheetObj.getGUID())
+
+    Log.Debugf("Removing attached bag at index %s", attachmentIndex)
+    local bag = charSheetObj.removeAttachment(attachmentIndex)
+    Assert(bag, "charSheet.removeAttachment() returned nil")
+
+    local packedCards = CharSheet.GetPackedCards(charSheet)
+    if packedCards == nil then
+        Log.Errorf("Couldn't find positions for packed cards! Please remove them from the bag and place manually, then delete the bag.")
+        bag.setScale({ 1, 1, 1 })
+        return
+    end
+    Log.Debugf("Got char sheet packed cards: %s", Util.TabStr(packedCards))
+
+    Log.Debugf("Taking character cards out of bag %s (%s)", bag.getName(), bag.getGUID())
+    local deleteBag = true
+    for _, bagEntry in ipairs(bag.getObjects()) do
+        if bagEntry.gm_notes == "Player Figurine" then
+            local pos = Guids.GetObject("Player "..playerBoard.playerNumber.." Marker").getBounds().center
+            pos.y = pos.y + 2
+            local figurine = bag.TakeObject({
+                position = pos,
+                guid = bagEntry.guid,
+                smooth = false,
+            })
+            PlayerBoard_LinkFigurine(playerBoard, figurine)
+        else
+            local packedCard = packedCards[bagEntry.name]
+            if not packedCard or #packedCard == 0 then
+                Log.Errorf("Couldn't find position for '%s', please remove from bag and place manually, then delete the bag.", bagEntry.name)
+                deleteBag = false
+            else
+                local pos = playerBoardObj.positionToWorld(packedCard[#packedCard][1])
+                local rot = packedCard[#packedCard][2]
+                Log.Debugf("Taking %s to %f, %f, %f", bagEntry.name, pos[1], pos[2], pos[3])
+                bag.takeObject({
+                    position = pos,
+                    -- necessary hack because the char sheet "owns" the table, other we'll get an error about resources owned by different scripts
+                    -- this also needs to be x/y/z not 1/2/3 since this will be loaded from json and it only saves x/y/z
+                    rotation = { rot.x, rot.y, rot.z },
+                    guid     = bagEntry.guid,
+                    smooth   = false,
+                })
+                packedCard[#packedCard] = nil
+            end
+        end
+    end
+
+    if deleteBag then
+        Log.Debugf("Destroying bag %s (%s)", bag.getName(), bag.getGUID())
+        bag.destruct()
+    end
+
+    CharSheet.SetPackedCards(charSheet, nil)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_AddArmor(playerBoard, location, temporaryArmor, gearArmor)
+    Log.Debugf("Adding %d temporary/%d gear armor to %s to %s", temporaryArmor, gearArmor, location, playerBoard.object.getName())
+
+    local oldTemporaryArmor = playerBoard.temporaryArmor[location]
+    local oldGearArmor = playerBoard.gearArmor[location]
+    local newTemporaryArmor = oldTemporaryArmor + temporaryArmor
+    local newGearArmor = oldGearArmor + gearArmor
+    playerBoard.temporaryArmor[location] = newTemporaryArmor
+    playerBoard.gearArmor[location] = newGearArmor
+    if (oldTemporaryArmor + oldGearArmor) != (newTemporaryArmor + newGearArmor) then
+        UiCounter.Set(playerBoard[location.."ArmorUiCounter"], newTemporaryArmor + newGearArmor)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_GetTokenValue(token)
+    local value = 1
+    rot = token.getRotation()
+    if rot[3] >= 15 and rot[3] <= 345    then
+            value = -1
+    end
+
+    local qty = token.getQuantity()
+    if qty >= 2 then
+        value = value * qty
+    end
+
+    return value
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, attribute)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    if playerBoard.linkedCharSheet == nil then
+        return
+    end
+
+    local total = 0
+    for _, token in pairs(playerBoard.linkedTemporaryTokens) do
+        if token.attribute == attribute then
+            total = total + token.value
+        end
+    end
+
+    CharSheet.SetTemporaryModifier(playerBoard.linkedCharSheet, attribute, total)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, attribute)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    if playerBoard.linkedCharSheet == nil then
+        return
+    end
+
+    local total = 0
+    for _, token in pairs(playerBoard.linkedPermanentTokens) do
+        if token.attribute == attribute then
+            total = total + token.value
+        end
+    end
+
+    CharSheet.SetPermanentModifier(playerBoard.linkedCharSheet, attribute, total)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard_UpdateCharSheetModifiers(playerBoard)
+    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+
+    local charSheet = playerBoard.linkedCharSheet
+    Log.Debugf("Updating all CharSheet modifiers for %s, charSheet %s", playerBoard.object.getName(), charSheet.object.getGUID())
+
+    local tempMods = {}
+    for _, token in pairs(playerBoard.linkedTemporaryTokens) do
+        tempMods[token.attribute] = (tempMods[token.attribute] or 0) + token.value
+    end
+
+    local permMods = {}
+    for _, token in pairs(playerBoard.linkedPermanentTokens) do
+        permMods[token.attribute] = (permMods[token.attribute] or 0) + token.value
+    end
+
+    CharSheet.SetModifiers(charSheet, tempMods, permMods)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnMarker(playerBoard, object)
+    if object.getGMNotes() != "Player Figurine" then
+        return
+    end
+
+    Log.Debugf("Figurine %s (%s) dropped on player marker %d", object.getName(), object.getGUID(), playerBoard.playerNumber)
+
+    PlayerBoard_LinkFigurine(playerBoard, object)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
+    local name = object.GetName()
+
+    if object.tag == "Card" then
+        local armorStats = Armor.GetStats(object.getName())
+        if armorStats and not playerBoard.linkedArmor[object] then
+            Log.Debugf("Linking armor %s (%s) to %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
+            playerBoard.linkedArmor[object] = armorStats
+            for location, amount in pairs(armorStats) do
+                PlayerBoard_AddArmor(playerBoard, location, 0, amount)
+            end
+            return
+        end
+
+        local weaponStats = Weapons.GetStats(object.getName())
+        if weaponStats and not playerBoard.linkedWeapons[object] then
+            Log.Debugf("Linking weapon %s (%s) to %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+            playerBoard.linkedWeapons[object] = weaponStats
+            EventManager.FireEvent("onPlayerBoardLinkWeapon", playerBoard, object, weaponStats)
+            return
+        end
+    end
+
+    local attribute = PLAYER_BOARD_TEMPORARY_TOKEN_ATTRIBUTES[name]
+    if attribute then
+        Log.Debugf("Linking temporary token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedTemporaryTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
+        PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, attribute)
+        object.registerCollisions() -- hack to track flips
+        return
+    end
+
+    local attribute = PLAYER_BOARD_PERMANENT_TOKEN_ATTRIBUTES[name]
+    if attribute then
+        Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedPermanentTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
+        PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, attribute)
+        object.registerCollisions() -- hack to track flips
+        return
+    end
+
+    if name == "Bleeding Token" or name == "Lunacy Token" then
+        Log.Debugf("Linking misc token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedMiscTokens[object] = object
+        return
+    end
+
+    if object.getGMNotes() == "Character Sheet" then
+        if playerBoard.linkedCharSheet then
+            Log.Debugf("%s already linked to CharSheet %s", playerBoard.object.getName(), playerBoard.linkedCharSheet.object.getGUID())
+            return
+        end
+
+        local charSheet = CharSheet.GetForObject(object)
+        if not charSheet then
+            Log.Errorf("CharSheet %s dropped on %s didn't register, try picking up and dropping again.", object.getGUID(), playerBoard.object.getName())
+            return
+        end
+
+        Log.Debugf("Linking char sheet %s (%s) to %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedCharSheet = charSheet
+        PlayerBoard_UpdateCharSheetModifiers(playerBoard)
+        PlayerBoard_UnpackCharSheet(playerBoard)
+        if playerBoard.figurine then
+            CharSheet.LinkFigurine(charSheet, playerBoard.figurine)
+        end
+
+        EventManager.FireEvent("onPlayerBoardLinkCharSheet", playerBoard, charSheet)
+
+        return
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
+    local armor = playerBoard.linkedArmor[object]
+    if armor then
+        Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armor.head, armor.arms, armor.body, armor.waist, armor.legs)
+        playerBoard.linkedArmor[object] = nil
+        for location, amount in pairs(armor) do
+            PlayerBoard_AddArmor(playerBoard, location, 0, -amount)
+        end
+    end
+
+    local weaponStats = playerBoard.linkedWeapons[object]
+    if weaponStats then
+        Log.Debugf("Unlinking weapon %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedWeapons[object] = nil
+        EventManager.FireEvent("onPlayerBoardUnlinkWeapon", playerBoard, object)
+    end
+
+    local token = playerBoard.linkedTemporaryTokens[object]
+    if token then
+        Log.Debugf("Unlinking temporary token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedTemporaryTokens[object] = nil
+        PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, token.attribute)
+        object.unregisterCollisions()   -- hack to turn off flip tracking
+        return
+    end
+
+    local token = playerBoard.linkedPermanentTokens[object]
+    if token then
+        Log.Debugf("Unlinking permanent token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedPermanentTokens[object] = nil
+        PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, token.attribute)
+        object.unregisterCollisions()   -- hack to turn off flip tracking
+        return
+    end
+
+    local token = playerBoard.linkedMiscTokens[object]
+    if token != nil then
+        Log.Debugf("Unlinking misc token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedMiscTokens[object] = nil
+        return
+    end
+
+    local charSheet = playerBoard.linkedCharSheet
+    if charSheet and charSheet.object == object then
+        Log.Debugf("Unlinking char sheet %s from %s", charSheet.object.getGUID(), playerBoard.object.getName())
+        CharSheet.SetModifiers(charSheet, {}, {})
+        CharSheet.UnlinkFigurine(charSheet)
+        playerBoard.linkedCharSheet = nil
+        EventManager.FireEvent("onPlayerBoardUnlinkCharSheet", playerBoard)
+        return
+    end
+ end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDrop(_, object)
+    for _, playerBoard in pairs(PlayerBoard.playerBoards) do
+        if playerBoard.figurine == object then
+            Overlay.Destroy("Player "..playerBoard.playerNumber)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickUp(_, object)
+    local playerBoard = nil
+    for _, pb in ipairs(PlayerBoard.playerBoards) do
+        if pb.figurine == object then
+            playerBoard = pb
+            break
+        end
+    end
+    if not playerBoard then
+        return
+    end
+
+    local charSheet = playerBoard.linkedCharSheet
+    if not charSheet then
+        return
+    end
+
+    local color = object.getColorTint()
+    color[4] = 0.7
+    Overlay.Create(object.getPosition(), 1, CharSheet.GetMovement(charSheet), color)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard_OnObjectCollisionEnter(object, collisionInfo)
+    -- This is a hack to detect flipped tokens
+    -- There's no onFlip event, and flipping doesn't trigger onPickUp, so we rely on this to detect flips
+    -- of *already registered* tokens.
+
+    local collisionObject = collisionInfo.collision_object
+
+    Log.Debugf("%s (%s) collided with %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
+
+    local playerBoard = PlayerBoard.playerBoardsByObject[collisionObject]
+    if playerBoard == nil then
+        return
+    end
+
+    local token = playerBoard.linkedTemporaryTokens[object]
+    if token then
+        local oldValue = token.value
+        local newValue = PlayerBoard_GetTokenValue(object)
+        if newValue != oldValue then
+            Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
+            token.value = newValue
+            PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, token.attribute)
+        end
+    end
+
+    local token = playerBoard.linkedPermanentTokens[object]
+    if token then
+        local oldValue = token.value
+        local newValue = PlayerBoard_GetTokenValue(object)
+        if newValue != oldValue then
+            Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
+            token.value = newValue
+            PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, token.attribute)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectEnterContainer(_, object)
+    for _, playerBoard in ipairs(PlayerBoard.playerBoards) do
+        if playerBoard.figurine == object then
+            PlayerBoard_UnlinkFigurine(playerBoard, object)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDestroy(object)
+    for _, playerBoard in ipairs(PlayerBoard.playerBoards) do
+        if playerBoard.figurine == object then
+            PlayerBoard_UnlinkFigurine(playerBoard, object)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_CreateCounters(playerBoard)
+    local x = 0.0125
+    local z = -0.715
+    local dx = 0.2625
+
+    for i, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+        playerBoard[location.."ArmorUiCounter"] = UiCounter.Create({
+            object = playerBoard.object,
+            name = location.."Armor",
+            value = playerBoard.temporaryArmor[location] + playerBoard.gearArmor[location], -- gear armor won't actually be populated yet, but it doesn't hurt to include it
+            position = { x + ((i - 1) * dx), PLAYER_BOARD_UI_Y, z },
+            size = 380,
+            changeFunc = function(uiCounter, delta)
+                PlayerBoard_AddArmor(playerBoard, location, delta, 0)
+            end,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_CreateCheckboxes(playerBoard)
+    local size = 120
+
+    -- light injuries
+    local x = 0.111
+    local z = -0.848
+    local dx = 0.2625
+    for i, location in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
+        playerBoard[location.."LightInjuryUiCheckbox"] = UiCheckbox.Create({
+            object = playerBoard.object,
+            name = location.."LightInjury",
+            value = playerBoard.lightInjuries[location],
+            position = {
+                -- offset by one since head has no light injury
+                x = x + (i * dx),
+                y = PLAYER_BOARD_UI_Y,
+                z = z,
+            },
+            size = size,
+            changeFunc = function(uiCheckbox)
+                local checked = not playerBoard.lightInjuries[location]
+                playerBoard.lightInjuries[location] = checked
+                UiCheckbox.Set(uiCheckbox, checked)
+            end,
+        })
+    end
+
+    -- heavy injuries
+    local z = -0.811
+    for i, location in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
+        playerBoard[location.."HeavyInjuryUiCheckbox"] = UiCheckbox.Create({
+            object = playerBoard.object,
+            name = location.."HeavyInjury",
+            value = playerBoard.heavyInjuries[location],
+            position = {
+                x = x + ((i - 1) * dx),
+                y = PLAYER_BOARD_UI_Y,
+                z = z,
+            },
+            size = size,
+            changeFunc = function(uiCheckbox)
+                local checked = not playerBoard.heavyInjuries[location]
+                playerBoard.heavyInjuries[location] = checked
+                UiCheckbox.Set(uiCheckbox, checked)
+            end,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_CreateButtons(playerBoard)
+    playerBoard.healAndResetUiButton = UiButton.Create({
+        object = playerBoard.object,
+        name = "healAndReset",
+        position = { 1.062, PLAYER_BOARD_UI_Y, -0.617 },
+        scale = { 0.05, 0.05, 0.05 },
+        width = 1900,
+        height = 400,
+        clickFunc = function(uiButton) PlayerBoard_HealAndReset(playerBoard) end,
+    })
+
+    playerBoard.packCharSheetUiButton = UiButton.Create({
+        object = playerBoard.object,
+        name = "packCharSheet",
+        position = { 0.051, PLAYER_BOARD_UI_Y, -0.55 },
+        scale = { 0.05, 0.05, 0.05 },
+        width = 1900,
+        height = 900,
+        clickFunc = function(uiButton) PlayerBoard_PackCharSheet(playerBoard) end,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_Create(playerNumber, object, saveState)
+    Log.Debugf("Creating PlayerBoard for object %s (%s)", object.getName(), object.getGUID())
+    saveState = saveState or {}
+
+    local playerBoard = {
+        tag = "PlayerBoard",
+
+        playerNumber = playerNumber,
+
+        object = object,
+
+        temporaryArmor = {},
+        gearArmor = {},
+
+        lightInjuries = {},
+        heavyInjuries = {},
+
+        linkedTemporaryTokens = {},
+        linkedPermanentTokens = {},
+        linkedMiscTokens = {},
+        linkedArmor = {},
+        linkedWeapons = {},
+    }
+
+    local saveStateTemporaryArmor = saveState.temporaryArmor or {}
+    for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+        playerBoard.temporaryArmor[location] = saveStateTemporaryArmor[location] or 0
+        playerBoard.gearArmor[location] = 0
+    end
+
+    if saveState.lightInjuries then
+        for _, location in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
+            playerBoard.lightInjuries[location] = saveState.lightInjuries[location]
+        end
+    end
+
+    if saveState.heavyInjuries then
+        for _, location in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
+            playerBoard.heavyInjuries[location] = saveState.heavyInjuries[location]
+        end
+    end
+
+    if saveState.figurineGuid then
+        figurine = getObjectFromGUID(saveState.figurineGuid)
+        if not figurine then
+            Log.Errorf("Player Board %d was linked to Figurine %s, but that object no longer exists. Please re-link player %d with a survivor figurine.", playerNumber, saveState.figurineGuid, playerNumber)
+        else
+            PlayerBoard_LinkFigurine(playerBoard, figurine)
+        end
+    end
+
+    PlayerBoard_CreateCounters(playerBoard)
+    PlayerBoard_CreateCheckboxes(playerBoard)
+    PlayerBoard_CreateButtons(playerBoard)
+
+    return playerBoard
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.Save()
+    local saveState = {}
+    for i, playerBoard in ipairs(PlayerBoard.playerBoards) do
+        local temporaryArmor = {}
+        for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+            temporaryArmor[location] = playerBoard.temporaryArmor[location]
+        end
+
+        local lightInjuries = {}
+        for _, location in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
+            lightInjuries[location] = playerBoard.lightInjuries[location]
+        end
+
+        local heavyInjuries = {}
+        for _, location in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
+            heavyInjuries[location] = playerBoard.heavyInjuries[location]
+        end
+
+        saveState[i] = {
+            temporaryArmor = temporaryArmor,
+            lightInjuries = lightInjuries,
+            heavyInjuries = heavyInjuries,
+        }
+        if playerBoard.figurine then
+            saveState[i].figurineGuid = playerBoard.figurine.getGUID()
+        end
+    end
+
+    return saveState
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoard.Init(saveState)
+    saveState = saveState or {}
+
+    for i = 1, 4 do
+        local playerBoardObj = Guids.GetObject("Player "..i.." Board")
+
+        local playerBoard = PlayerBoard_Create(i, playerBoardObj, saveState[i])
+        PlayerBoard.playerBoardsByObject[playerBoardObj] = playerBoard
+        PlayerBoard.playerBoards[i] = playerBoard
+
+        local bounds = playerBoardObj.getBounds()
+        local dropZone = DropZone.Create({
+            name = playerBoardObj.getName().." DropZone",
+            context = playerBoard,
+            centerX = bounds.center.x,
+            centerZ = bounds.center.z,
+            width = bounds.size.x,
+            height = bounds.size.z,
+            dropHandler = PlayerBoard_OnDroppedOnPlayerBoard,
+            pickUpHandler = PlayerBoard_OnObjectPickedUpFromPlayerBoard,
+        })
+
+        local playerMarkerObj = Guids.GetObject("Player "..i.." Marker")
+        local bounds = playerMarkerObj.getBounds()
+        DropZone.Create({
+            name = playerMarkerObj.getName().." DropZone",
+            context = playerBoard,
+            centerX = bounds.center.x,
+            centerZ = bounds.center.z,
+            width = bounds.size.x,
+            height = bounds.size.z,
+            dropHandler = PlayerBoard_OnObjectDroppedOnMarker,
+        })
+    end
+
+    EventManager.AddHandler("onObjectDrop", PlayerBoard_OnObjectDrop)
+    EventManager.AddHandler("onObjectPickUp", PlayerBoard_OnObjectPickUp)
+    EventManager.AddHandler("onObjectCollisionEnter", PlayerBoard_OnObjectCollisionEnter)
+    EventManager.AddHandler("onObjectEnterContainer", PlayerBoard_OnObjectEnterContainer)
+    EventManager.AddHandler("onObjectDestroy", PlayerBoard_OnObjectDestroy)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return PlayerBoard

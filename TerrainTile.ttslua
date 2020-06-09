@@ -1,0 +1,61 @@
+local Log = require("Kdm/Log").ForPackage("TerrainTile")
+local Grid = require("Kdm/Grid")
+local EventManager = require("Kdm/EventManager")
+
+local TerrainTile = {
+    sizes = {
+        ["Lonely Tree"] = 2,
+        ["Egg Sac"] = 1,
+        ["Silk Nest"] = 2,
+        ["Obsidian Tower"] = 2,
+        ["Lava Pool"] = 2,
+        ["Resin Dung Ball"] = 2,
+        ["Sinkhole"] = 2,
+        ["Lion Statue"] = 2,
+        ["Flower Patch"] = 1,
+        ["Acanthus"] = 1,
+        ["Debris"] = 1,
+        ["Survivor Corpse"] = 1,
+        ["Ore Vein"] = 1,
+        ["Bug Patch"] = 1,
+        ["Nightmare Tree"] = 3,
+        ["Tall Grass"] = 2,
+        ["Dead Monster"] = 2,
+        ["Gate"] = 2,
+        ["Horn"] = 1,
+        ["Throne"] = 1,
+        ["Stage"] = 4,
+    }
+}
+
+---------------------------------------------------------------------------------------------------
+
+local function TerrainTile_OnObjectDrop(_, object)
+    if object.getGMNotes() != "Terrain Tiles" then
+        return
+    end
+
+    local size = TerrainTile.sizes[object.getName()]
+    if not size then
+        Log.Debugf("TerrainTile %s (%s) has no registered size", object.getName(), object.getGUID())
+        return
+    end
+
+    Log.Debugf("TerrainTile %s (%s) dropped", object.getName(), object.getGUID())
+
+    object.setPositionSmooth(
+        Grid.Snap(object, size),
+        false,  -- collide
+        true   -- smooth
+    )
+end
+
+---------------------------------------------------------------------------------------------------
+
+function TerrainTile.Init()
+    EventManager.AddHandler("onObjectDrop", TerrainTile_OnObjectDrop)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return TerrainTile

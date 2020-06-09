@@ -1,0 +1,650 @@
+local ScriptData = {}
+
+-- actual size { x = 2.695496, y = 0.1, z = 4.258408 }
+ScriptData.cardSize = { x = 3, y = 10, z = 4.7 }
+
+-- actual size { x = 2.739128, y = 0.1, z = 2.739128 }
+ScriptData.gearSize = { x = 3, y = 10, z = 3 }
+
+-- actual size { x = 5.195435, y = 0.1, z = 10.517426 }
+-- this needs to be slightly narrower than the actual size since the settlement locations are right next to each other.
+ScriptData.slocSize = { x = 4.5, y = 10, z = 9 }
+
+-- TODO: this just an estimate based on actual card sizes
+ScriptData.settlementEventSize = { x = 4, y = 10, z = 8 }
+
+ScriptData.MAX_TERRAIN_LOCATIONS = 8
+ScriptData.MAX_TRAIT_MOOD_LOCATIONS = 13
+ScriptData.MAX_MISC_LOCATIONS = 8
+
+ScriptData.MAX_SETTLEMENT_LOCATION_COLS = 10
+ScriptData.MAX_SETTLEMENT_LOCATION_ROWS = 2
+
+
+---------------------------------------------------------------------------------------------------
+
+ScriptData.locations = {
+    ["Monster Board"] = {
+        position = { x = -6.8852435, y = 10.801341, z = 0.4781955 },
+        corner1 = { x = -4.789728, y = 15, z = -3.075452 },
+        corner2 = { x = -8.980759, y = 5, z = 4.031843 },
+        board = "Showdown Board",
+    },
+    ["Showdown Board"] = {
+        position = { x = 0, y = 10.801341, z = 0 },
+        corner1 = { x = 11.994016, y = 15, z = -5.993566 },
+        corner2 = { x = -11.994016, y = 5, z = 5.993566 },
+        board = "Showdown Board",
+    },
+    ["Showdown Grid"] = {
+        position = { x = 0.224678, y = 10.801341, z = 0.4832455 },
+        corner1 = { x = 4.885550, y = 15, z = -2.834642 },
+        corner2 = { x = -4.436194, y = 5, z = 3.801133 },
+        board = "Showdown Board",
+    },
+    ["Hunt Cards"] = {
+        position = { x = 0, y = 0, z = -5.170868 },
+        corner1 = { x = 3.833936, y = 6, z = -7.537293 },
+        corner2 = { x = -3.839113, y = -4, z = -2.886444 },
+        board = "Hunt Board",
+    },
+    ["Hunt Track"] = {
+        position = { x = 0, y = 0, z = 2.921043 },
+        corner1 = { x = 7.85826, y = 6, z = -0.780489 },
+        corner2 = { x = -7.831961, y = -4, z = 6.639576 },
+        board = "Hunt Board",
+    },
+    ["Hunt Board"] = {
+        position = { x = 0, y = 10.801341, z = 0 },
+        corner1 = { x = 8.268137, y = 6, z = -8.185212 },
+        corner2 = { x = -8.268137, y = -4, z = 8.185212 },
+        board = "Hunt Board",
+    },
+    ["Rules Board"] = {
+        position = { x = 0, y = 0.703098, z = 0 },
+        corner1 = { x = -8.277505, y =    5, z = 8.241768 },
+        corner2 = { x =    8.277505, y = -5, z = -8.241768 },
+        board = "Rules Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Deck Board
+
+    ["Abilities"] = {
+        position = { x = 7.329962, y = 10.861341, z = -0.794318 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Fighting Arts"] = {
+        position = { x = 6.508169, y = 10.861341, z = -0.794318 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Secret Fighting Arts"] = {
+        position = { x = 5.686375, y = 10.861341, z = -0.794318 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Disorders"] = {
+        position = { x = 7.329962, y = 10.861341, z =    0.601908 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Severe Injuries"] = {
+        position = { x = 6.508169, y = 10.861341, z =    0.601908 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Tactics"] = {
+        position = { x = 5.686375, y = 10.861341, z =    0.607908 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Weapon Specializations/Masteries"] = {
+        position = { x = 7.329962, y = 10.861341, z =    1.998134 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Armor Sets"] = {
+        position = { x = 6.508169, y = 10.861341, z =    1.998134 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Vermin"] = {
+        position = { x = 5.686375, y = 10.861341, z =    1.998134 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Strange Resources"] = {
+        position = { x = 7.329962, y = 10.861341, z =    3.394359 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Basic Resources"] = {
+        position = { x = 6.508169, y = 10.861341, z =    3.394359 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Resources"] = {
+        position = { x = 5.686374, y = 10.801342, z =    3.394359 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Terrain Board
+
+    ["Terrain"] = {
+        position = { x = 3.421810, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 1"] = {
+        position = { x = 2.600290, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 2"] = {
+        position = { x = 1.778249, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 3"] = {
+        position = { x = 0.956468, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 4"] = {
+        position = { x = 0.134689, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 5"] = {
+        position = { x = -0.687092, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 6"] = {
+        position = { x = -1.508873, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 7"] = {
+        position = { x = -2.330652, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Terrain 8"] = {
+        position = { x = -3.152432, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["Terrain Tiles"] = {
+        position = { x = -4.089365, y = 10.861341, z = -3.842349 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Monster Board
+
+    ["Trait/Mood 1"] = {
+        position = { x = -5.683498, y = 10.801341, z = 0.474210 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 2"] = {
+        position = { x = -5.683498, y = 10.801341, z = -0.738270 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 3"] = {
+        position = { x = -5.683498, y = 10.801341, z = -1.950750 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["Trait/Mood 4"] = {
+        position = { x = -6.504960, y = 10.801341, z = 0.474210 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 5"] = {
+        position = { x = -6.504960, y = 10.801341, z = -0.738270 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 6"] = {
+        position = { x = -6.504960, y = 10.801341, z = -1.950750 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["Trait/Mood 7"] = {
+        position = { x = -7.326424, y = 10.801341, z = 0.474210 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 8"] = {
+        position = { x = -7.326424, y = 10.801341, z = -0.738270 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 9"] = {
+        position = { x = -7.326424, y = 10.801341, z = -1.950750 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["Trait/Mood 10"] = {
+        position = { x = -8.147886, y = 10.801341, z = 0.474210 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 11"] = {
+        position = { x = -8.147886, y = 10.801341, z = -0.738270 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 12"] = {
+        position = { x = -8.147886, y = 10.801341, z = -1.950750 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["Wound Stack"] = {
+        position = { x = -8.146602, y = 10.801341, z = 2.323683 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["AI"] = {
+        position = { x = -5.683301, y = 10.801341, z = 1.688701 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["AI Discard"] = {
+        position = { x = -6.504676, y = 10.801341, z = 1.688701 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Info"] = {
+        position = { x = -7.326052, y = 10.801341, z = 1.688701 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    ["HL"] = {
+        position = { x = -5.683301, y = 10.801341, z = 2.900984 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["HL Discard"] = {
+        position = { x = -6.504676, y = 10.801341, z = 2.900984 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Basic Action"] = {
+        position = { x = -7.326052, y = 10.801341, z = 2.900984 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Monster Board tokens
+
+    ["Monster Token 1"] = {
+        position = { x = -5.04458, y = 10.801341, z = -2.326166 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Token 2"] = {
+        position = { x = -5.04458, y = 10.801341, z = -1.904233 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Token 3"] = {
+        position = { x = -5.04458, y = 10.801341, z = -1.482301 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Token 4"] = {
+        position = { x = -5.04458, y = 10.801341, z = -1.060369 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Monster Token 5"] = {
+        position = { x = -5.04458, y = 10.801341, z = -0.638437 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Monster Board unused
+
+    ["Unused Basic AI"] = {
+        position = { x = -9.162623, y = 10.801341, z = -1.950593 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Unused Advanced AI"] = {
+        position = { x = -9.162623, y = 10.801341, z = -0.737767 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Unused Legendary AI"] = {
+        position = { x = -9.162623, y = 10.801341, z = 0.475087 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Unused Special AI"] = {
+        position = { x = -9.162623, y = 10.801341, z = 1.687846 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Unused HL"] = {
+        position = { x = -9.162623, y = 10.801341, z = 2.900652 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Hunt Board
+
+    ["Hunt Events"] = {
+        position = { x =    3.375038, y = 0.860623, z = -5.170869 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Monster Hunt Events"] = {
+        position = { x =    2.357527, y = 0.860623, z = -5.170869 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["The Forest Gate"] = {
+        position = { x =    1.340017, y = 0.860623, z = -5.170868 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Herb Gathering"] = {
+        position = { x = -1.338467, y = 0.860623, z = -5.170869 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Mineral Gathering"] = {
+        position = { x = -2.357022, y = 0.860623, z = -5.170869 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Sky Fishing"] = {
+        position = { x = -3.375580, y = 0.860623, z = -5.170869 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track Start"] = {
+        position = { x =    7.273605, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 1"] = {
+        position = { x =    6.059363, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 2"] = {
+        position = { x =    4.845125, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 3"] = {
+        position = { x =    3.630886, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 4"] = {
+        position = { x =    2.416644, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 5"] = {
+        position = { x =    1.202405, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 6"] = {
+        position = { x = -0.011834, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 7"] = {
+        position = { x = -1.226075, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 8"] = {
+        position = { x = -2.440314, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 9"] = {
+        position = { x = -3.654553, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 10"] = {
+        position = { x = -4.868794, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 11"] = {
+        position = { x = -6.083034, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+    ["Hunt Track Starvation"] = {
+        position = { x = -7.297274, y = 0.860623, z =    2.921042 },
+        size = ScriptData.cardSize,
+        board = "Hunt Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Settlement Board
+
+    ["Starting Gear"] = {
+        position = { x = 7.414210, y = 0.647072, z = -5.645783 },
+        size = ScriptData.gearSize,
+        board = "Settlement Board",
+    },
+    ["Rare Gear"] = {
+        position = { x = 7.414210, y = 0.647072, z = -4.943425 },
+        size = ScriptData.gearSize,
+        board = "Settlement Board",
+    },
+    ["Promo Gear"] = {
+        position = { x = 7.414210, y = 0.647072, z = -4.241068 },
+        size = ScriptData.gearSize,
+        board = "Settlement Board",
+    },
+
+    ["Gear_1_1"] = {
+        position = { x = 6.149671, y = 0.647072, z = -7.593548 },
+        size = ScriptData.gearSize,
+        board = "Settlement Board",
+    },
+    ["Gear_10_2"] = {
+        position = { x = -7.02198, y = 0.647072, z = -2.292379 },
+        size = ScriptData.gearSize,
+        board = "Settlement Board",
+    },
+
+    ["SettlementLocation_1_1"] = {
+        position = { x = 6.059244, y = 0.647072, z = -6.091551 },
+        size = ScriptData.slocSize,
+        board = "Settlement Board",
+    },
+    ["SettlementLocation_10_2"] = {
+        position = { x = -7.117124, y = 0.647072, z = -3.792164 },
+        size = ScriptData.slocSize,
+        board = "Settlement Board",
+    },
+
+    ["Innovation Archive"] = {
+        position = { x = -3.056074, y = 0.647072, z = -0.816151 },
+        size = ScriptData.cardSize,
+        board = "Settlement Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Survivor status positions
+    ["Survivor Status 1"] = {
+        position = { x = 2.222135, y = 10.861341, z = 5.302254 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 2"] = {
+        position = { x = 0.890468, y = 10.861341, z = 5.302254 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 3"] = {
+        position = { x = -0.441197, y = 10.861341, z = 5.302254 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 4"] = {
+        position = { x = -1.772863, y = 10.861341, z = 5.302254 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+    -- Temporary hacks until we get art locations for these
+    ["Settlement Events"] = {
+        position = { x = -13.914588, y = 10.801341, z = -6.073809 },
+        size = ScriptData.settlementEventSize,
+        board = "Showdown Board",
+    },
+    ["Sun Dial"] = {
+        position = { x = -10.535775, y = 10.801341, z = 0.399195 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 1"] = {
+        position = { x = 2.600290, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 2"] = {
+        position = { x = 1.778249, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 3"] = {
+        position = { x = 0.956468, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 4"] = {
+        position = { x = 0.134689, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 5"] = {
+        position = { x = -0.687092, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 6"] = {
+        position = { x = -1.508873, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 7"] = {
+        position = { x = -2.330652, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+    ["Misc 8"] = {
+        position = { x = -3.152432, y = 10.861341, z = -5.405738 },
+        size = ScriptData.cardSize,
+        board = "Showdown Board",
+    },
+}
+
+---------------------------------------------------------------------------------------------------
+
+-- in showdown board local coordinates
+local gridLeft     =    4.885550
+local gridRight    = -4.436194
+local gridTop        = -2.834642
+local gridBottom =    3.801133
+
+local cellWidth    = math.abs(gridRight - gridLeft) / 21
+local cellHeight = math.abs(gridBottom - gridTop) / 15
+
+local size = { x = cellWidth, y = cellWidth,    z = cellHeight }
+for col = 1, 22 do
+    for row = 1, 16 do
+        local x = gridLeft - ((col - 1) * cellWidth)
+        local xHalf = x - (cellWidth / 2)
+        local z = gridTop + ((row - 1) * cellHeight)
+        local zHalf = z + (cellHeight / 2)
+        ScriptData.locations[string.format("(%d, %d)", col, row)] = {
+            position = { x = x, y = 10.861341, z = z},
+            size = size,
+            board = "Showdown Board",
+        }
+        ScriptData.locations[string.format("(%d, %d.5)", col, row)] = {
+            position = { x = x, y = 10.861341, z = zHalf},
+            size = size,
+            board = "Showdown Board",
+        }
+        ScriptData.locations[string.format("(%d.5, %d)", col, row)] = {
+            position = { x = xHalf, y = 10.861341, z = z},
+            size = size,
+            board = "Showdown Board",
+        }
+        ScriptData.locations[string.format("(%d.5, %d.5)", col, row)] = {
+            position = { x = xHalf, y = 10.861341, z = zHalf},
+            size = size,
+            board = "Showdown Board",
+        }
+    end
+end
+
+local topLeft = ScriptData.locations["Gear_1_1"].position
+local bottomRight = ScriptData.locations["Gear_10_2"].position
+local dx = (bottomRight.x - topLeft.x) / 9
+local dz = (bottomRight.z - topLeft.z)
+for col = 1, 10 do
+    local x = topLeft.x + (col - 1) * dx
+    for row = 1, 10 do
+        local z = topLeft.z + (row - 1) * dz
+        ScriptData.locations[string.format("Gear_%d_%d", col, row)] = {
+            position = { x = x, y = topLeft.y, z = z },
+            size = ScriptData.gearSize,
+            board = "Settlement Board",
+        }
+    end
+end
+
+local topLeft = ScriptData.locations["SettlementLocation_1_1"].position
+local bottomRight = ScriptData.locations["SettlementLocation_10_2"].position
+local dx = (bottomRight.x - topLeft.x) / 9
+local dz = (bottomRight.z - topLeft.z)
+for col = 1, ScriptData.MAX_SETTLEMENT_LOCATION_COLS do
+    local x = topLeft.x + (col - 1) * dx
+    for row = 1, ScriptData.MAX_SETTLEMENT_LOCATION_ROWS do
+        local z = topLeft.z + (row - 1) * dz
+        ScriptData.locations[string.format("SettlementLocation_%d_%d", col, row)] = {
+            position = { x = x, y = topLeft.y, z = z },
+            size = ScriptData.slocSize,
+            board = "Settlement Board",
+        }
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return ScriptData

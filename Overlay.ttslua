@@ -1,0 +1,121 @@
+local Assert = require("Kdm/Assert")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("Overlay")
+local Guids = require("Kdm/Guids")
+local Grid = require("Kdm/Grid")
+
+---------------------------------------------------------------------------------------------------
+
+local Overlay = {}
+
+Overlay.UI_HEIGHT = 10.75
+
+---------------------------------------------------------------------------------------------------
+
+function Overlay_Dud() end
+
+function Overlay.ClampAndAddRect(showdownBoard, left, top, width, height, color)
+    local overlaysObj = Guids.GetObject("Overlays")
+
+    -- inclusive
+    local right = left + width - 1
+    local bottom = top + height - 1
+
+    if left < 0 then left = 0 end
+    if right >= Grid.MAX_COLS then right = Grid.MAX_COLS - 1 end
+    if top < 0 then top = 0 end
+    if bottom >= Grid.MAX_ROWS then bottom = Grid.MAX_ROWS - 1 end
+
+    width = right - left + 1
+    height = bottom - top + 1
+    if width <= 0 or height <= 0 then
+        return
+    end
+
+    local centerCol = left + (right - left) / 2
+    local centerRow = top + (bottom - top) / 2
+    local x, z = Grid.XZ(centerCol, centerRow)
+    local l = overlaysObj.positionToLocal(showdownBoard.positionToWorld({ x, Overlay.UI_HEIGHT, z }))
+    overlaysObj.createButton({
+        click_function = "Overlay_Dud",
+        function_owner = self,
+        position = { -l[1], l[2], l[3] },
+        scale = { 0.2, 0.2, 0.2 },
+        width = 4280 * width,
+        height = 4280 * height,
+        color = color,
+        hover_color = color,
+        press_color = color,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Overlay_Dud() end
+
+function Overlay.Create(position, baseSize, radius, color)
+    Assert.Vec(position, "position")
+    Assert.Num(baseSize, "baseSize")
+    Assert.Num(radius, "radius")
+    Assert.Col(color, "color")
+
+    Overlay.Destroy()
+
+    local showdownBoardObj = Guids.GetObject("Showdown Board")
+
+    local lpos = showdownBoardObj.positionToLocal(position)
+    local centerCol, centerRow = Grid.ColRow(lpos)
+    local baseLeft, baseTop
+    if baseSize % 2 == 0 then
+        local offset = math.floor(baseSize / 2) - 1
+        baseLeft = math.floor(centerCol) - offset
+        baseTop = math.floor(centerRow) - (baseSize / 2) + 1
+    else
+        local offset = math.floor(baseSize / 2)
+        baseLeft = math.floor(centerCol + 0.5) - offset
+        baseTop = math.floor(centerRow + 0.5) - offset
+    end
+
+    local halfRadius = math.floor(radius / 2)
+
+    -- "big" is the big central square of the movement overlay
+    local bigLeft = baseLeft - halfRadius
+    local bigRight = baseLeft + (baseSize - 1) + halfRadius
+    local bigTop = baseTop - halfRadius
+    local bigBottom = baseTop + (baseSize - 1) + halfRadius
+
+    local size = baseSize + (2 * halfRadius)
+
+    Overlay.ClampAndAddRect(showdownBoardObj, bigLeft, bigTop, size, size, color)
+
+    local distance = 1
+    local offset = 0
+    if radius % 2 == 0 then
+        size = size - 2
+        offset = 1
+    end
+    while size >= baseSize do
+        -- left
+        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft - distance, bigTop + offset, 1, size, color)
+        -- top
+        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft + offset, bigTop - distance, size, 1, color)
+        -- right
+        Overlay.ClampAndAddRect(showdownBoardObj, bigRight + distance, bigTop + offset, 1, size, color)
+        -- bottom
+        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft + offset, bigBottom + distance, size, 1, color)
+
+        size = size - 2
+        distance = distance + 1
+        offset = offset + 1
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Overlay.Destroy()
+    Guids.GetObject("Overlays").clearButtons()
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Overlay

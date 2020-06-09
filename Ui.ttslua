@@ -1,0 +1,28 @@
+local Ui = {
+    DARK_BROWN = { 0.271, 0.22, 0.141, 100 },
+    LIGHT_BROWN = { 0.733, 0.706, 0.631, 100 },
+    HOT_PINK = { 1, 0, 0.5, 0.9 },
+    CLEAR = { 1, 1, 1, 0 },
+    --BACKGROUND_COLOR = Ui.{ 1, 0, 0.5, 0.9 },
+    BACKGROUND_COLOR = { 1, 1, 1, 0 },
+    SCALE = { 0.2, 0.2, 0.2 },
+
+    objectButtonCount = {},
+    objectInputCount = {}
+}
+
+function Ui_Dud() end
+
+function Ui.RecordButtonAndGetIndex(object)
+    local buttonCount = Ui.objectButtonCount[object] or 0
+    Ui.objectButtonCount[object] = buttonCount + 1
+    return buttonCount
+end
+
+function Ui.RecordInputAndGetIndex(object)
+    local inputCount = Ui.objectInputCount[object] or 0
+    Ui.objectInputCount[object] = inputCount + 1
+    return inputCount
+end
+
+return Ui

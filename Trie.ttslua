@@ -1,0 +1,125 @@
+---------------------------------------------------------------------------------------------------
+
+local Trie = {}
+
+---------------------------------------------------------------------------------------------------
+-- trie multimap: maps prefixes to one or more values
+-- all searches are case-insensitive
+
+function Trie.Create()
+  return {
+    children = {},
+    byte = nil,
+    values = {},
+  }
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- associates word to value, so that a subsequent Trie.Find by word (or a prefix) will include this value
+function Trie.Set(trie, word, value)
+  word = string.lower(word)
+  local node = trie
+  for i = 1, #word do
+    local b = word:byte(i)
+    local foundChild = nil
+    for _, child in ipairs(node.children) do
+      if child.byte == b then
+        foundChild = child
+        break
+      end
+    end
+
+    if foundChild == nil then
+      foundChild = {
+        children = {},
+        byte = b,
+        values = {},
+      }
+      table.insert(node.children, foundChild)
+    end
+
+    node = foundChild
+  end
+
+  table.insert(node.values, value)
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- returns all values for all words starting with the word arg
+function Trie.Find(trie, word)
+  word = string.lower(word)
+  local node = trie
+  for i = 1, #word do
+    local b = word:byte(i)
+    local foundChild = nil
+    for _, child in pairs(node.children) do
+      if child.byte == b then
+        foundChild = child
+        break
+      end
+    end
+
+    if foundChild == nil then
+      return {}
+    end
+
+    node = foundChild
+  end
+
+  -- BFS down the rest of the tree and aggregate all results
+  local results = {}
+  local queue = {}
+  table.insert(queue, node)
+  while #queue > 0 do
+    node = queue[#queue]
+    table.remove(queue)
+
+    for _, v in ipairs(node.values) do
+      table.insert(results, v)
+    end
+
+    for _, child in pairs(node.children) do
+      table.insert(queue, child)
+    end
+  end
+
+  return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Trie.Print(trie, stringFunc)
+  for _, child in pairs(trie.children) do
+    Trie.PrintImpl(child, stringFunc, "", "")
+  end
+end
+
+function Trie.PrintImpl(node, stringFunc, output, tab)
+  local originalOutput = output
+
+  output = output..string.char(node.byte)
+
+  tab = tab.."  "
+  if next(node.values) != nil then
+    output = output.." -> {"
+    for _, v in pairs(node.values) do
+      output = output..stringFunc(v)..", "
+    end
+    output = output.." }"
+    log(output)
+    output = tab
+  elseif next(node.children) == nil then
+    log(output)
+  end
+
+  for _, child in pairs(node.children) do
+    Trie.PrintImpl(child, stringFunc, output, tab)
+    output = tab
+  end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Trie

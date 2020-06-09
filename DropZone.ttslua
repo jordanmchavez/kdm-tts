@@ -1,0 +1,225 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("DropZone")
+local Util = require("Kdm/Util")
+local EventManager = require("Kdm/EventManager")
+
+---------------------------------------------------------------------------------------------------
+-- Simple 2d spatial hashing index
+
+local DropZone = {}
+
+local DROP_ZONE_MIN_X = -150
+local DROP_ZONE_MAX_X = 150
+
+local DROP_ZONE_MIN_Z = -150
+local DROP_ZONE_MAX_Z = 150
+
+local DROP_ZONE_CELL_SIZE = 1
+
+local DROP_ZONE_MAX_COLS = (DROP_ZONE_MAX_X - DROP_ZONE_MIN_X) / DROP_ZONE_CELL_SIZE
+local DROP_ZONE_MAX_ROWS = (DROP_ZONE_MAX_Z - DROP_ZONE_MIN_Z) / DROP_ZONE_CELL_SIZE
+
+dropZone_cells = {}
+dropZone_objectZones = {}
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_ColRow(x, z)
+    local col = math.floor((x - DROP_ZONE_MIN_X) / DROP_ZONE_CELL_SIZE) + 1
+    local row = math.floor((z - DROP_ZONE_MIN_Z) / DROP_ZONE_CELL_SIZE) + 1
+    return col, row
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_Index(col, row)
+    return (row * (DROP_ZONE_MAX_COLS + 1)) + col
+end
+
+---------------------------------------------------------------------------------------------------
+
+function DropZone.Create(params)
+    Assert.Tab(params, "params")
+    local name, context, centerX, centerZ, width, height, dropHandler, pickUpHandler = params.name, params.context, params.centerX, params.centerZ, params.width, params.height, params.dropHandler, params.pickUpHandler
+    Assert.Str(name, "params.name")
+    Assert.Num(centerX, "params.centerX")
+    Assert.Num(centerZ, "params.centerZ")
+    Assert.Num(width, "params.width")
+    Assert.Num(height, "params.height")
+    Assert.Func(dropHandler, "params.dropHandler")
+    Assert.FuncOrNil(pickUpHandler, "params.pickUpHandler")
+
+    local left = centerX - (width / 2)
+    local top = centerZ - (height / 2)
+    local right = centerX + (width / 2)
+    local bottom = centerZ + (height / 2)
+
+    local dropZone = {
+        tag = "DropZone",
+        name = name,
+        rect = { left = left, top = top, right = right, bottom = bottom },
+        context = context,
+        dropHandler = dropHandler,
+        pickUpHandler = pickUpHandler,
+    }
+
+    local leftCol, topRow = DropZone_ColRow(left, top)
+    local rightCol, bottomRow = DropZone_ColRow(right, bottom)
+    Assert(leftCol >= 1 and topRow >= 1 and rightCol <= DROP_ZONE_MAX_COLS and bottomRow <= DROP_ZONE_MAX_ROWS, "Zone %s at (%f, %f), size (%f, %f) is out of bounds", name, centerX, centerZ, width, height)
+
+    Log.Debugf("Adding %s: (%d, %d) to (%d, %d)", name, left, top, right, bottom)
+    for row = topRow, bottomRow do
+        for col = leftCol, rightCol do
+            local index = DropZone_Index(col, row)
+            if not dropZone_cells[index] then
+                dropZone_cells[index] = { dropZone }
+            else
+                table.insert(dropZone_cells[index], dropZone)
+            end
+        end
+    end
+
+    local hits = Physics.cast({
+        origin    = { centerX, 50, centerZ },
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = { width, 10, height },
+        --debug     = true,
+    })
+    for _, hit in ipairs(hits) do
+        local hitObject = hit.hit_object
+        Log.Debugf("Object %s (%s) started in %s", hitObject.getName(), hitObject.getGUID(), name)
+        dropHandler(context, hitObject)
+
+        if not dropZone_objectZones[hitObject] then
+            dropZone_objectZones[hitObject] = { dropZone }
+        else
+            table.insert(dropZone_objectZones[hitObject], dropZone)
+        end
+    end
+
+    return dropZone
+end
+
+-------------------------------------------------------------------------------------------------
+
+local function DropZone_RectContains(rect, x, z)
+    return x >= rect.left and x <= rect.right and z >= rect.top and z <= rect.bottom
+end
+
+
+local function DropZone_OnObjectDrop(_, object)
+    local pos = object.getPosition()
+    local col, row = DropZone_ColRow(pos.x, pos.z)
+
+    --Log.Debugf("Object %s (%s) dropped on cell (%d, %d)", object.getName(), object.getGUID(), col, row)
+
+    if col < 1 or col > DROP_ZONE_MAX_COLS or row < 1 or row >= DROP_ZONE_MAX_ROWS then
+        return
+    end
+
+    local dropZones = dropZone_cells[DropZone_Index(col, row)]
+    local objectZones = {}
+    if dropZones then
+        for _, dropZone in ipairs(dropZones) do
+            if DropZone_RectContains(dropZone.rect, pos.x, pos.z) then
+                Log.Debugf("Object %s (%s) dropped in %s", object.getName(), object.getGUID(), dropZone.name)
+                dropZone.dropHandler(dropZone.context, object)
+                table.insert(objectZones, dropZone)
+            end
+        end
+    end
+
+    dropZone_objectZones[object] = objectZones
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_OnObjectPickUp(_, object)
+    local dropZones = dropZone_objectZones[object]
+    if not dropZones then
+        return
+    end
+
+    for _, dropZone in ipairs(dropZones) do
+        Log.Debugf("Object %s (%s) picked up, removing from %s", object.getName(), object.getGUID(), dropZone.name)
+        if dropZone.pickUpHandler then
+            dropZone.pickUpHandler(dropZone.context, object)
+        end
+    end
+
+    dropZone_objectZones[object] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_OnObjectEnterContainer(_, object)
+    local dropZones = dropZone_objectZones[object]
+    if not dropZones then
+        return
+    end
+
+    for _, dropZone in ipairs(dropZones) do
+        Log.Debugf("Object %s (%s) entered container, removing from %s", object.getName(), object.getGUID(), dropZone.name)
+        if dropZone.pickUpHandler then
+            dropZone.pickUpHandler(dropZone.context, object)
+        end
+    end
+
+    dropZone_objectZones[object] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_OnObjectSpawn(object)
+    local pos = object.getPosition()
+    local col, row = DropZone_ColRow(pos.x, pos.z)
+
+    if col < 1 or col > DROP_ZONE_MAX_COLS or row < 1 or row >= DROP_ZONE_MAX_ROWS then
+        return
+    end
+
+    local dropZones = dropZone_cells[DropZone_Index(col, row)]
+    if dropZones then
+        for _, dropZone in ipairs(dropZones) do
+            Log.Debugf("Object %s (%s) spawned in %s", object.getName(), object.getGUID(), dropZone.name)
+            dropZone.dropHandler(dropZone.context, object)
+        end
+    end
+
+    dropZone_objectZones[object] = dropZones
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function DropZone_OnObjectDestroy(object)
+    local dropZones = dropZone_objectZones[object]
+    if not dropZones then
+        return
+    end
+
+    for _, dropZone in ipairs(dropZones) do
+        Log.Debugf("Object %s (%s) destroyed, removing from %s", object.getName(), object.getGUID(), dropZone.name)
+        if dropZone.pickUpHandler then
+            dropZone.pickUpHandler(dropZone.context, object)
+        end
+    end
+
+    dropZone_objectZones[object] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function DropZone.Init()
+    Log.Debugf("Initializing DropZone")
+
+    EventManager.AddHandler("onObjectDrop", DropZone_OnObjectDrop)
+    EventManager.AddHandler("onObjectPickUp", DropZone_OnObjectPickUp)
+    EventManager.AddHandler("onObjectEnterContainer", DropZone_OnObjectEnterContainer)
+    EventManager.AddHandler("onObjectSpawn", DropZone_OnObjectSpawn)
+    EventManager.AddHandler("onObjectDestroy", DropZone_OnObjectDestroy)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return DropZone

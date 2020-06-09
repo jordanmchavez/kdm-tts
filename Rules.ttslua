@@ -1,0 +1,211 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Rules")
+local Util = require("Kdm/Util")
+local CircularArray = require("Kdm/CircularArray")
+local Trie = require("Kdm/Trie")
+local Script = require("Kdm/Script")
+local RulesData = require("Kdm/RulesData")
+
+---------------------------------------------------------------------------------------------------
+
+Rules = {}
+
+for k, v in pairs(RulesData) do
+    Rules[k] = v
+end
+
+Rules.history = {}
+
+Rules.trie = nil
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.Find(query)
+    if query == nil or query == "" then
+        return {}
+    end
+
+    -- only accept results that match all terms
+    local matchIndex = {}
+    local i = 1
+    for term in string.gmatch(query, "%S+") do
+        local termMatches = Trie.Find(Rules.trie, term)
+        local termIndex = Util.Index(termMatches, "name")
+
+        matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
+        i = i + 1
+    end
+
+    -- sort matches
+    local sortedMatches = {}
+    for _, m in pairs(matchIndex) do
+        table.insert(sortedMatches, m)
+    end
+    table.sort(sortedMatches, function(x, y) return x.name < y.name end)
+
+    local results = {}
+    local i = 1
+    while i <= #sortedMatches and i <= 5 do
+        table.insert(results, sortedMatches[i])
+        i = i + 1
+    end
+
+    return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.SpawnRules(rules, state, dontRecordHistory)
+    Rules.spawnRulebookCoroutineParams = { rules, state, dontRecordHistory }
+    startLuaCoroutine(self, "Rules_SpawnRulesCoroutine")
+end
+
+function Rules_SpawnRulesCoroutine()
+    local rules, state, dontRecordHistory = table.unpack(Rules.spawnRulebookCoroutineParams)
+    Assert.Str(rules, "rules")
+    Assert.Num(state, "state")
+    Assert.BoolOrNil(dontRecordHistory, "dontRecordHistory")
+
+    local script = Script.Create("Show Rulebook")
+    local cleanStage = Script.Stage(script, "Clean")
+    Script.CleanAction(cleanStage, {
+        from = "Rules Board",
+        types = { "Rulebook" },
+        ignoreBlocking = false,
+    })
+    local spawnStage = Script.Stage(script, "Spawn")
+    Script.TakeAction(spawnStage, {
+        name = rules,
+        type = "Rulebook",
+        to = "Rules Board",
+        spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil,
+    })
+
+    local _, blockingObj = Script.Run(script)
+    if blockingObj != nil then
+        Log.Broadcastf("Found an object %s(%s) blocking the rules board. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag)
+        return 1
+    end
+
+    if not dontRecordHistory then
+        CircularArray.Push(Rules.history, { rules, state})
+    end
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.GetCurrentRules()
+    local hits = Physics.cast({
+        origin    = Script.Position("Rules Board"),
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = Script.Size("Rules Board"),
+    })
+    for _, hit in ipairs(hits) do
+        local hitObj = hit.hit_object
+        if hitObj.getGMNotes() == "Rulebook" then
+            return hitObj
+        end
+    end
+    return nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.Back()
+    local rules = Rules.GetCurrentRules()
+    if not rules then
+        return
+    end
+
+    if CircularArray.Size(Rules.history) <= 1 then
+        Log.Debugf("<= 1 history element, can't go back")
+        return
+    end
+
+    CircularArray.Pop(Rules.history)
+    local last = CircularArray.Top(Rules.history)
+    Log.Debugf("Going back to %s[%d]", last[1], last[2])
+    Rules.SpawnRules(last[1], last[2], true)   -- dontRecordHistory
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.ChangePage(dir)
+    local rules = Rules.GetCurrentRules()
+    if not rules then
+        return
+    end
+
+    local currentState = rules.getStateId()
+    local nextState = currentState + dir
+    Log.Debugf("Found current rules %s (%s) at state %d, looking for state %d", rules.getName(), rules.getGUID(), currentState, nextState)
+
+    local rulebookName = (currentState == 1) and rules.getName() or nil
+    local hasNext = false
+     for _, state in ipairs(rules.getStates()) do
+        if state.id == 1 then
+            rulebookName = state.name
+        end
+        if state.id == nextState then
+            Log.Debugf("Found next state %d: %s", state.id, state.name)
+            hasNext = true
+        end
+    end
+
+    if not hasNext then
+        Log.Debugf("No state %d", nextState)
+        return
+    end
+
+    Assert(rulebookName, "No rulebook name (page with state 1) in %s (%s)", rules.getName(), rules.getGUID())
+
+    CircularArray.Push(Rules.history, { rulebookName, nextState })
+    rules.setState(nextState)
+end
+
+function Rules.PreviousPage() Rules.ChangePage(-1) end
+function Rules.NextPage() Rules.ChangePage(1) end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.Init()
+    Rules.trie = Trie.Create()
+    for rulebook, indexEntries in pairs(Rules.index) do
+        for i, index in ipairs(indexEntries) do
+            for _, keyword in ipairs(index.keywords) do
+                local toAdd = { rulebook = rulebook, name = index.name, state = index.state }
+                Trie.Set(Rules.trie, keyword, toAdd)
+            end
+            if index.huntEventStart != nil then
+                for hi = index.huntEventStart, index.huntEventEnd do
+                    Trie.Set(Rules.trie, tostring(hi), { rulebook = rulebook, name = index.name, state = index.state })
+                end
+            end
+        end
+    end
+
+    Rules.history = CircularArray.Create(100)
+    local rules = Rules.GetCurrentRules()
+    if rules != nil then
+        local currentState = rules.getStateId()
+        local rulebookName = nil
+        if currentState == 1 then
+            rulebookName = rules.getName()
+        else
+            for _, state in ipairs(rules.getStates()) do
+                if state.id == 1 then
+                    rulebookName = state.name
+                end
+            end
+        end
+        Assert(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID())
+        CircularArray.Push(Rules.history, { rulebookName, currentState})
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Rules

@@ -1,0 +1,231 @@
+local Util = require("Kdm/Util")
+
+local Assert = {}
+
+---------------------------------------------------------------------------------------------------
+
+setmetatable(Assert, { __call = function(self, condition, fmt, ...)
+    if not condition then
+        Assert.Fail(fmt, ...)
+    end
+end })
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.True(condition, fmt, ...)
+    if not condition then
+        Assert.Fail(fmt, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Fail(fmt, ...)
+    local msg = Util.SafeFormat("ASSERT FAILED "..(fmt or ""), ...)
+    log(msg, nil, "error")
+    error(msg, 2)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Str(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required string arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "string" then
+        Assert.Fail("required string arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.StrOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "string" then
+            Assert.Fail("optional string arg has type %s: "..(fmt or ""), t, ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Num(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required number arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "number" then
+        Assert.Fail("required number arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.NumOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "number" then
+            Assert.Fail("optional number arg has type %s: "..(fmt or ""), t, ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Bool(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required boolean arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "boolean" then
+        Assert.Fail("required boolean arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.BoolOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "boolean" then
+            Assert.Fail("optional boolean arg has type %s: "..(fmt or ""), t, ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Tab(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required table arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("required table arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.TabOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "table" then
+            Assert.Fail("optional table arg has type %s: "..(fmt or ""), t, ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Func(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required function arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "function" then
+        Assert.Fail("required function arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.FuncOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "function" then
+            Assert.Fail("optional function arg has type %s: "..(fmt or ""), t, ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Vec(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required vector arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("required vector arg has type %s: "..(fmt or ""), t, ...)
+    end
+    if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
+        Assert.Fail("required arg must be a vector: "..(fmt or ""), ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.VecOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "table" then
+            Assert.Fail("optional vector arg has type %s: "..(fmt or ""), t, ...)
+        end
+        if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
+            Assert.Fail("optional arg must be a vector: "..(fmt or ""), ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Col(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required color arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("required color arg has type %s: "..(fmt or ""), t, ...)
+    end
+    if #value != 3 and #value != 4 and (value.r == nil or value.g == nil or value.b == nil) then
+        Assert.Fail("required arg must be a color: "..(fmt or ""), ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.ColOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "table" then
+            Assert.Fail("optional color arg has type %s: "..(fmt or ""), t, ...)
+        end
+        if #value != 3 and #value != 4 and (value.r == nil or value.g == nil or value.b == nil) then
+            Assert.Fail("optional arg must be a color: "..(fmt or ""), ...)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Obj(value, fmt, ...)
+    if value == nil then
+        Assert.Fail("required userdata arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "userdata" then
+        Assert.Fail("required userdata arg has type %s: "..(fmt or ""), t, ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Assert.Tagged(value, tag, fmt, ...)
+    if value == nil then
+        Assert.Fail("required '%s' arg is nil: "..(fmt or ""), tag, ...)
+    end
+    local t = type(value)
+    if t != "table" then
+        Assert.Fail("required '%s' arg has type %s: "..(fmt or ""), tag, t, ...)
+    end
+    if value.tag != tag then
+        Assert.Fail("required '%s' arg has invalid tag %s: "..(fmt or ""), tag, tostring(value.tag), ...)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Assert

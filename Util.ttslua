@@ -1,0 +1,184 @@
+local Util = {}
+
+---------------------------------------------------------------------------------------------------
+
+function Util.SafeFormat(fmt, ...)
+    fmt = fmt or ""
+
+    local args = table.pack(...)
+    for i = 1, args.n do
+        args[i] = args[i] or "<nil>"
+    end
+
+    local result
+    if not pcall(function() result = string.format(fmt, table.unpack(args)) end) then
+        result = "FORMATTING ERROR: fmt="..fmt
+        for i = 1, args.n do
+            result = result..", arg"..i.."="..tostring(args[i])
+        end
+    end
+
+    return result
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.TabStr(t)
+    if type(t) != "table" then
+        return tostring(t)
+    end
+
+    local entries = {}
+    for k, v in pairs(t) do
+        local vstr = (type(v) == "table") and Util.TabStr(v) or tostring(v)
+        table.insert(entries, tostring(k).."="..vstr)
+    end
+    return "{"..table.concat(entries, ",").."}"
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.ArrayContains(array, value)
+    for _, element in ipairs(array) do
+        if element == value then
+            return true
+        end
+    end
+
+    return false
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Find(array, value)
+    for i, v in ipairs(array) do
+        if v == value then
+            return i
+        end
+    end
+    return nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.FindIf(array, fn)
+    for i, v in ipairs(array) do
+        if fn(v) then
+            return i
+        end
+    end
+    return nil
+end
+---------------------------------------------------------------------------------------------------
+
+function Util.Intersect(t1, t2)
+    result = {}
+    for k, v in pairs(t1) do
+        if t2[k] ~= nil then
+            result[k] = v
+        end
+    end
+    return result
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Index(array, field)
+    local index = {}
+    for _, elem in ipairs(array) do
+        index[elem[field]] = elem
+    end
+    return index
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Split(str, sep)
+    local results = {}
+    for match in string.gmatch(str, "([^"..sep.."]+)") do
+        table.insert(results, match)
+    end
+    return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- creates a new array consistenting of a1..a2
+function Util.ConcatArrays(a1, a2)
+    local result = {}
+    for i = 1, #a1 do
+        result[i] = a1[i]
+    end
+    for i = 1, #a2 do
+        result[#a1 + i] = a2[i]
+    end
+    return result
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Max(v1, v2)
+    return v1 > v2 and v1 or v2
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Min(v1, v2)
+    return v1 < v2 and v1 or v2
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.RemoveUnordered(array, index)
+    array[index] = array[#array]
+    array[#array] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Highlight(object, seconds)
+    seconds = seconds or 10
+
+    object.highlightOn({ 1, 0, 0.5 }, seconds)
+    local pos = object.getPosition()
+    local size = object.getBounds().size
+    Physics.cast({
+        origin    = { pos[1], pos[2] + 5, pos[3] },
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = { size[1] * 2, size[2] * 2, size[3] * 2 },
+        debug     = true,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.ColorUiString(color)
+    return string.format("rgb(%f, %f, %f)", color.r, color.g, color.b)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Unique(sortedArray, eqFunc)
+    local n = #sortedArray
+    if n <= 1 then
+        return
+    end
+    local u = 1
+    for i = 2, n do
+        if not eqFunc(sortedArray[i], sortedArray[u]) then
+            u = u + 1
+            sortedArray[u] = sortedArray[i]
+        end
+    end
+
+    u = u + 1
+    while u <= n do
+        sortedArray[u] = nil
+        u = u + 1
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Util

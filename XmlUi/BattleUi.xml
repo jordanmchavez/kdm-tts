@@ -1,0 +1,11 @@
+<Button
+    id="BattleUi_BattleReferenceButton"
+    rectAlignment="LowerRight"
+    offsetXY="-100 0"
+    width="180"
+    height="40"
+    text="Hide Battle Reference"
+    textColor="#ffffff"
+    color="rgba(0.0, 0, 0, 0.9)"
+    onClick="BattleUi_OnBattleReferenceButtonClick"
+/>
