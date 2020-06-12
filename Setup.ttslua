@@ -6,6 +6,7 @@ local ShowdownBoard = require("Kdm/ShowdownBoard")
 local PlayerBoard = require("Kdm/PlayerBoard")
 local SetupData = require("Kdm/SetupData")
 local EventManager = require("Kdm/EventManager")
+local Locations = require("Kdm/Locations")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -306,12 +307,7 @@ function Setup_SetupShowdownCoroutine()
 
     if monsterSetup.resourcesDeck then
         -- TODO: This replicate much of Script.CheckLocation, consider consolidating
-        local hits = Physics.cast({
-            origin    = Script.Position("Monster Resources"),
-            direction = { 0, -1, 0 },
-            type      = 3,
-            size      = Script.Size("Monster Resources"),
-        })
+        local hits = Locations.BoxCast("Monster Resources")
         local monsterResourcesAlreadySpawned = false
         for _, hit in ipairs(hits) do
             local obj = hit.hit_object
@@ -577,7 +573,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Setup.AddStartingCard(card, from, stage, setupData)
-    if setupData.nextTraitLocation <= Script.MAX_TRAIT_MOOD_LOCATIONS then
+    if setupData.nextTraitLocation <= LOCATIONS_MAX_TRAITS_MOODS then
         Script.TakeAction(stage, { name = card, type = "AI", from = from, to = "Trait/Mood "..setupData.nextTraitLocation, rotation = Script.FACE_UP })
         setupData.nextTraitLocation = setupData.nextTraitLocation + 1
     else
@@ -618,7 +614,7 @@ end
 
 function Setup.AddTerrain(terrain, from, recordUnfixed, stage, setupData)
     local location = nil
-    if setupData.nextTerrainLocation <= Script.MAX_TERRAIN_LOCATIONS then
+    if setupData.nextTerrainLocation <= LOCATIONS_MAX_TERRAIN then
         location = "Terrain "..setupData.nextTerrainLocation
         setupData.nextTerrainLocation = setupData.nextTerrainLocation + 1
     else
@@ -674,7 +670,7 @@ end
 
 function Setup.AddMiscObject(name, type, stage, setupData)
     Script.TakeAction(stage, { name = name, type = type, to = "Misc "..setupData.nextMiscLocation })
-    if setupData.nextMiscLocation < Script.MAX_MISC_LOCATIONS then
+    if setupData.nextMiscLocation < LOCATIONS_MAX_MISC then
         setupData.nextMiscLocation = setupData.nextMiscLocation + 1
     else
         Log.Errorf("Ran out of misc locations for %s, %s", setupData.monster, setupData.level)

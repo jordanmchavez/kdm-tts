@@ -1,0 +1,762 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("Locations")
+local Guids = require("Kdm/Guids")
+
+-- actual size { x = 2.695496, y = 0.1, z = 4.258408 }
+LOCATIONS_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
+
+-- actual size { x = 2.739128, y = 0.1, z = 2.739128 }
+LOCATIONS_GEAR_SIZE = { x = 3, y = 10, z = 3 }
+
+-- actual size { x = 5.195435, y = 0.1, z = 10.517426 }
+-- this needs to be slightly narrower than the actual size since the settlement locations are right next to each other.
+LOCATIONS_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
+
+-- TODO: this just an estimate based on actual card sizes
+LOCATIONS_SETTLEMENT_EVENT_SIZE = { x = 4, y = 10, z = 8 }
+
+LOCATIONS_MAX_TERRAIN = 8
+LOCATIONS_MAX_TRAITS_MOODS = 13
+LOCATIONS_MAX_MISC = 8
+
+LOCATIONS_MAX_SETTLEMENT_LOCATION_COLS = 10
+LOCATIONS_MAX_SETTLEMENT_LOCATION_ROWS = 2
+
+LOCATIONS_CAST_HEIGHT = 50
+
+local Locations = {
+    data = {
+        ["Monster Board"] = {
+            center = { x = -6.8852435, y = 10.801341, z = 0.4781955 },
+            corner1 = { x = -4.789728, y = 15, z = -3.075452 },
+            corner2 = { x = -8.980759, y = 5, z = 4.031843 },
+            objectName = "Showdown Board",
+        },
+        ["Showdown Board"] = {
+            center = { x = 0, y = 10.801341, z = 0 },
+            corner1 = { x = 11.994016, y = 15, z = -5.993566 },
+            corner2 = { x = -11.994016, y = 5, z = 5.993566 },
+            objectName = "Showdown Board",
+        },
+        ["Showdown Grid"] = {
+            center = { x = 0.224678, y = 10.801341, z = 0.4832455 },
+            corner1 = { x = 4.885550, y = 15, z = -2.834642 },
+            corner2 = { x = -4.436194, y = 5, z = 3.801133 },
+            objectName = "Showdown Board",
+        },
+        ["Hunt Cards"] = {
+            center = { x = 0, y = 0, z = -5.170868 },
+            corner1 = { x = 3.833936, y = 6, z = -7.537293 },
+            corner2 = { x = -3.839113, y = -4, z = -2.886444 },
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track"] = {
+            center = { x = 0, y = 0, z = 2.921043 },
+            corner1 = { x = 7.85826, y = 6, z = -0.780489 },
+            corner2 = { x = -7.831961, y = -4, z = 6.639576 },
+            objectName = "Hunt Board",
+        },
+        ["Hunt Board"] = {
+            center = { x = 0, y = 10.801341, z = 0 },
+            corner1 = { x = 8.268137, y = 6, z = -8.185212 },
+            corner2 = { x = -8.268137, y = -4, z = 8.185212 },
+            objectName = "Hunt Board",
+        },
+        ["Rules Board"] = {
+            center = { x = 0, y = 0.703098, z = 0 },
+            corner1 = { x = -8.277505, y =    5, z = 8.241768 },
+            corner2 = { x =    8.277505, y = -5, z = -8.241768 },
+            objectName = "Rules Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Deck Board
+
+        ["Abilities"] = {
+            center = { x = 7.329962, y = 10.861341, z = -0.794318 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Fighting Arts"] = {
+            center = { x = 6.508169, y = 10.861341, z = -0.794318 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Secret Fighting Arts"] = {
+            center = { x = 5.686375, y = 10.861341, z = -0.794318 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Disorders"] = {
+            center = { x = 7.329962, y = 10.861341, z =    0.601908 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Severe Injuries"] = {
+            center = { x = 6.508169, y = 10.861341, z =    0.601908 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Tactics"] = {
+            center = { x = 5.686375, y = 10.861341, z =    0.607908 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Weapon Specializations/Masteries"] = {
+            center = { x = 7.329962, y = 10.861341, z =    1.998134 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Armor Sets"] = {
+            center = { x = 6.508169, y = 10.861341, z =    1.998134 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Vermin"] = {
+            center = { x = 5.686375, y = 10.861341, z =    1.998134 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Strange Resources"] = {
+            center = { x = 7.329962, y = 10.861341, z =    3.394359 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Basic Resources"] = {
+            center = { x = 6.508169, y = 10.861341, z =    3.394359 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Resources"] = {
+            center = { x = 5.686374, y = 10.801342, z =    3.394359 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Terrain Board
+
+        ["Terrain"] = {
+            center = { x = 3.421810, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 1"] = {
+            center = { x = 2.600290, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 2"] = {
+            center = { x = 1.778249, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 3"] = {
+            center = { x = 0.956468, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 4"] = {
+            center = { x = 0.134689, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 5"] = {
+            center = { x = -0.687092, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 6"] = {
+            center = { x = -1.508873, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 7"] = {
+            center = { x = -2.330652, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Terrain 8"] = {
+            center = { x = -3.152432, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["Terrain Tiles"] = {
+            center = { x = -4.089365, y = 10.861341, z = -3.842349 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Monster Board
+
+        ["Trait/Mood 1"] = {
+            center = { x = -5.683498, y = 10.801341, z = 0.474210 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 2"] = {
+            center = { x = -5.683498, y = 10.801341, z = -0.738270 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 3"] = {
+            center = { x = -5.683498, y = 10.801341, z = -1.950750 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["Trait/Mood 4"] = {
+            center = { x = -6.504960, y = 10.801341, z = 0.474210 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 5"] = {
+            center = { x = -6.504960, y = 10.801341, z = -0.738270 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 6"] = {
+            center = { x = -6.504960, y = 10.801341, z = -1.950750 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["Trait/Mood 7"] = {
+            center = { x = -7.326424, y = 10.801341, z = 0.474210 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 8"] = {
+            center = { x = -7.326424, y = 10.801341, z = -0.738270 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 9"] = {
+            center = { x = -7.326424, y = 10.801341, z = -1.950750 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["Trait/Mood 10"] = {
+            center = { x = -8.147886, y = 10.801341, z = 0.474210 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 11"] = {
+            center = { x = -8.147886, y = 10.801341, z = -0.738270 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Trait/Mood 12"] = {
+            center = { x = -8.147886, y = 10.801341, z = -1.950750 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["Wound Stack"] = {
+            center = { x = -8.146602, y = 10.801341, z = 2.323683 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["AI"] = {
+            center = { x = -5.683301, y = 10.801341, z = 1.688701 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["AI Discard"] = {
+            center = { x = -6.504676, y = 10.801341, z = 1.688701 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Info"] = {
+            center = { x = -7.326052, y = 10.801341, z = 1.688701 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        ["HL"] = {
+            center = { x = -5.683301, y = 10.801341, z = 2.900984 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["HL Discard"] = {
+            center = { x = -6.504676, y = 10.801341, z = 2.900984 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Basic Action"] = {
+            center = { x = -7.326052, y = 10.801341, z = 2.900984 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Monster Board tokens
+
+        ["Monster Token 1"] = {
+            center = { x = -5.04458, y = 10.801341, z = -2.326166 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Token 2"] = {
+            center = { x = -5.04458, y = 10.801341, z = -1.904233 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Token 3"] = {
+            center = { x = -5.04458, y = 10.801341, z = -1.482301 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Token 4"] = {
+            center = { x = -5.04458, y = 10.801341, z = -1.060369 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Monster Token 5"] = {
+            center = { x = -5.04458, y = 10.801341, z = -0.638437 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Monster Board unused
+
+        ["Unused Basic AI"] = {
+            center = { x = -9.162623, y = 10.801341, z = -1.950593 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Unused Advanced AI"] = {
+            center = { x = -9.162623, y = 10.801341, z = -0.737767 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Unused Legendary AI"] = {
+            center = { x = -9.162623, y = 10.801341, z = 0.475087 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Unused Special AI"] = {
+            center = { x = -9.162623, y = 10.801341, z = 1.687846 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Unused HL"] = {
+            center = { x = -9.162623, y = 10.801341, z = 2.900652 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Hunt Board
+
+        ["Hunt Events"] = {
+            center = { x =    3.375038, y = 0.860623, z = -5.170869 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Monster Hunt Events"] = {
+            center = { x =    2.357527, y = 0.860623, z = -5.170869 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["The Forest Gate"] = {
+            center = { x =    1.340017, y = 0.860623, z = -5.170868 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Herb Gathering"] = {
+            center = { x = -1.338467, y = 0.860623, z = -5.170869 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Mineral Gathering"] = {
+            center = { x = -2.357022, y = 0.860623, z = -5.170869 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Sky Fishing"] = {
+            center = { x = -3.375580, y = 0.860623, z = -5.170869 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track Start"] = {
+            center = { x =    7.273605, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 1"] = {
+            center = { x =    6.059363, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 2"] = {
+            center = { x =    4.845125, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 3"] = {
+            center = { x =    3.630886, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 4"] = {
+            center = { x =    2.416644, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 5"] = {
+            center = { x =    1.202405, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 6"] = {
+            center = { x = -0.011834, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 7"] = {
+            center = { x = -1.226075, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 8"] = {
+            center = { x = -2.440314, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 9"] = {
+            center = { x = -3.654553, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 10"] = {
+            center = { x = -4.868794, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track 11"] = {
+            center = { x = -6.083034, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+        ["Hunt Track Starvation"] = {
+            center = { x = -7.297274, y = 0.860623, z =    2.921042 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Hunt Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Settlement Board
+
+        ["Starting Gear"] = {
+            center = { x = 7.414210, y = 0.647072, z = -5.645783 },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        },
+        ["Rare Gear"] = {
+            center = { x = 7.414210, y = 0.647072, z = -4.943425 },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        },
+        ["Promo Gear"] = {
+            center = { x = 7.414210, y = 0.647072, z = -4.241068 },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Gear_1_1"] = {
+            center = { x = 6.149671, y = 0.647072, z = -7.593548 },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        },
+        ["Gear_10_2"] = {
+            center = { x = -7.02198, y = 0.647072, z = -2.292379 },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["SettlementLocation_1_1"] = {
+            center = { x = 6.059244, y = 0.647072, z = -6.091551 },
+            size = LOCATIONS_SETTLEMENT_LOCATION_SIZE,
+            objectName = "Settlement Board",
+        },
+        ["SettlementLocation_10_2"] = {
+            center = { x = -7.117124, y = 0.647072, z = -3.792164 },
+            size = LOCATIONS_SETTLEMENT_LOCATION_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Innovation Archive"] = {
+            center = { x = -3.056074, y = 0.647072, z = -0.816151 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Survivor status positions
+        ["Survivor Status 1"] = {
+            center = { x = 2.222135, y = 10.861341, z = 5.302254 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Survivor Status 2"] = {
+            center = { x = 0.890468, y = 10.861341, z = 5.302254 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Survivor Status 3"] = {
+            center = { x = -0.441197, y = 10.861341, z = 5.302254 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Survivor Status 4"] = {
+            center = { x = -1.772863, y = 10.861341, z = 5.302254 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- Temporary hacks until we get art locations for these
+        ["Settlement Events"] = {
+            center = { x = -13.914588, y = 10.801341, z = -6.073809 },
+            size = LOCATIONS_SETTLEMENT_EVENT_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Sun Dial"] = {
+            center = { x = -10.535775, y = 10.801341, z = 0.399195 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 1"] = {
+            center = { x = 2.600290, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 2"] = {
+            center = { x = 1.778249, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 3"] = {
+            center = { x = 0.956468, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 4"] = {
+            center = { x = 0.134689, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 5"] = {
+            center = { x = -0.687092, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 6"] = {
+            center = { x = -1.508873, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 7"] = {
+            center = { x = -2.330652, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+        ["Misc 8"] = {
+            center = { x = -3.152432, y = 10.861341, z = -5.405738 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Showdown Board",
+        },
+    },
+}
+
+local coordinates
+local gridLeft   = 4.885550
+local gridRight  = -4.436194
+local gridTop    = -2.834642
+local gridBottom =  3.801133
+
+local cellWidth  = math.abs(gridRight - gridLeft) / 21
+local cellHeight = math.abs(gridBottom - gridTop) / 15
+
+local size = { x = cellWidth, y = cellWidth, z = cellHeight }
+for col = 1, 22 do
+    for row = 1, 16 do
+        local x = gridLeft - ((col - 1) * cellWidth)
+        local xHalf = x - (cellWidth / 2)
+        local z = gridTop + ((row - 1) * cellHeight)
+        local zHalf = z + (cellHeight / 2)
+        Locations.data[string.format("(%d, %d)", col, row)] = {
+            center = { x = x, y = 10.861341, z = z},
+            size = size,
+            objectName = "Showdown Board",
+        }
+        Locations.data[string.format("(%d, %d.5)", col, row)] = {
+            center = { x = x, y = 10.861341, z = zHalf},
+            size = size,
+            objectName = "Showdown Board",
+        }
+        Locations.data[string.format("(%d.5, %d)", col, row)] = {
+            center = { x = xHalf, y = 10.861341, z = z},
+            size = size,
+            objectName = "Showdown Board",
+        }
+        Locations.data[string.format("(%d.5, %d.5)", col, row)] = {
+            center = { x = xHalf, y = 10.861341, z = zHalf},
+            size = size,
+            objectName = "Showdown Board",
+        }
+    end
+end
+
+-- add gear locations
+local topLeft = Locations.data["Gear_1_1"].center
+local bottomRight = Locations.data["Gear_10_2"].center
+local dx = (bottomRight.x - topLeft.x) / 9
+local dz = (bottomRight.z - topLeft.z)
+for col = 1, 10 do
+    local x = topLeft.x + (col - 1) * dx
+    for row = 1, 10 do
+        local z = topLeft.z + (row - 1) * dz
+        Locations.data[string.format("Gear_%d_%d", col, row)] = {
+            center = { x = x, y = topLeft.y, z = z },
+            size = LOCATIONS_GEAR_SIZE,
+            objectName = "Settlement Board",
+        }
+    end
+end
+
+-- add settlement locations
+local topLeft = Locations.data["SettlementLocation_1_1"].center
+local bottomRight = Locations.data["SettlementLocation_10_2"].center
+local dx = (bottomRight.x - topLeft.x) / 9
+local dz = (bottomRight.z - topLeft.z)
+for col = 1, LOCATIONS_MAX_SETTLEMENT_LOCATION_COLS do
+    local x = topLeft.x + (col - 1) * dx
+    for row = 1, LOCATIONS_MAX_SETTLEMENT_LOCATION_ROWS do
+        local z = topLeft.z + (row - 1) * dz
+        Locations.data[string.format("SettlementLocation_%d_%d", col, row)] = {
+            center = { x = x, y = topLeft.y, z = z },
+            size = LOCATIONS_SETTLEMENT_LOCATION_SIZE,
+            objectName = "Settlement Board",
+        }
+    end
+end
+
+-- add player board locations
+local cards = {
+    { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
+    { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
+}
+local y = 0.113605
+local topLeft = { x = 1.095649, z = 0.381691 }
+local bottomRight = { x = -0.640440, z = 0.757645 }
+local dx = (bottomRight.x - topLeft.x) / 7
+local dz = (bottomRight.z - topLeft.z)
+for col = 1, 8 do
+    local x = topLeft.x + (col - 1) * dx
+    for row = 1, 2 do
+        local z = topLeft.z + (row - 1) * dz
+        for playerNumber = 1, 4 do
+            local location = string.format("Player %d %s", playerNumber, cards[row][col])
+            Locations.data[location] = {
+                center = { x = x, y = y, z = z },
+                size = LOCATIONS_CARD_SIZE,
+                objectName = "Player "..playerNumber.." Board",
+            }
+        end
+    end
+end
+---------------------------------------------------------------------------------------------------
+
+function Locations.WorldCenter(location, object)
+    Assert.Str(location, "location")
+    local locationData = Locations.data[location]
+    Assert(locationData, "Unknown location: %s", location)
+
+    object = object or Guids.GetObject(locationData.objectName)
+
+    return object.positionToWorld(locationData.center)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Locations_Cast(location, debug, type)
+    Assert.Str(location, "location")
+    local locationData = Locations.data[location]
+    Assert(locationData, "Unknown location: %s", location)
+
+    local object = Guids.GetObject(locationData.objectName)
+
+    local origin = object.positionToWorld(locationData.center)
+    origin.y = origin.y + LOCATIONS_CAST_HEIGHT
+
+    local size = locationData.size
+    if not size then
+        local objectName = Guids.GetObject(locationData.objectName)
+        wc1 = objectName.PositionToWorld(locationData.corner1)
+        wc2 = objectName.PositionToWorld(locationData.corner2)
+        size = {
+            x = math.abs(wc1.x - wc2.x),
+            y = math.abs(wc1.y - wc2.y),
+            z = math.abs(wc1.z - wc2.z),
+        }
+    end
+    size.y = 10 -- doesn't matter, just needs to be > epsilon for a top-down cast
+
+    return Physics.cast({
+        origin    = origin,
+        direction = { 0, -1, 0 },
+        type      = type,
+        size      = size,
+        debug     = debug,
+    })
+end
+
+function Locations.BoxCast(location, debug)
+    return Locations_Cast(location, debug, 3)
+end
+
+function Locations.RayCast(location, debug)
+    return Locations_Cast(location, debug, 1)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Locations.Rect(location)
+    Assert.Str(location, "location")
+    local locationData = Locations.data[location]
+    Assert(locationData, "Unknown location: %s", location)
+
+    local object = Guids.GetObject(locationData.objectName)
+
+    local center = object.positionToWorld(locationData.center)
+
+    local size = locationData.size
+    if not size then
+        local objectName = Guids.GetObject(locationData.objectName)
+        wc1 = objectName.PositionToWorld(locationData.corner1)
+        wc2 = objectName.PositionToWorld(locationData.corner2)
+        size = {
+            x = math.abs(wc1.x - wc2.x),
+            y = math.abs(wc1.y - wc2.y),
+            z = math.abs(wc1.z - wc2.z),
+        }
+    end
+
+    return {
+        left = center.x - size.x / 2,
+        top = center.z - size.z / 2,
+        right = center.x + size.x / 2,
+        bottom = center.z + size.z / 2,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Locations

@@ -4,6 +4,7 @@ local Log = require("Kdm/Log").ForPackage("SettlementBoard")
 local UiButton = require("Kdm/UiButton")
 local Script = require("Kdm/Script")
 local DropZone = require("Kdm/DropZone")
+local Locations = require("Kdm/Locations")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -53,19 +54,8 @@ function SettlementBoard.ResetSlocGear(col, row)
     local gearLocation = string.format("Gear_%d_%d", col, row)
     local slocLocation = string.format("SettlementLocation_%d_%d", col, row)
 
-    local slocPos = Script.Position(slocLocation)
-    local slocSize = Script.Size(slocLocation)
-
-    Log.Debugf("pos = %s, size=%s", Util.TabStr(slocPos), Util.TabStr(slocSize))
-
-    local hits = Physics.cast({
-        origin = slocPos,
-        direction = { 0, -1, 0 },
-        type = 3,
-        size = slocSize,
-    })
-
     local sloc = nil
+    local hits = Locations.RayCast(slocLocation)
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
         if obj.getGMNotes() == "Settlement Locations" then
@@ -214,17 +204,17 @@ function SettlementBoard.Init(settlementBoardObj)
         })
     end
 
-    for col = 1, Script.MAX_SETTLEMENT_LOCATION_COLS do
-        for row = 1, Script.MAX_SETTLEMENT_LOCATION_ROWS do
+    for col = 1, LOCATIONS_MAX_SETTLEMENT_LOCATION_COLS do
+        for row = 1, LOCATIONS_MAX_SETTLEMENT_LOCATION_ROWS do
             local name = string.format("SettlementLocation_%d_%d", col, row)
-            local position = settlementBoardObj.positionToWorld(Script.locations[name].position)
+            local center = Locations.WorldCenter(name)
             DropZone.Create({
                 name = name,
                 context = { col = col, row = row },
-                centerX = position.x,
-                centerZ = position.z,
-                width = Script.slocSize.x,
-                height = Script.slocSize.z,
+                centerX = center.x,
+                centerZ = center.z,
+                width = LOCATIONS_SETTLEMENT_LOCATION_SIZE.x,
+                height = LOCATIONS_SETTLEMENT_LOCATION_SIZE.z,
                 dropHandler = SettlementBoard_OnDrop,
                 pickUpHandler = SettlementBoard_OnPickUp,
             })

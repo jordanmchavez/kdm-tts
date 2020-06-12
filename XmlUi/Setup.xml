@@ -31,7 +31,15 @@
   <Text class="BigText" color="#bbb4a1" fontSize="26" fontStyle="bold" />
 </Defaults>
 
-<Button id="SetupButton" offsetXY="100 -10" class="SetupButton" onClick="G_SetupButton_Click">KDM Setup</Button>
+<Button id="SetupButton" offsetXY="100 -10" class="SetupButton" onClick="G_SetupButton_Click" text = "Setup" />
+<Button
+    id="BattleUi_ShowHideBattleReferenceButton"
+    class="SetupButton"
+    offsetXY="210 -10"
+    width="180"
+    text="Hide Battle Reference"
+    onClick="BattleUi_ShowHideBattleReferenceButton_OnClick"
+/>
 
 <Panel id="SetupPanel" rectAlignment="MiddleCenter" offsetXY="0 0" class="SetupPanelBorder" active="false">
   <Panel id="HuntTab" class="Tab" offsetXY="0 30">

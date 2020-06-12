@@ -1,0 +1,87 @@
+local Assert = require("Kdm/Assert")
+local Log = require("Kdm/Log").ForPackage("SpatialIndex")
+
+local SpatialIndex = {}
+
+---------------------------------------------------------------------------------------------------
+
+local function SpatialIndex_ColRow(spatialIndex, x, z)
+    local col = math.floor(x / spatialIndex.cellSize)
+    local row = math.floor(z / spatialIndex.cellSize)
+    return col, row
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function SpatialIndex_Index(col, row)
+    return row.." "..col
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function SpatialIndex_RectContains(rect, x, z)
+    return x >= rect.left and x <= rect.right and z >= rect.top and z <= rect.bottom
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SpatialIndex.Set(spatialIndex, name, left, top, right, bottom, value)
+    local leftCol, topRow = SpatialIndex_ColRow(spatialIndex, left, top)
+    local rightCol, bottomRow = SpatialIndex_ColRow(spatialIndex, right, bottom)
+
+    Log.Debugf("Adding area %s (%d, %d) to (%d, %d) -> %s", name, left, top, right, bottom, value)
+    local area = {
+        name = name,
+        left = left,
+        top = top,
+        right = right,
+        bottom = bottom,
+        value = value
+    }
+
+    for row = topRow, bottomRow do
+        for col = leftCol, rightCol do
+            local index = SpatialIndex_Index(col, row)
+            if not spatialIndex.cellAreas[index] then
+                spatialIndex.cellAreas[index] = { area }
+            else
+                table.insert(spatialIndex.cellAreas[index], area)
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SpatialIndex.Get(spatialIndex, x, z)
+    local col, row = SpatialIndex_ColRow(spatialIndex, x, z)
+
+    local areas = spatialIndex.cellAreas[SpatialIndex_Index(col, row)]
+    if not areas then
+        return nil
+    end
+
+    local results = {}
+    for _, area in ipairs(areas) do
+        if SpatialIndex_RectContains(area, x, z) then
+            Log.Debugf("Area %s contains (%f, %f)", area.name, x, z)
+            table.insert(results, area.value)
+        end
+    end
+
+    return #results > 0 and results or nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SpatialIndex.Create(cellSize)
+    return {
+        tag = "SpatialIndex",
+        cellSize = cellSize,
+        cellAreas = {},
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+return SpatialIndex

@@ -3,6 +3,8 @@ local Log = require("Kdm/Log").ForPackage("Armor")
 
 local Armor = {
     armorStats = {
+        ["Oxidized Beacon Shield"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+
         ["Beacon Shield"]     = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
         ["Lantern Helm"]      = { head = 5, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Lantern Gauntlets"] = { head = 0, arms = 5, body = 0, waist = 0, legs = 0 },
@@ -15,7 +17,6 @@ local Armor = {
         ["Skull Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
 
         ["White Lion Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["White Lion Armor (CE)"] = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
         ["Lion Headdress"]        = { head = 1, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Helm"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Gauntlet"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
@@ -23,6 +24,14 @@ local Armor = {
         ["Lion Slayer Cape"]      = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
         ["White Lion Skirt"]      = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
         ["White Lion Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
+
+        ["White Lion Armor (CE)"] = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Lion Headdress (CE)"]   = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["White Lion Helm (CE)"]  = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["White Lion Gauntlet"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["White Lion Coat (CE)"]  = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
+        ["White Lion Skirt (CE)"] = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
+        ["White Lion Boots (CE)"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
 
         ["Dragon Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
         ["Blast Shield"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
@@ -62,12 +71,22 @@ local Armor = {
         ["Phoenix Mask"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
 
+        ["Antelope Mask (CE)"]   = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["God Mask (CE)"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Man Mask (CE)"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Phoenix Mask (CE)"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["White Lion Mask (CE)"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+
         ["Phoenix Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
         ["Phoenix Helm"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Phoenix Gauntlet"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
         ["Phoenix Plackart"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
         ["Phoenix Faulds"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
         ["Phoenix Greaves"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
+
+        ["Phoenix Gauntlet (CE)"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
+        ["Phoenix Faulds (CE)"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
+        ["Phoenix Greaves (CE)"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
 
         ["Cloth Leggings"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 1 },
         ["Corsair Coat"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
@@ -85,6 +104,7 @@ local Armor = {
         ["Dragon Vestments"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
         ["Flower Knight Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Forsaker Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Forsaker Mask (CE)"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Gloom Bracelets"] = { head = 0, arms = 6, body = 0, waist = 0, legs = 0 },
         ["Gloom Mehndi"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
         ["Hazmat Shield"] = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
@@ -98,6 +118,12 @@ local Armor = {
         ["Regal Plackart"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
         ["Regal Faulds"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
         ["Regal Greaves"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
+
+        ["Regal Helm (CE)"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Regal Gauntlet (CE)"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
+        ["Regal Plackart (CE)"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
+        ["Regal Faulds (CE)"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
+        ["Regal Greaves (CE)"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
 
         ["Blue Ring"]  = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
         ["Green Ring"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
@@ -128,6 +154,7 @@ local Armor = {
 
         ["Screaming Armor"]       = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
         ["Screaming Horns"]       = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Screaming Horns (CE)"]  = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Screaming Bracers"]     = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
         ["Screaming Coat"]        = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
         ["Screaming Skirt"]       = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },

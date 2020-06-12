@@ -4,7 +4,7 @@ local Log = require("Kdm/Log").ForPackage("Script")
 local Guids = require("Kdm/Guids")
 local Latch = require("Kdm/Latch")
 local Archive = require("Kdm/Archive")
-local ScriptData = require("Kdm/ScriptData")
+local Locations = require("Kdm/Locations")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -12,10 +12,6 @@ local Script = {}
 
 Script.FACE_UP = { 0, 180, 0 }
 Script.FACE_DOWN = { 0, 180, 180 }
-
-for k, v in pairs(ScriptData) do
-    Script[k] = v
-end
 
 Script.ignoreTags = { "Board", "Table" }
 
@@ -284,55 +280,19 @@ function Script.OrderAction(stage, params)
 end
 ---------------------------------------------------------------------------------------------------
 
-function Script.Position(locationName)
-    Assert.Str(locationName, "locationName")
-
-    local location = Script.locations[locationName]
-    Assert(location, "No location named %s", locationName)
-
-    local wpos = Guids.GetObject(location.board).positionToWorld(location.position)
+function Script.WorldSpawnPosition(location)
+    local center = Locations.WorldCenter(location)
     return {
-        x = wpos.x,
-        y = wpos.y + Script.spawnHeight,
-        z = wpos.z
-    }
-end
-
----------------------------------------------------------------------------------------------------
-
-function Script.Size(locationName)
-    Assert.Str(locationName, "locationName")
-
-    local location = Script.locations[locationName]
-    Assert(location, "No location named %s", locationName)
-
-    if location.size then
-        return location.size
-    end
-
-    Assert(location.corner1 and location.corner2, "Script location %s has neither 'size' nor 'corner1/corner2' defined", locationName)
-
-    local board = Guids.GetObject(location.board)
-    w1 = board.PositionToWorld(location.corner1)
-    w2 = board.PositionToWorld(location.corner2)
-    return {
-        x = math.abs(w1.x - w2.x),
-        y = math.abs(w1.y - w2.y),
-        z = math.abs(w1.z - w2.z),
+        x = center.x,
+        y = center.y + Script.spawnHeight,
+        z = center.z
     }
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Script.CheckLocation(from, name)
-    local hits = Physics.cast({
-        origin    = Script.Position(from),
-        direction = { 0, -1, 0 },
-        type      = 3,
-        size      = Script.Size(from),
-        debug     = false,
-    })
-
+    local hits = Locations.BoxCast(from)
     -- Lowest is important because we might have pulled other cards from this location that are "hovering" in mid-air, waiting to move next frame (like drawing AI cards to build the deck).
     -- The lowest object should always be what we want.
     local lowestCard = nil
@@ -456,13 +416,7 @@ end
 function Script.DoClean(action, scriptData)
     Log.Debugf("Cleaning %s", action.from)
 
-    local hits = Physics.cast({
-        origin    = Script.Position(action.from),
-        direction = { 0, -1, 0 },
-        type      = 3,
-        size      = Script.Size(action.from),
-        debug     = scriptData.debug,
-    })
+    local hits = Locations.BoxCast(action.from, scriptData.debug)
 
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
@@ -511,7 +465,7 @@ function Script.DoTake(action, scriptData)
         -- It was the last card in the deck, just move it directly
         Script.Set(from, action)
         if toType == "loc" then
-            from.setPositionSmooth(Script.Position(action.to), false, not smooth)
+            from.setPositionSmooth(Script.WorldSpawnPosition(action.to), false, not smooth)
             if action.rotation then
                 from.setRotation(action.rotation)
             end
@@ -547,7 +501,7 @@ function Script.DoTake(action, scriptData)
 
     local toPos
     if toType == "loc" then
-        toPos = Script.Position(action.to)
+        toPos = Script.WorldSpawnPosition(action.to)
     else
         toPos = to.getPosition()
         toPos.y = toPos.y + 5
@@ -600,7 +554,7 @@ end
 
 function Script.DoClone(action, scriptData)
     local from = Script.From(action, scriptData)
-    local obj = from.clone({ position = Script.Position(action.to) })
+    local obj = from.clone({ position = Script.WorldSpawnPosition(action.to) })
     if action.rotation then
         obj.setRotation(action.rotation)
     end
@@ -612,7 +566,7 @@ end
 function Script.DoMove(action, scriptData)
     local from = Script.From(action, scriptData)
     local fast = not action.smooth
-    from.setPositionSmooth(Script.Position(action.to), false, fast)
+    from.setPositionSmooth(Script.WorldSpawnPosition(action.to), false, fast)
     if action.rotation then
         from.setRotation(action.rotation)
     end
@@ -662,13 +616,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Script.DoLock(action, scriptData)
-    local hits = Physics.cast({
-        origin    = Script.Position(action.from),
-        direction = { 0, -1, 0 },
-        type      = 3,
-        size      = Script.Size(action.from),
-        debug     = debug,
-    })
+    local hits = Locations.BoxCast(action.from)
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
         if Script.ObjectMatchesAction(obj, action) then

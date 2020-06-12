@@ -4,7 +4,9 @@ local Util = require("Kdm/Util")
 local CircularArray = require("Kdm/CircularArray")
 local Trie = require("Kdm/Trie")
 local Script = require("Kdm/Script")
+local Locations = require("Kdm/Locations")
 local RulesData = require("Kdm/RulesData")
+
 
 ---------------------------------------------------------------------------------------------------
 
@@ -97,12 +99,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Rules.GetCurrentRules()
-    local hits = Physics.cast({
-        origin    = Script.Position("Rules Board"),
-        direction = { 0, -1, 0 },
-        type      = 3,
-        size      = Script.Size("Rules Board"),
-    })
+    local hits = Locations.RayCast("Rules Board")
     for _, hit in ipairs(hits) do
         local hitObj = hit.hit_object
         if hitObj.getGMNotes() == "Rulebook" then

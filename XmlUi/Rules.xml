@@ -1,11 +1,11 @@
 <Defaults>
-  <Button class="SearchResultButton" width="190" height="30" color="#00000000" />
+  <Button class="SearchResultButton" width="290" height="30" color="#00000000" />
   <Text class="SearchResultText" alignment="MiddleLeft" color="#dddddd" />
 </Defaults>
 
-<InputField id="Search" offsetXY="220 -10" width="200" height="30" placeholder="search rules/events..." onValueChanged="G_Search_Change"></InputField>
-<Button id="CancelSearch" offsetXY="420 -10" width="30" height="30" color="#ffffff" onClick="G_CancelSearch_Click">X</Button>
-<Panel id="SearchResults"  offsetXY="220 -40" active="false" color="#00000080" width="200" height="160" >
+<InputField id="Search" offsetXY="100 -50" width="250" height="30" placeholder="search rules/events..." onValueChanged="G_Search_Change"></InputField>
+<Button id="CancelSearch" offsetXY="355 -50" width="30" height="30" color="#ffffff" onClick="G_CancelSearch_Click">X</Button>
+<Panel id="SearchResults" offsetXY="100 -90" active="false" color="#00000080" width="300" height="160" >
   <Button id="SearchResult1Button" class="SearchResultButton" offsetXY="5 -5">
     <Text id="SearchResult1Text" class="SearchResultText" />
   </Button>

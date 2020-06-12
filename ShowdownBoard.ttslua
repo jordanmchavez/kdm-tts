@@ -140,7 +140,7 @@ function ShowdownBoard.Init(showdownBoardObj, saveState)
     ShowdownBoard.evasion = saveState.evasion or 0
     ShowdownBoard.luck = saveState.luck or 0
 
-    local attributes = { "movement", "toughness", "speed", "damage", "accuracy", "evasion", "luck" }
+    local attributes = { "movement", "toughness", "damage", "speed", "accuracy", "evasion", "luck" }
     local x = 5.04
     local z = 0.01
     local dz = 0.555

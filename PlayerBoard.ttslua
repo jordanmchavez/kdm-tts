@@ -11,12 +11,15 @@ local CharSheet = require("Kdm/CharSheet")
 local Overlay = require("Kdm/Overlay")
 local Armor = require("Kdm/Armor")
 local Weapons = require("Kdm/Weapons")
+local Locations = require("Kdm/Locations")
+local SpatialIndex = require("Kdm/SpatialIndex")
 
 ---------------------------------------------------------------------------------------------------
 
 local PlayerBoard = {
     playerBoards = {},
     playerBoardsByObject = {},
+    spatialIndex = {}
 }
 
 local PLAYER_BOARD_UI_Y = 0.105
@@ -173,20 +176,22 @@ end
 local function PlayerBoard_PackCharSheet(playerBoard)
     Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
 
-    if playerBoard.linkedCharSheet == nil then
+    local playerBoardObj = playerBoard.object
+    local charSheet = playerBoard.linkedCharSheet
+
+    if charSheet == nil then
         return
     end
 
-    local playerBoardObj = playerBoard.object
-    local charSheet = playerBoard.linkedCharSheet
     local charSheetObj = charSheet.object
 
-    for _, attachment in ipairs(charSheetObj.getAttachments()) do
-        if attachment.gm_notes == "Character Cards" then
-            Log.Errorf("This character sheet already has cards packed, please unpack it first by dropping it on any player board.")
-            return
-        end
+    local packedBag, packedCards = CharSheet.GetPackedData(charSheet)
+    if packedCards then
+        Log.Printf("%s is already packed. Pick up and drop the character sheet to unpack.", CharSheet.GetNameOrUnnamed(charSheet))
+        return
     end
+
+    charSheetObj.setLock(false)
 
     -- scan area covering the cards section of the player board
     local corner1 = { 1.095649, 0.331540, 0.757645 }
@@ -228,37 +233,78 @@ local function PlayerBoard_PackCharSheet(playerBoard)
 
     Log.Debugf("Putting player cards and figurine in bag")
 
-    local bag = spawnObject({
+    local pos = charSheetObj.getPosition()
+    pos.y = pos.y + 1
+    spawnObject({
         type = "bag",
-        position = charSheetObj.positionToWorld({ 0.546, 0.282, -0.24 }),
-        scale = { 0.5, 0.5, 0.5 },
-    })
-    local charName = CharSheet.GetName(charSheet)
-    charName = (charname and charName != "") and charName or "Unnamed Survivor"
-    bag.setName(charName.." Cards")
-    bag.setGMNotes("Character Cards")
+        position = pos,
+        callback_function = function(bag)
+            bag.setName(CharSheet.GetNameOrUnnamed(charSheet).." Cards")
+            bag.setGMNotes("Character Cards")
 
-    local packedCards = {}
-    for _, card in ipairs(cards) do
-        local name = card.getName()
-        local pos = playerBoardObj.positionToLocal(card.getPosition())
-        Log.Debugf("Scooping %s at %f, %f, %f into bag", name, pos[1], pos[2], pos[3])
-        if not packedCards[name] then
-            packedCards[name] = {}
+            local packedCards = {}
+            for _, card in ipairs(cards) do
+                local name = card.getName()
+                local pos = playerBoardObj.positionToLocal(card.getPosition())
+                Log.Debugf("Scooping %s at %f, %f, %f into bag", name, pos[1], pos[2], pos[3])
+                if not packedCards[name] then
+                    packedCards[name] = {}
+                end
+                table.insert(packedCards[name], { pos, card.getRotation() })
+                bag.putObject(card)
+            end
+
+            if playerBoard.figurine then
+                local figurine = playerBoard.figurine
+                Log.Debugf("Scooping figurine %s (%s) into bag", figurine.getName(), figurine.getGUID())
+                PlayerBoard_UnlinkFigurine(playerBoard) -- putting it into a bag should take care of this, but just in case
+                bag.putObject(figurine)
+            end
+            Log.Debugf("-------------------bag guid: %s, %s--------", bag.getGUID(), bag.getName())
+
+            CharSheet.SetPackedData(charSheet, bag, packedCards)
         end
-        table.insert(packedCards[name], { pos, card.getRotation() })
-        bag.putObject(card)
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLocations)
+    if gmNotes == "Disorders" then
+        for i = 1, 3 do
+            local key = playerPrefix.."Disorder "..i
+            if availableLocations[key] then
+                availableLocations[key] = nil
+                return key
+            end
+        end
+        Log.Printf("How'd you get four disorders?")
+
+    elseif gmNotes == "Fighting Arts" or gmNotes == "Secret Fighting Arts" then
+        for i = 1, 3 do
+            local key = playerPrefix.."Fighting Art "..i
+            if availableLocations[key] then
+                availableLocations[key] = nil
+                return key
+            end
+        end
+        Log.Printf("How'd you get four fighting arts?")
+
+    elseif gmNotes == "Weapon Specializations/Masteries" then
+        local key = playerPrefix.."Weapon Proficiency"
+        if availableLocations[key] then
+            availableLocations[key] = nil
+            return key
+        end
     end
 
-    if playerBoard.figurine then
-        local figurine = playerBoard.figurine
-        Log.Debugf("Scooping figurine %s (%s) into bag", figurine.getName(), figurine.getGUID())
-        PlayerBoard_UnlinkFigurine(playerBoard) -- putting it into a bag should take care of this, but just in case
-        bag.putObject(figurine)
+    for i = 1, 9 do
+        local key = playerPrefix.."Ability/Impairment "..i
+        if availableLocations[key] then
+            availableLocations[key] = nil
+            return key
+        end
     end
-
-    CharSheet.SetPackedCards(charSheet, packedCards)
-    charSheetObj.addAttachment(bag)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -270,40 +316,25 @@ local function PlayerBoard_UnpackCharSheet(playerBoard)
     local charSheet = playerBoard.linkedCharSheet
     local charSheetObj = charSheet.object
 
-    local attachmentIndex = nil
-    for _, attachment in ipairs(charSheetObj.getAttachments()) do
-        if attachment.gm_notes == "Character Cards" then
-            attachmentIndex = attachment.index
-            Log.Debugf("Found Character Cards attachment at index %d", attachmentIndex)
-            break
-        end
-    end
-
-    if attachmentIndex == nil then
+    local packedBag, packedCards = CharSheet.GetPackedData(charSheet)
+    if not packedCards then
         return
     end
 
     Log.Debugf("Unpacking character sheet %s (%s)", charSheetObj.getName(), charSheetObj.getGUID())
 
-    Log.Debugf("Removing attached bag at index %s", attachmentIndex)
-    local bag = charSheetObj.removeAttachment(attachmentIndex)
-    Assert(bag, "charSheet.removeAttachment() returned nil")
+    local playerPrefix = "Player "..playerBoard.playerNumber.." "
+    local availableLocations = {}
+    for i = 1, 3 do availableLocations[playerPrefix.."Disorder "..i] = true end
+    for i = 1, 3 do availableLocations[playerPrefix.."Fighting Art "..i] = true end
+    availableLocations[playerPrefix.."Weapon Proficiency"] = true
+    for i = 1, 9 do availableLocations[playerPrefix.."Ability/Impairment "..i] = true end
 
-    local packedCards = CharSheet.GetPackedCards(charSheet)
-    if packedCards == nil then
-        Log.Errorf("Couldn't find positions for packed cards! Please remove them from the bag and place manually, then delete the bag.")
-        bag.setScale({ 1, 1, 1 })
-        return
-    end
-    Log.Debugf("Got char sheet packed cards: %s", Util.TabStr(packedCards))
-
-    Log.Debugf("Taking character cards out of bag %s (%s)", bag.getName(), bag.getGUID())
-    local deleteBag = true
-    for _, bagEntry in ipairs(bag.getObjects()) do
+    for _, bagEntry in ipairs(packedBag.getObjects()) do
         if bagEntry.gm_notes == "Player Figurine" then
-            local pos = Guids.GetObject("Player "..playerBoard.playerNumber.." Marker").getBounds().center
-            pos.y = pos.y + 2
-            local figurine = bag.TakeObject({
+            local pos = Guids.GetObject(playerPrefix.."Marker").getBounds().center
+            pos.y = pos.y + 0.5
+            local figurine = packedBag.TakeObject({
                 position = pos,
                 guid = bagEntry.guid,
                 smooth = false,
@@ -311,14 +342,11 @@ local function PlayerBoard_UnpackCharSheet(playerBoard)
             PlayerBoard_LinkFigurine(playerBoard, figurine)
         else
             local packedCard = packedCards[bagEntry.name]
-            if not packedCard or #packedCard == 0 then
-                Log.Errorf("Couldn't find position for '%s', please remove from bag and place manually, then delete the bag.", bagEntry.name)
-                deleteBag = false
-            else
+            if packedCard and #packedCard >= 1 then
                 local pos = playerBoardObj.positionToWorld(packedCard[#packedCard][1])
                 local rot = packedCard[#packedCard][2]
                 Log.Debugf("Taking %s to %f, %f, %f", bagEntry.name, pos[1], pos[2], pos[3])
-                bag.takeObject({
+                packedBag.takeObject({
                     position = pos,
                     -- necessary hack because the char sheet "owns" the table, other we'll get an error about resources owned by different scripts
                     -- this also needs to be x/y/z not 1/2/3 since this will be loaded from json and it only saves x/y/z
@@ -327,16 +355,57 @@ local function PlayerBoard_UnpackCharSheet(playerBoard)
                     smooth   = false,
                 })
                 packedCard[#packedCard] = nil
+
+                local locations = SpatialIndex.Get(PlayerBoard.spatialIndex, pos.x, pos.z)
+                if locations then
+                    for _, location in ipairs(locations) do
+                        Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, location)
+                        availableLocations[location] = false
+                    end
+                end
             end
         end
     end
 
-    if deleteBag then
-        Log.Debugf("Destroying bag %s (%s)", bag.getName(), bag.getGUID())
-        bag.destruct()
+    Log.Debugf("Available Locations: %s", Util.TabStr(availableLocations))
+
+    local remainingObjects = packedBag.getObjects()
+    local deleteBag = true
+    if #remainingObjects > 0 then
+        for _, bagEntry in ipairs(remainingObjects) do
+            local location = PlayerBoard_TakeNextLocation(playerPrefix, bagEntry.gm_notes, availableLocations)
+            if not location then
+                Log.Errorf("Couldn't place %s (%s); no more space!", bagEntry.name, bagEntry.tag)
+                deleteBag = false
+            else
+                local pos = Locations.WorldCenter(location)
+                pos.y = pos.y + 0.5
+                Log.Debugf("Taking %s to %f, %f, %f", bagEntry.name, pos[1], pos[2], pos[3])
+                packedBag.takeObject({
+                    position = pos,
+                    -- necessary hack because the char sheet "owns" the table, other we'll get an error about resources owned by different scripts
+                    -- this also needs to be x/y/z not 1/2/3 since this will be loaded from json and it only saves x/y/z
+                    rotation = { 0, 180, 0 },
+                    guid     = bagEntry.guid,
+                    smooth   = false,
+                })
+            end
+        end
     end
 
-    CharSheet.SetPackedCards(charSheet, nil)
+
+    if deleteBag then
+        Log.Debugf("Destroying packed bag %s (%s)", packedBag.getName(), packedBag.getGUID())
+        packedBag.destruct()
+    else
+        Log.Errorf("Some items in the character bag couldn't be automatically unpacked. Please take them out then delete the bag.")
+        local pos = charSheet.object.getPosition()
+        pos.y = pos.y + 2
+        packedBag.setPositionSmooth(pos, false, true)
+        Util.Highlight(packedBag)
+    end
+
+    CharSheet.ClearPackedData(charSheet)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -456,7 +525,6 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
             for location, amount in pairs(armorStats) do
                 PlayerBoard_AddArmor(playerBoard, location, 0, amount)
             end
-            return
         end
 
         local weaponStats = Weapons.GetStats(object.getName())
@@ -464,8 +532,9 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
             Log.Debugf("Linking weapon %s (%s) to %s", object.getName(), object.getGUID(), playerBoard.object.getName())
             playerBoard.linkedWeapons[object] = weaponStats
             EventManager.FireEvent("onPlayerBoardLinkWeapon", playerBoard, object, weaponStats)
-            return
         end
+
+        return
     end
 
     local attribute = PLAYER_BOARD_TEMPORARY_TOKEN_ATTRIBUTES[name]
@@ -860,8 +929,12 @@ end
 function PlayerBoard.Init(saveState)
     saveState = saveState or {}
 
+    PlayerBoard.spatialIndex = SpatialIndex.Create(1)
+
     for i = 1, 4 do
-        local playerBoardObj = Guids.GetObject("Player "..i.." Board")
+        local playerPrefix = "Player "..i
+
+        local playerBoardObj = Guids.GetObject(playerPrefix.." Board")
 
         local playerBoard = PlayerBoard_Create(i, playerBoardObj, saveState[i])
         PlayerBoard.playerBoardsByObject[playerBoardObj] = playerBoard
@@ -879,7 +952,7 @@ function PlayerBoard.Init(saveState)
             pickUpHandler = PlayerBoard_OnObjectPickedUpFromPlayerBoard,
         })
 
-        local playerMarkerObj = Guids.GetObject("Player "..i.." Marker")
+        local playerMarkerObj = Guids.GetObject(playerPrefix.." Marker")
         local bounds = playerMarkerObj.getBounds()
         DropZone.Create({
             name = playerMarkerObj.getName().." DropZone",
@@ -890,6 +963,28 @@ function PlayerBoard.Init(saveState)
             height = bounds.size.z,
             dropHandler = PlayerBoard_OnObjectDroppedOnMarker,
         })
+
+        for i = 1, 3 do
+            local location = playerPrefix.." Disorder "..i
+            local rect = Locations.Rect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
+
+        for i = 1, 3 do
+            local location = playerPrefix.." Fighting Art "..i
+            local rect = Locations.Rect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
+
+        local location = playerPrefix.." Weapon Proficiency"
+        local rect = Locations.Rect(location)
+        SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+
+        for i = 1, 9 do
+            local location = playerPrefix.." Ability/Impairment "..i
+            local rect = Locations.Rect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
     end
 
     EventManager.AddHandler("onObjectDrop", PlayerBoard_OnObjectDrop)

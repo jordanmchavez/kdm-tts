@@ -45,8 +45,13 @@ local function CharSheet_Save(charSheet)
         understanding = charSheet.understanding,
         weaponProficiency = charSheet.weaponProficiency,
         weaponProficiencyRank = charSheet.weaponProficiencyRank,
-        packedCards = charSheet.packedCards
     }
+    if charSheet.packedCards then
+        saveState.packedCards = charSheet.packedCards
+        saveState.packedBagGuid = charSheet.packedBag.getGUID()
+    end
+    log(saveState)
+
     charSheet.object.script_state = JSON.encode(saveState)
 end
 
@@ -379,6 +384,31 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local function CharSheet_LoadPackedData(charSheet, saveState)
+    if not saveState.packedCards then
+        return
+    end
+
+    local bagGuid = saveState.packedBagGuid
+    if not bagGuid or bagGuid == "" then
+        Log.Errorf("No packed bag for %s (%s). If this character was imported from an earlier version then you'll need to unpack their bag manually.", CharSheet.GetNameOrUnnamed(charSheet), charSheet.object.getGUID())
+        Util.Highlight(charSheet.object)
+        return
+    end
+
+    local bag = getObjectFromGUID(bagGuid)
+    if bag == nil then
+        Log.Errorf("Can't find packed bag %s for %s (%s). Perhaps you deleted it or put it in another bag?", bagGuid, CharSheet.GetNameOrUnnamed(charSheet), charSheet.object.getGUID())
+        Util.Highlight(charSheet.object)
+        return
+    end
+
+    charSheet.packedCards = saveState.packedCards
+    charSheet.packedBag = bag
+end
+
+---------------------------------------------------------------------------------------------------
+
 local function CharSheet_Create(object)
     Log.Debugf("Creating CharSheet %s", object.getGUID())
 
@@ -413,6 +443,9 @@ local function CharSheet_Create(object)
         temporaryModifiers = {},
         permanentModifiers = {},
     }
+
+    CharSheet_LoadPackedData(charSheet, saveState)
+
     CharSheet_CreateTexts(charSheet)
     CharSheet_CreateCounters(charSheet)
     CharSheet_CreateCheckboxes(charSheet)
@@ -465,9 +498,24 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+-- returns "Unnamed Survivor" if no name
+function CharSheet.GetNameOrUnnamed(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return (charSheet.name and charSheet.name != "") and charSheet.name or "Unnamed Survivor"
+end
+
+---------------------------------------------------------------------------------------------------
+
 function CharSheet.GetMovement(charSheet)
     Assert.Tagged(charSheet, "CharSheet", "charSheet")
     return CharSheet_Get(charSheet, "movement")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.GetSpeed(charSheet)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return CharSheet_Get(charSheet, "speed")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -567,17 +615,27 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CharSheet.SetPackedCards(charSheet, packedCards)
+function CharSheet.GetPackedData(charSheet)
     Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    return charSheet.packedBag, charSheet.packedCards
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CharSheet.SetPackedData(charSheet, packedBag, packedCards)
+    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    charSheet.packedBag = packedBag
     charSheet.packedCards = packedCards
     CharSheet_Save(charSheet)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function CharSheet.GetPackedCards(charSheet)
+function CharSheet.ClearPackedData(charSheet)
     Assert.Tagged(charSheet, "CharSheet", "charSheet")
-    return charSheet.packedCards
+    charSheet.packedBag = nil
+    charSheet.packedCards = nil
+    CharSheet_Save(charSheet)
 end
 
 ---------------------------------------------------------------------------------------------------

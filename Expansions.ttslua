@@ -3,6 +3,7 @@ local Util = require("Kdm/Util")
 local Log = require("Kdm/Log").ForPackage("Expansions")
 local Guids = require("Kdm/Guids")
 local Archive = require("Kdm/Archive")
+local Locations = require("Kdm/Locations")
 local Script = require("Kdm/Script")
 
 ---------------------------------------------------------------------------------------------------
@@ -323,9 +324,9 @@ function Expansions_SetExpansionsCoroutine()
         direction = { 0, -1, 0 },
         type      = 3,
         size      = {
-            math.abs(topLeft[1] - bottomRight[1]) + Script.cardSize.x,
+            math.abs(topLeft[1] - bottomRight[1]) + LOCATIONS_CARD_SIZE.x,
             10,
-            math.abs(topLeft[3] - bottomRight[3]) + Script.cardSize.z,
+            math.abs(topLeft[3] - bottomRight[3]) + LOCATIONS_CARD_SIZE.z,
         },
     })
 

@@ -16,6 +16,7 @@ local BattleUi = {
 local BATTLE_UI_RELEVANT_ATTRIBUTES = {
     name = true,
     toughness = true,
+    speed = true,
     accuracy = true,
     strength = true,
     evasion = true,
@@ -29,7 +30,7 @@ local BATTLE_UI_WEAPON_WIDTH = 150
 local BATTLE_UI_STAT_WIDTH = 50
 local BATTLE_UI_TEXT_HEIGHT = 25
 local BATTLE_UI_PANEL_SPACING = 10
-local BATTLE_UI_PANEL_WIDTH = BATTLE_UI_PADDING + (BATTLE_UI_STAT_WIDTH * 3) + BATTLE_UI_WEAPON_WIDTH
+local BATTLE_UI_PANEL_WIDTH = BATTLE_UI_PADDING + (BATTLE_UI_STAT_WIDTH * 4) + BATTLE_UI_WEAPON_WIDTH
 local BATTLE_UI_MAX_ROWS = 6
 
 ---------------------------------------------------------------------------------------------------
@@ -80,9 +81,11 @@ function BattleUi_BuildUi()
         })
 
         x = x + BATTLE_UI_WEAPON_WIDTH
+        AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Spd", "MiddleCenter")
+        x = x + BATTLE_UI_STAT_WIDTH
         AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Hit", "MiddleCenter")
         x = x + BATTLE_UI_STAT_WIDTH
-        AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Wound", "MiddleCenter")
+        AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Wnd", "MiddleCenter")
         x = x + BATTLE_UI_STAT_WIDTH
         AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Crit", "MiddleCenter")
 
@@ -93,6 +96,8 @@ function BattleUi_BuildUi()
 
             AddText(playerPanelElements, weaponId.."NameText", x, y, BATTLE_UI_WEAPON_WIDTH, "", "MiddleLeft")
             x = x + BATTLE_UI_WEAPON_WIDTH
+            AddText(playerPanelElements, weaponId.."SpeedText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
+            x = x + BATTLE_UI_STAT_WIDTH
             AddText(playerPanelElements, weaponId.."HitText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
             x = x + BATTLE_UI_STAT_WIDTH
             AddText(playerPanelElements, weaponId.."WoundText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
@@ -104,7 +109,7 @@ function BattleUi_BuildUi()
         table.insert(mainPanelChildren, {
             tag = "Panel",
             attributes = {
-                id=playerId.."Panel",
+                id = playerId.."Panel",
                 rectAlignment = "UpperRight",
                 offsetXY = "0 "..panelY,
                 width = BATTLE_UI_PANEL_WIDTH,
@@ -113,20 +118,37 @@ function BattleUi_BuildUi()
             },
             children = playerPanelElements,
         })
-
         panelY = panelY - panelHeight - BATTLE_UI_PANEL_SPACING
     end
+
+    table.insert(mainPanelChildren, {
+        tag = "Button",
+        attributes = {
+            id = "BattleUi_CloseBattleReferenceButton",
+            rectAlignment = "UpperLeft",
+            offsetXY="0 30",
+            width = "30",
+            height = "30",
+            text = "X",
+            colors = "#000000ee|#222222ee|#111111ee|#00000000",
+            fontSize = "16",
+            textColor = "#ffffff",
+            onClick = "BattleUi_CloseBattleReferenceButton_OnClick",
+        }
+    })
 
     local xml = self.UI.getXmlTable()
     table.insert(xml, {
         tag = "Panel",
         attributes = {
             id = BATTLE_UI_PANEL_ID,
-            rectAlignment = "MiddleRight",
-            offsetXY = "-5 0",
+            rectAlignment = "MiddleLeft",
+            offsetXY = "70 0",
             width = BATTLE_UI_PANEL_WIDTH,
             height = -panelY,
             color = "#00000000",
+            allowDragging = true,
+            returnToOriginalPositionWhenReleased = false,
         },
         children = mainPanelChildren,
     })
@@ -149,33 +171,48 @@ function BattleUi_Update()
         else
             self.UI.show(playerId.."Panel")
 
-            local charName = CharSheet.GetName(charSheet)
-            self.UI.setAttribute(playerId.."NameText", "text", (charName and charName != "") and charName or "Unnamed Survivor")
+            self.UI.setAttribute(playerId.."NameText", "text", CharSheet.GetNameOrUnnamed(charSheet))
 
             local monsterEvasion = ShowdownBoard.GetEvasion()
             local monsterToughness = ShowdownBoard.GetToughness()
             local monsterLuck = ShowdownBoard.GetLuck()
 
+            local playerSpeed = CharSheet.GetSpeed(charSheet)
             local playerAccuracy = CharSheet.GetAccuracy(charSheet)
             local playerStrength = CharSheet.GetStrength(charSheet)
             local playerLuck = CharSheet.GetLuck(charSheet)
 
+            local weaponCounts = {}
             local weapons = {}
             for weaponObj, weaponStats in pairs(PlayerBoard.GetWeapons(playerBoard)) do
-                table.insert(weapons, { weaponObj, weaponStats })
+                local name = weaponObj.getName()
+                if weaponCounts[name] then
+                    weaponCounts[name] = weaponCounts[name] + 1
+                else
+                    table.insert(weapons, { name, weaponStats })
+                    weaponCounts[name] = 1
+                end
             end
-            table.sort(weapons, function(w1, w2) return w1[1].getName() < w2[1].getName() end)
-            Util.Unique(weapons, function(w1, w2) return w1[1].getName() == w2[1].getName() end)
+            table.sort(weapons, function(w1, w2) return w1[1] < w2[1] end)
+
             local weaponRow = 1
             for _, weapon in ipairs(weapons) do
                 if weaponRow >= BATTLE_UI_MAX_ROWS then
                     break
                 end
 
-                local weaponObj, weaponStats = weapon[1], weapon[2]
-
+                local weaponName, weaponStats = weapon[1], weapon[2]
                 local weaponId = playerId.."Weapon"..weaponRow
-                self.UI.setAttribute(weaponId.."NameText", "text", weaponObj.getName())
+                self.UI.setAttribute(weaponId.."NameText", "text", weaponName)
+
+                local speed = weaponStats.speed + playerSpeed
+                if weaponStats.paired and weaponCounts[weaponName] > 1 then
+                    speed = speed + weaponStats.speed
+                end
+                if weaponStats.slow then
+                    speed = 1
+                end
+                self.UI.setAttribute(weaponId.."SpeedText", "text", speed)
 
                 local hit = Util.Max(2, weaponStats.accuracy - playerAccuracy + monsterEvasion)
                 self.UI.setAttribute(weaponId.."HitText", "text", hit.."+")
@@ -183,7 +220,7 @@ function BattleUi_Update()
                 local wound = Util.Max(2, monsterToughness - weaponStats.strength - playerStrength)
                 self.UI.setAttribute(weaponId.."WoundText", "text", wound.."+")
 
-                local crit = Util.Max(2, 10 - (weaponStats.Deadly or 0) - playerLuck + monsterLuck)
+                local crit = Util.Max(2, 10 - (weaponStats.deadly or 0) - playerLuck + monsterLuck)
                 self.UI.setAttribute(weaponId.."CritText", "text", crit <= 10 and crit.."+" or "---")
 
                 weaponRow = weaponRow + 1
@@ -191,6 +228,7 @@ function BattleUi_Update()
             for i = weaponRow, BATTLE_UI_MAX_ROWS do
                 local weaponId = playerId.."Weapon"..i
                 self.UI.setAttribute(weaponId.."NameText", "text", "")
+                self.UI.setAttribute(weaponId.."SpeedText", "text", "")
                 self.UI.setAttribute(weaponId.."HitText", "text", "")
                 self.UI.setAttribute(weaponId.."WoundText", "text", "")
                 self.UI.setAttribute(weaponId.."CritText", "text", "")
@@ -212,9 +250,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function BattleUi_ShowReference()
-    self.UI.setAttributes("BattleUi_BattleReferenceButton", {
+    self.UI.setAttributes("BattleUi_ShowHideBattleReferenceButton", {
         text = "Hide Battle Reference",
-        textColor = "#ffffff",  -- for some reason TTS resets the text color to black when we change text
+        textColor = "#bbb4a1",  -- for some reason TTS resets the text color to black when we change text
     })
     self.UI.show(BATTLE_UI_PANEL_ID)
     BattleUi.panelShown = true
@@ -223,9 +261,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function BattleUi_HideReference()
-    self.UI.setAttributes("BattleUi_BattleReferenceButton", {
+    self.UI.setAttributes("BattleUi_ShowHideBattleReferenceButton", {
         text = "Show Battle Reference",
-        textColor = "#ffffff",  -- for some reason TTS resets the text color to black when we change text
+        textColor = "#bbb4a1",  -- for some reason TTS resets the text color to black when we change text
     })
     self.UI.hide(BATTLE_UI_PANEL_ID)
     BattleUi.panelShown = false
@@ -233,12 +271,18 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_OnBattleReferenceButtonClick(_, _, id)
+function BattleUi_ShowHideBattleReferenceButton_OnClick()
     if BattleUi.panelShown then
         BattleUi_HideReference()
     else
         BattleUi_ShowReference()
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi_CloseBattleReferenceButton_OnClick()
+    BattleUi_HideReference()
 end
 
 ---------------------------------------------------------------------------------------------------
