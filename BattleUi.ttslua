@@ -137,8 +137,7 @@ function BattleUi_BuildUi()
         }
     })
 
-    local xml = self.UI.getXmlTable()
-    table.insert(xml, {
+    return {
         tag = "Panel",
         attributes = {
             id = BATTLE_UI_PANEL_ID,
@@ -149,10 +148,10 @@ function BattleUi_BuildUi()
             color = "#00000000",
             allowDragging = true,
             returnToOriginalPositionWhenReleased = false,
+            active = false,
         },
         children = mainPanelChildren,
-    })
-    self.UI.setXmlTable(xml)
+    }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -250,10 +249,6 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function BattleUi_ShowReference()
-    self.UI.setAttributes("BattleUi_ShowHideBattleReferenceButton", {
-        text = "Hide Battle Reference",
-        textColor = "#bbb4a1",  -- for some reason TTS resets the text color to black when we change text
-    })
     self.UI.show(BATTLE_UI_PANEL_ID)
     BattleUi.panelShown = true
 end
@@ -261,17 +256,13 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function BattleUi_HideReference()
-    self.UI.setAttributes("BattleUi_ShowHideBattleReferenceButton", {
-        text = "Show Battle Reference",
-        textColor = "#bbb4a1",  -- for some reason TTS resets the text color to black when we change text
-    })
     self.UI.hide(BATTLE_UI_PANEL_ID)
     BattleUi.panelShown = false
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_ShowHideBattleReferenceButton_OnClick()
+function BattleUi_BattleReferenceButton_OnClick()
     if BattleUi.panelShown then
         BattleUi_HideReference()
     else
@@ -349,8 +340,11 @@ function BattleUi.Init()
     EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleUi_OnPlayerBoardLinkWeapon)
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleUi_OnPlayerBoardUnlinkWeapon)
 
-    BattleUi_BuildUi()
+    local ui = BattleUi_BuildUi()
+
     Wait.frames(BattleUi_Update, 5)   -- really only need 1, but 5 to be safe
+
+    return ui
 end
 
 ---------------------------------------------------------------------------------------------------

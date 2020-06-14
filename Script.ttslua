@@ -84,6 +84,7 @@ function Script.CleanAction(stage, params)
     Assert.Str(params.from, "params.from")
     Assert.TabOrNil(params.types, "params.types")
     Assert.TabOrNil(params.tags, "params.tags")
+    Assert.BoolOrNil(params.rayCast, "params.rayCast")
     Assert.BoolOrNil(params.ignoreBlocking, "params.ignoreBlocking")
 
     table.insert(stage.actions, {
@@ -91,6 +92,7 @@ function Script.CleanAction(stage, params)
         from = params.from,
         types = params.types,
         tags = params.tags,
+        rayCast = params.rayCast,
         ignoreBlocking = params.ignoreBlocking,
     })
 end
@@ -416,7 +418,12 @@ end
 function Script.DoClean(action, scriptData)
     Log.Debugf("Cleaning %s", action.from)
 
-    local hits = Locations.BoxCast(action.from, scriptData.debug)
+    local hits
+    if action.rayCast then
+        hits = Locations.RayCast(action.from, scriptData.debug)
+    else
+        hits = Locations.BoxCast(action.from, scriptData.debug)
+    end
 
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object

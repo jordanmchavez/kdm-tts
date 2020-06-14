@@ -7,18 +7,21 @@ local Script = require("Kdm/Script")
 local Locations = require("Kdm/Locations")
 local RulesData = require("Kdm/RulesData")
 
+---------------------------------------------------------------------------------------------------
+
+Rules = {
+    history = nil,
+    trie = nil,
+    index = {},
+}
 
 ---------------------------------------------------------------------------------------------------
 
-Rules = {}
-
-for k, v in pairs(RulesData) do
-    Rules[k] = v
+function Rules.GetRulebookAndState(name)
+    local data = Rules.index[name]
+    Assert(data, "Unknown rule: %s", name)
+    return data.rulebook, data.state
 end
-
-Rules.history = {}
-
-Rules.trie = nil
 
 ---------------------------------------------------------------------------------------------------
 
@@ -170,15 +173,16 @@ function Rules.NextPage() Rules.ChangePage(1) end
 
 function Rules.Init()
     Rules.trie = Trie.Create()
-    for rulebook, indexEntries in pairs(Rules.index) do
-        for i, index in ipairs(indexEntries) do
-            for _, keyword in ipairs(index.keywords) do
-                local toAdd = { rulebook = rulebook, name = index.name, state = index.state }
+    for rulebook, entries in pairs(RulesData) do
+        for name, data in pairs(entries) do
+            Rules.index[name] = { rulebook = rulebook, state = data.state }
+            for _, keyword in ipairs(data.keywords) do
+                local toAdd = { rulebook = rulebook, name = name, state = data.state }
                 Trie.Set(Rules.trie, keyword, toAdd)
             end
-            if index.huntEventStart != nil then
-                for hi = index.huntEventStart, index.huntEventEnd do
-                    Trie.Set(Rules.trie, tostring(hi), { rulebook = rulebook, name = index.name, state = index.state })
+            if data.huntEventStart != nil then
+                for hi = data.huntEventStart, data.huntEventEnd do
+                    Trie.Set(Rules.trie, tostring(hi), { rulebook = rulebook, name = name, state = data.state })
                 end
             end
         end

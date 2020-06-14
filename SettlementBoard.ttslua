@@ -99,6 +99,7 @@ function SettlementBoard_ResetGearCoroutine()
     Script.CleanAction(cleanupStage, {
         from = location,
         types = { "Gear" },
+        rayCast = true,
         ignoreBlocking = false,
     })
 

@@ -203,7 +203,8 @@ function Setup_CleanupShowdownCoroutine()
     Setup.settingUpShowdown = false
 
     local script = Script.Create("Cleanup Showdown")
-    Setup.AddShowdownCleanupStage(script, true) -- ignoreBlocking = true
+    local cleanupStage = Setup.AddShowdownCleanupStage(script, true) -- ignoreBlocking = true
+    Script.CleanAction(cleanupStage, { from = "Monster Resources", types = { "Monster Resources" }, ignoreBlocking = true })
     Script.Run(script)
 
     for _, attribute in ipairs({ "movement", "toughness", "speed", "damage", "accuracy", "luck" }) do
@@ -306,7 +307,6 @@ function Setup_SetupShowdownCoroutine()
     end
 
     if monsterSetup.resourcesDeck then
-        -- TODO: This replicate much of Script.CheckLocation, consider consolidating
         local hits = Locations.BoxCast("Monster Resources")
         local monsterResourcesAlreadySpawned = false
         for _, hit in ipairs(hits) do
