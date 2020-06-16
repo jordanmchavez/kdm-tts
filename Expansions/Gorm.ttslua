@@ -10,7 +10,12 @@ return {
         ["Settlement Events"] = "Gorm Climate",
         ["Innovations"] = "Gorm Innovations",
         ["Settlement Locations"] = "Gorm Settlement Locations",
-        ["Monsters"] = "Gorm",
+    },
+
+    monsters = { "Gorm" },
+
+    timelineEvents = {
+        { year = 1, event = "The Approaching Storm" },
     },
 
     settlementLocationGear = {

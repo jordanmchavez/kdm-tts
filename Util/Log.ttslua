@@ -6,13 +6,13 @@ local Log = {}
 
 Log.debugPackages = {
     -- ["G"] = true,
-    ["Rules"] = true,
+    --["Rules"] = true,
     -- ["Ui"] =    true,
     -- ["Showdown"] = true,
     -- ["Latch"] = true,
-     --["Script"] = true,
-     ["Expansion"] = true,
-     --["Setup"] = true,
+    --["Archive"] = true,
+    ["Action"] = true,
+    ["Setup"] = true,
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
     -- ["Overlay"] = true,
@@ -53,7 +53,7 @@ end
 function Log.Errorf(package, fmt, ...)
     fmt = fmt or ""
     log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "error")
-    printToAll(Util.SafeFormat("[ee3333]"..fmt, ...))
+    broadcastToAll(Util.SafeFormat(fmt, ...))
 end
 
 ---------------------------------------------------------------------------------------------------

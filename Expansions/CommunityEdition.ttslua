@@ -5,6 +5,7 @@ return {
         archive = "Community Edition Archive",
         entries = {
             { "Core Rules", "Rulebook" },
+            { "Intimacy Reference", "Reference"},
 
             { "Core Abilities", "Abilities" },
             { "Core Secret Fighting Arts", "Secret Fighting Arts" },
@@ -14,7 +15,7 @@ return {
 
             { "Core Settlement Events", "Settlement Events" },
 
-            { "Innovation Archive", "Innovations" },
+            { "Core Innovations", "Innovations" },
 
             { "Core Settlement Locations", "Settlement Locations" },
 

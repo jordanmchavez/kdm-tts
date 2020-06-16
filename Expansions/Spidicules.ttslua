@@ -13,7 +13,12 @@ return {
         ["Settlement Locations"] = "Silk Mill",
         ["Settlement Events"] = "Spidicules Settlement Events",
         ["Rare Gear"] = "Spidicules Rare Gear",
-        ["Monsters"] = "Spidicules"
+    },
+
+    monsters = { "Spidicules" },
+
+    timelineEvents = {
+        { year = 2, event = "Young Rivals" },
     },
 
     terrain = {

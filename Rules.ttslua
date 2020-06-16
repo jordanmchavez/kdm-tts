@@ -291,7 +291,6 @@ function Rules.Init(ui)
     Ui.Button(ui, { id = "Rules_CancelSearchButton", rectAlignment = "UpperLeft", x = 335, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = "Rules_CancelSearchButton_OnClick" })
     local searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResultsPanel", rectAlignment = "UpperLeft", x = 80, y = -90, width = 300, height = 160, color = "#00000088", active = false })
     for i = 1, 5 do
-        log(INVISIBLE_BUTTON_COLORS)
         Ui.Button(searchResultsPanel, { id = "Rules_SearchResult"..i.."Button", rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_BUTTON_COLORS, textColor = "#dddddd" })
     end
 end

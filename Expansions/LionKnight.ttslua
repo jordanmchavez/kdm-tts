@@ -9,7 +9,15 @@ return {
         ["Innovations"] = "Lion Knight Innovations",
         ["Armor Sets"] = "Lion Knight Armor Sets",
         ["Rare Gear"] = "Lion Knight Rare Gear",
-        ["Monsters"] = "Lion Knight",
+    },
+
+    monsters = { "Lion Knight" },
+
+    timelineEvents = {
+        { year = 6, event = "An Uninvited Guest" },
+        { year = 8, event = "Places, Everyone!" },
+        { year = 12, event = "Places, Everyone!" },
+        { year = 16, event = "Places, Everyone!" },
     },
 
     terrainTileSizes = {
@@ -80,7 +88,7 @@ return {
                     keywords = { "An", "Uninvited", "Guest" },
                     state = 3,
                 },
-                ["Places Everyone!"] = {
+                ["Places, Everyone!"] = {
                     keywords = { "Places", "Everyone!" },
                     state = 4,
                 },

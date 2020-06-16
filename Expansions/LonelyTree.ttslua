@@ -7,8 +7,9 @@ return {
         ["Strange Resources"] = "Lonely Tree Strange Resources",
         ["Terrain"] = "The Lonely Tree",
         ["Terrain Tiles"] = { "The Lonely Tree", "Lonely Fruit" },
-        ["Monsters"] = "Lonely Tree",
     },
+
+    monsters = { "Lonely Tree" },
 
     terrain = {
         ["The Lonely Tree"] = {

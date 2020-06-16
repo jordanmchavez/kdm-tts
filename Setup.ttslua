@@ -1,0 +1,565 @@
+local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("Setup")
+local Guids = require("Kdm/Guids")
+local Archive = require("Kdm/Archive")
+local Locations = require("Kdm/Locations")
+local Terrain = require("Kdm/Terrain")
+local SettlementBoard = require("Kdm/SettlementBoard")
+local Settlement = require("Kdm/Settlement")
+local Armor = require("Kdm/Armor")
+local Weapons = require("Kdm/Weapons")
+local Rules = require("Kdm/Rules")
+local Hunt = require("Kdm/Hunt")
+local Showdown = require("Kdm/Showdown")
+local Ui = require("Kdm/XmlUi")
+local Action = require("Kdm/Action")
+
+---------------------------------------------------------------------------------------------------
+
+local Setup = {
+    expansions = {},
+    components = {},
+    monsters = {},
+    campaigns = {},
+    campaignRequiredExpansion = {},
+    removeTimelineEvent = {},
+    replaceNemesis = {},
+    timelineEvents = {},
+    archiveOverrides = {},
+
+    enabledExpansions = { ["Core"] = true },
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.RegisterExpansion(expansion)
+    Log.Debugf("Registering expansion %s", expansion.name)
+
+    table.insert(Setup.expansions, expansion.name)
+
+    Setup.components[expansion.name] = expansion.components or {}
+
+    for _, monster in ipairs(expansion.monsters or {}) do
+        Setup.monsters[monster] = expansion
+    end
+
+    for _, campaign in ipairs(expansion.campaigns or {}) do
+        table.insert(Setup.campaigns, campaign)
+        Setup.campaignRequiredExpansion[campaign.name] = expansion.name
+    end
+
+    Setup.removeTimelineEvent[expansion.name] = expansion.removeTimelineEvent
+    Setup.replaceNemesis[expansion.name] = expansion.replaceNemesis
+    Setup.timelineEvents[expansion.name] = expansion.timelineEvents
+
+    Setup.archiveOverrides[expansion.name] = expansion.archiveOverrides
+
+    Terrain.RegisterTerrainData(expansion.terrain)
+    Terrain.RegisterTerrainTileSizes(expansion.terrainTileSizes)
+    SettlementBoard.RegisterSettlementLocationGear(expansion.settlementLocationGear)
+    Armor.RegisterArmorStats(expansion.armorStats)
+    Weapons.RegisterWeaponStats(expansion.weaponStats)
+    Guids.RegisterNamedGuids(expansion.namedGuids)
+    Archive.RegisterArchiveEntries(expansion.archiveEntries)
+    Rules.RegisterRulebooks(expansion.rulebooks)
+    Hunt.RegisterSetups(expansion.setups)
+    Showdown.RegisterSetups(expansion.setups)
+    Showdown.RegisterMonsterSizes(expansion.monsterSizes)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupArchiveOverrides(expansions)
+    for _, expansion in ipairs(expansions) do
+        if Setup.archiveOverrides[expansion] then
+            Log.Debugf("Overriding archive entries for %s", expansion)
+            Archive.RegisterArchiveEntries(Setup.archiveOverrides[expansion], true)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupTimeline(campaign, expansions)
+    Settlement.ClearTimeline()
+
+    Log.Debugf("Setting up %s campaign timeline", campaign.name)
+
+    -- first aggregate remove/replace
+    local removeEvents = {}
+    for year = 1, 30 do removeEvents[year] = {} end
+    local replaceNemeses = {}
+    for _, expansion in ipairs(expansions) do
+        local removeEvent = Setup.removeTimelineEvent[expansion]
+        if removeEvent then
+            Log.Debugf("Setting up removed event: [%d] %s", removeEvent.year, removeEvent.event)
+            removeEvents[removeEvent.year][removeEvent.event] = true
+        end
+
+        local replaceNemesis = Setup.replaceNemesis[expansion]
+        if replaceNemesis then
+            Log.Debugf("Setting up replacement nemesis: %s -> %s", replaceNemesis.nemesis, replaceNemesis.replacement)
+            replaceNemeses[replaceNemesis.nemesis] = replaceNemesis.replacement
+        end
+    end
+
+    local events = {}
+    for year = 1, 30 do events[year] = {} end
+    for _, eventData in ipairs(campaign.timeline) do
+        local year, event = eventData.year, eventData.event
+
+        if removeEvents[year][event] then
+            Log.Debugf("Skipping removed event [%d] %s", year, event)
+
+        else
+            Log.Debugf("Adding timeline event [%d] %s", year, event)
+            local rulebook, state = Rules.GetRulebookAndState(event)
+            Settlement.AddTimelineEvent({ year = year, name = event, rulebook = rulebook, state = state })
+        end
+    end
+
+    for _, expansion in ipairs(expansions) do
+        for _, eventData in ipairs(Setup.timelineEvents[expansion] or {}) do
+            local year, event = eventData.year, eventData.event
+
+            if removeEvents[year][event] then
+                Log.Debugf("Skipping removed event [%d] %s", year, event)
+
+            elseif eventData.notCampaign == campaign.name then
+                Log.Debugf("Skipping timeline event %s for campaign %s", eventData.name, campaign.name)
+
+            elseif eventData.isShowdown then
+                Log.Debugf("Adding showdown [%d] %s", year, event)
+                Settlement.AddTimelineEvent({ year = year, name = event, isShowdown = true })
+
+            else
+                Log.Debugf("Adding timeline event [%d] %s", year, event)
+                local rulebook, state = Rules.GetRulebookAndState(event)
+                Settlement.AddTimelineEvent({ year = year, name = event, rulebook = rulebook, state = state })
+            end
+        end
+    end
+
+    for nemesis, encounters in pairs(campaign.nemeses) do
+        local replace = replaceNemeses[nemesis]
+        if replace then
+            Log.Debugf("Replacing nemesis %s with %s", nemesis, replace)
+            nemesis = replace
+        end
+
+        for _, encounter in ipairs(encounters) do
+            local name = "Nemesis Encounter - "..nemesis
+            if encounter.level then
+                name = name.." Lvl "..encounter.level
+            end
+            Log.Debugf("Adding nemesis encounter [%d] %s", encounter.year, name)
+            Settlement.AddTimelineEvent({ year = encounter.year, event = 6, name = name, isShowdown = true })
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupDeck(params)
+    local deck = params.deck
+    local location = params.location or deck
+    local type = params.type or deck
+    local name = params.name or deck
+
+    local sources = {}
+    for _, expansion in ipairs(params.expansions) do
+        local name = Setup.components[expansion][deck]
+        if name then
+            table.insert(sources, Action.ArchiveSource(name, type))
+        end
+    end
+
+    if #sources == 0 then
+        Log.Debugf("No expansions have %s, skipping", deck)
+        return
+    end
+
+    Log.Debugf("Setting up %s deck", deck)
+
+    local deckObject = Action.CreateDeck({ sources = sources, name = name, type = deck, location = location, facing = params.facing})
+
+    Action.DeleteFromContainer(deckObject, params.remove or {})
+
+    if params.resetArchive then
+        local archive = Guids.GetObject(deck.." Archive")
+        archive.reset()
+        archive.putObject(deckObject)
+
+        if params.respawnDeck then
+            deckObject = archive.takeObject({
+                position = Locations.WorldCenter(location),
+                rotation = params.facing,
+                smooth   = false,
+            })
+        end
+    end
+
+    if params.shuffleDeck then
+        deckObject.shuffle()
+    end
+
+    return deckObject
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupStartingInnovationDeck(innovationDeck, startingInnovationDeck)
+    Log.Debugf("Setting up starting innovation deck: %s", Util.TabStr(startingInnovationDeck))
+
+    local sources = {}
+    for _, card in ipairs(startingInnovationDeck) do
+        table.insert(sources, Action.ContainerSource(innovationDeck, card, "Innovations"))
+    end
+
+    local deck = Action.CreateDeck({ sources = sources, name = "Innovation Deck", type = "Innovations", location = "Innovation Deck", facing = Action.FACE_DOWN })
+    deck.shuffle()
+
+    return deck
+end
+
+---------------------------------------------------------------------------------------------------
+
+SETUP_PRINCIPLE_CARDS = {
+    ["Principle: Death"]      = { "Cannibalize - Death Principle", "Graves - Death Principle" },
+    ["Principle: New Life"]   = { "Protect the Young - New Life Principle", "Survival of the Fittest - New Life Principle" },
+    ["Principle: Society"]    = { "Accept Darkness - Society Principle", "Collective Toil - Society Principle" },
+    ["Principle: Conviction"] = { "Barbaric - Conviction Principle", "Romantic - Conviction Principle" },
+}
+
+function Setup.SetupPrinciples(innovationDeck, startingPrinciples)
+    startingPrinciples = startingPrinciples or {}
+    Log.Debugf("Setting up principles (starting principles = %s)", Util.TabStr(startingPrinciples))
+
+    for _, principle in ipairs({
+        "Principle: Death",
+        "Principle: New Life",
+        "Principle: Society",
+        "Principle: Conviction",
+    }) do
+
+        if startingPrinciples[principle] then
+            Log.Debugf("Adding starting principle %s", startingPrinciples[principle])
+            Action.TakeFromContainer({ container = innovationDeck, name = startingPrinciples[principle], type = "Innovations", location = principle, facing = Action.FACE_UP })
+
+        else
+            Log.Debugf("Setting up starting Principle: %s deck", principle)
+            local sources = {}
+            for _, card in ipairs(SETUP_PRINCIPLE_CARDS[principle]) do
+                table.insert(sources, Action.ContainerSource(innovationDeck, card, "Innovations"))
+            end
+            Action.CreateDeck({ sources = sources, name = principle, type = "Innovations", location = principle, facing = Action.FACE_DOWN })
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupStartingSettlementLocations(settlementLocationDeck, startingSettlementLocations)
+    for i, settlementLocation in ipairs(startingSettlementLocations) do
+        Log.Debugf("Setting up starting settlement location %s", settlementLocation)
+        Action.TakeFromContainer({ container = settlementLocationDeck, name = settlementLocation, type = "Settlement Locations", location = "SettlementLocation_"..i.."_1", facing = Action.FACE_UP })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.SetupReferences(references)
+    for _, reference in ipairs({
+        "Age Reference",
+        "Intimacy Reference",
+        "Bold Reference",
+        "Insight Reference",
+    }) do
+        Log.Debugf("Setting up reference %s at %s", references[reference], reference)
+        Action.TakeFromArchive({ name = references[reference], type = "Reference", location = reference, facing = Action.FACE_UP })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.Setup(campaign, expansionsMap)
+    Setup.SetupArgs = { campaign, expansionsMap }
+    startLuaCoroutine(self, "Setup_SetupCoroutine")
+end
+
+function Setup_SetupCoroutine()
+    local campaign, expansionsMap = Setup.SetupArgs[1], Setup.SetupArgs[2]
+
+    -- filter expansions
+    local expansions = { "Core" }
+    for _, expansion in ipairs(Setup.expansions) do
+        if expansionsMap[expansion] and expansion != "Core" then
+            table.insert(expansions, expansion)
+        end
+    end
+
+    Setup.SetupArchiveOverrides(expansions)
+
+    Setup.SetupTimeline(campaign, expansions)
+
+    -- Action.BoxClean({ location = "Deck Board", tags = { "Card", "Deck" } })
+    -- Action.BoxClean({ location = "Settlement Location Board", tags = { "Card", "Deck" } })
+    -- Action.BoxClean({ location = "Innovation Board", tags = { "Card", "Deck" } })
+    -- for _, reference in ipairs({
+    --     "Age Reference",
+    --     "Intimacy Reference",
+    --     "Bold Reference",
+    --     "Insight Reference",
+    -- }) do
+    --     Action.RayClean({ location = reference, tags = { "Tile" }, types = { "Reference" } })
+    -- end
+
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Abilities", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Fighting Arts", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true, remove = campaign.removedFightingArts })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Disorders", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Severe Injuries", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Tactics", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Weapon Specializations/Masteries", facing = Action.FACE_UP,   resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Armor Sets", facing = Action.FACE_UP,   resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Vermin", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Terrain", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = true })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events", facing = Action.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = true })
+    -- local innovationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", facing = Action.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = campaign.removedInnovations })
+    -- local settlementLocationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Settlement Locations", facing = Action.FACE_UP,   resetArchive = false, respawnDeck = false, shuffleDeck = false })
+    -- Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear", type = "Gear", facing = Action.FACE_DOWN, resetArchive = true,  respawnDeck = true,  shuffleDeck = false })
+    --
+    -- Log.Debugf("Setting up starting innovation %s", campaign.startingInnovation)
+    -- Action.TakeFromContainer({ container = innovationDeck, name = campaign.startingInnovation, type = "Innovations", location = "Starting Innovation", facing = Action.FACE_UP })
+    -- Setup.SetupStartingInnovationDeck(innovationDeck, campaign.startingInnovationDeck)
+    -- Setup.SetupPrinciples(innovationDeck, campaign.startingPrinciples)
+    -- Setup.SetupStartingSettlementLocations(settlementLocationDeck, campaign.startingSettlementLocations)
+    -- Setup.SetupReferences(campaign.references)
+    --
+    -- Archive.CleanupBags()
+
+    Settlement.OpenSettlementPanel()
+
+    Log.Broadcastf("Done adding expansions.")
+
+    Setup.enabledExpansions = expansions
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.Save()
+    return Setup.enabledExpansions
+end
+
+---------------------------------------------------------------------------------------------------
+
+Setup.campaignSetup = {
+    open = false,
+    selectedCampaignIndex = 1,
+    selectedExpansions = { Core = true },
+}
+
+function Setup.CloseCampaignSetup()
+    self.UI.hide("Setup_CampaignSetupPanel")
+    Setup.campaignSetup.open = false
+end
+
+function Setup.OpenCampaignSetup()
+    self.UI.show("Setup_CampaignSetupPanel")
+    Setup.campaignSetup.open = true
+end
+
+function Setup_CampaignExpansionButton_OnClick()
+    if Setup.campaignSetupPanelOpen then
+        Setup.CloseCampaignSetup()
+    else
+        Setup.OpenCampaignSetup()
+    end
+end
+
+function Setup_CampaignOptionButton_OnSelect(campaignIndex)
+    Log.Debugf("Campaign %d: %s selected", campaignIndex, Setup.campaigns[campaignIndex].name)
+    Setup.campaignSetup.selectedCampaignIndex = campaignIndex
+end
+
+function Setup_ExpansionCheckButton_OnCheck(expansionName, checked)
+    Log.Debugf("Setup %s %s", expansionName, checked and "selected" or "deselected")
+    Setup.campaignSetup.selectedExpansions[expansionName] = checked
+end
+
+function Ui.OptionGroup(parent, params)
+    local optionGroup = {
+        parent = parent,
+        id = params.id,
+        options = {},
+        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
+        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
+        textColor = params.textColor or Ui.LIGHT_BROWN,
+        fontSize = params.fontSize or 16,
+        onClick = "OptionGroup_"..params.id.."_OnClick",
+    }
+
+    self.SetVar(optionGroup.onClick, function(_, _, id)
+        for _, option in ipairs(optionGroup.options) do
+            if option.id != id then
+                self.UI.setAttributes(option.id, {
+                    colors = optionGroup.unselectedColors,
+                    textColor = optionGroup.textColor,
+                })
+            else
+                self.UI.setAttributes(option.id, {
+                    colors = optionGroup.selectedColors,
+                    textColor = optionGroup.textColor,
+                })
+                params.onSelect(option.value)
+            end
+        end
+    end)
+
+    return optionGroup
+end
+
+function Ui.OptionButton(optionGroup, params)
+    local id = optionGroup.id..(#optionGroup.options + 1)
+    table.insert(optionGroup.options, { id = id, value = params.value })
+
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = params.text,
+            colors = params.selected and optionGroup.selectedColors or optionGroup.unselectedColors,
+            textColor = optionGroup.textColor,
+            fontSize = optionGroup.fontSize,
+            textAlignment = "MiddleCenter",
+            onClick = optionGroup.onClick,
+        },
+    }
+    table.insert(optionGroup.parent.children, elem)
+    return elem
+end
+
+function Ui.CheckButton(parent, params)
+    local checkButton = {
+        id = params.id,
+        value = params.value,
+        checked = params.checked,
+        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
+        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
+        textColor = params.textColor or Ui.LIGHT_BROWN,
+        fontSize = params.fontSize or 16,
+        onCheck = params.onCheck,
+    }
+
+    local onClick = params.id.."_OnClick"
+    self.SetVar(onClick, function(_, _, id)
+        if checkButton.checked then
+            self.UI.setAttributes(checkButton.id, {
+                colors = checkButton.unselectedColors,
+                textColor = checkButton.textColor,
+            })
+            checkButton.checked = nil
+        else
+            self.UI.setAttributes(checkButton.id, {
+                colors = checkButton.selectedColors,
+                textColor = checkButton.textColor,
+            })
+            checkButton.checked = true
+        end
+
+        params.onCheck(checkButton.value, checkButton.checked)
+    end)
+
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = params.id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = params.text,
+            colors = params.checked and checkButton.selectedColors or checkButton.unselectedColors,
+            textColor = checkButton.textColor,
+            fontSize = checkButton.fontSize,
+            textAlignment = "MiddleCenter",
+            onClick = onClick,
+        },
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+function Setup_CampaignSetup_CloseButton_OnClick()
+    Setup.CloseCampaignSetup()
+end
+
+function Setup_CampaignSetup_CancelButton_OnClick()
+    Setup.CloseCampaignSetup()
+end
+
+function Setup_CampaignSetup_BeginCampaignButton_OnClick()
+    local campaign = Setup.campaigns[Setup.campaignSetup.selectedCampaignIndex]
+    local requiredExpansion = Setup.campaignRequiredExpansion[campaign.name]
+    if not Setup.campaignSetup.selectedExpansions[requiredExpansion] then
+        Log.Broadcastf("%s requires %s expansion", campaign.name, campaign.expansion)
+        return
+    end
+
+    Setup.CloseCampaignSetup()
+    Setup.Setup(campaign, Setup.campaignSetup.selectedExpansions)
+end
+
+function Setup.Init(saveState, ui)
+    Setup.enabledExpansions = saveState or Setup.enabledExpansions
+    for expansion, _ in pairs(Setup.enabledExpansions) do
+        if Setup.archiveOverrides[expansion] then
+            Archive.RegisterArchiveEntries(Setup.archiveOverrides[expansion], true)
+        end
+    end
+
+    Ui.ImageButton(ui, { rectAlignment = "UpperLeft", x = 80, y = -10, width = 200, height = 30, image = "CampaignExpansionsButton", onClick = "Setup_CampaignExpansionButton_OnClick" })
+
+    local campaignSetupPanel = Ui.Panel(ui, { id = "Setup_CampaignSetupPanel", width = 885, height = 723, active = true })
+    Ui.Image(campaignSetupPanel, { image = "CampaignSetup", width = 885, height = 723 })
+    Ui.InvisibleButton(campaignSetupPanel, { x = 845, y = 683, width = 30, height = 30, onClick = "Setup_CampaignSetup_CloseButton_OnClick"})
+
+    local x = 128
+    local y = 568
+    local campaignOptionGroup = Ui.OptionGroup(campaignSetupPanel, { id = "Setup_Campaign", onSelect = Setup_CampaignOptionButton_OnSelect })
+    for i, campaign in ipairs(Setup.campaigns) do
+        Log.Debugf("Adding campaign %s", campaign.name)
+        Ui.OptionButton(campaignOptionGroup, { x = x, y = y, width = 200, height = 30, text = campaign.name, selected = (i == Setup.campaignSetup.selectedCampaignIndex), value = i })
+        x = x + 200 + 15
+    end
+
+    local x = 20
+    local y = 425
+    for i, expansion in ipairs(Setup.expansions) do
+        if expansion != "Core" then
+            Log.Debugf("Adding expansion %s", expansion)
+            Ui.CheckButton(campaignSetupPanel, { id = "Setup_"..expansion.."Button", x = x, y = y, width = 200, height = 30, text = expansion, value = expansion, onCheck = Setup_ExpansionCheckButton_OnCheck })
+            x = x + 200 + 15
+            if x > 665 then
+                x = 20
+                y = y - 30 - 15
+            end
+        end
+    end
+
+    Ui.InvisibleButton(campaignSetupPanel, { x = 117, y = 20, width = 300, height = 60, onClick = "Setup_CampaignSetup_BeginCampaignButton_OnClick"})
+    Ui.InvisibleButton(campaignSetupPanel, { x = 468, y = 20, width = 300, height = 60, onClick = "Setup_CampaignSetup_CancelButton_OnClick"})
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Setup

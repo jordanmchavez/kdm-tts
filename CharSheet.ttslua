@@ -50,7 +50,6 @@ local function CharSheet_Save(charSheet)
         saveState.packedCards = charSheet.packedCards
         saveState.packedBagGuid = charSheet.packedBag.getGUID()
     end
-    log(saveState)
 
     charSheet.object.script_state = JSON.encode(saveState)
 end

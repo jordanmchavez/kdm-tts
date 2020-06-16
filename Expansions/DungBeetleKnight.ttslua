@@ -13,7 +13,12 @@ return {
         ["Innovations"] = "Dung Beetle Knight Innovations",
         ["Settlement Locations"] = "Wet Resin Crafter",
         ["Rare Gear"] = "Dung Beetle Knight Rare Gear",
-        ["Monsters"] = "Dung Beetle Knight",
+    },
+
+    monsters = { "Dung Beetle Knight" },
+
+    timelineEvents = {
+        { year = 8, event = "Rumbling in the Dark" },
     },
 
     terrainTileSizes = {

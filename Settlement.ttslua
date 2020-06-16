@@ -34,6 +34,21 @@ end
 
 function Settlement.AddTimelineEvent(params)
     local year, event, name = params.year, params.event, params.name
+
+    -- choose first free event
+    if event == nil then
+        for i = 1, 5 do
+            if not Settlement.timeline[year].events[i] then
+                event = i
+                break
+            end
+        end
+        if event == nil then
+            Log.Errorf("No space on timeline year %d for %s! Please make a note on the settlement sheet.", name)
+            return
+        end
+    end
+
     Log.Debugf("Adding %s to timeline year %d, event %d", name, year, event)
 
     local buttonId = "Settlement_TimelineYear"..year.."Event"..event.."Button"

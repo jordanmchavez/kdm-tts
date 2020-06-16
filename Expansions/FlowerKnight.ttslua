@@ -9,7 +9,12 @@ return {
         ["Terrain"] = "Flower Patches",
         ["Terrain Tiles"] = { "Flower Patch" },
         ["Rare Gear"] = "Flower Knight Rare Gear",
-        ["Monsters"] = "Flower Knight",
+    },
+
+    monsters = { "Flower Knight" },
+
+    timelineEvents = {
+        { year = 5, event = "A Crone's Tale" },
     },
 
     terrain = {

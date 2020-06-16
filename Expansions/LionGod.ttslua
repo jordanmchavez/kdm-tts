@@ -10,7 +10,12 @@ return {
         ["Terrain Tiles"] = { "Lion Statue", "Sinkhole" },
         ["Innovations"] = "The Knowledge Worm",
         ["Rare Gear"] = "Lion God Rare Gear",
-        ["Monsters"] = "Lion God",
+    },
+
+    monsters = { "Lion God" },
+
+    timelineEvents = {
+        { year = 13, event = "The Silver City" },
     },
 
     terrain = {

@@ -7,7 +7,15 @@ return {
         ["Strange Resources"] = "Manhunter Strange Resources",
         ["Innovations"] = "Manhunter Innovations",
         ["Rare Gear"] = "Manhunter Rare Gear",
-        ["Monsters"] = "Manhunter",
+    },
+
+    monsters = { "Manhunter" },
+
+    timelineEvents = {
+        { year = 5, event = "The Hanged Man" },
+        { year = 10, event= "Special Showdown - Manhunter Lvl 2", isShowdown = true },
+        { year = 16, event = "Special Showdown - Manhunter Lvl 3", isShowdown = true },
+        { year = 22, event = "Special Showdown - Manhunter Lvl 4", isShowdown = true },
     },
 
     armorStats = {

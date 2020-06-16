@@ -14,35 +14,62 @@ return {
         ["Innovations"] = "Dragon King Innovations",
         ["Rare Gear"] = "Dragon King Rare Gear",
         ["Settlement Locations"] = "Dragon King Settlement Locations",
-        ["Monsters"] = { "Dragon King", "The Tyrant" },
     },
+
+    monsters = { "Dragon King", "The Tyrant" },
 
     campaigns = {
         {
             name = "People of the Stars",
             years = 25,
             timeline = {
-                [1] = { "Foundlings" },
-                [2] = { "Endless Screams" },
-                [4] = { showdown = "Nemesis Encounter - The Tyrant Lvl 1" },
-                [5] = { "Midnight's Children" },
-                [7] = { "Phoenix Feather" },
-                [9] = { showdown = "Nemesis Encounter - The Tyrant Lvl 2" },
-                [10] = { "Unveil the Sky" },
-                [12] = { "Principle: Conviction" },
-                [16] = { showdown = "Nemesis Encounter - Butcher Lvl 2" },
-                [19] = { showdown = "Nemesis Encounter - The Tyrant Lvl 3" },
-                [20] = { "The Tomb" },
-                [23] = { showdown = "Nemesis Encounter - Butcher Lvl 3" },
-                [25] = { "Death of the Dragon King" },
+                { year = 1, event = "Foundlings" },
+                { year = 2, event = "Endless Screams" },
+                { year = 5, event = "Midnight's Children" },
+                { year = 7, event = "Phoenix Feather" },
+                { year = 10, event = "Unveil the Sky" },
+                { year = 12, event = "Principle: Conviction" },
+                { year = 20, event = "The Tomb" },
+                { year = 25, event = "Death of the Dragon King" },
+            },
+            nemeses = {
+                ["The Tyrant"] = {
+                    { year = 4, level = 1 },
+                    { year = 9, level = 2 },
+                    { year = 19, level = 3 },
+                },
+                ["Butcher"] = {
+                    { year = 16, level = 2 },
+                    { year = 23, level = 3 },
+                },
+            },
+            removedInnovations = {
+                "Language",
+                "Lantern Oven - Ammonia Consequence",
+                "Family - Hovel Consequence",
+                "Clan of Death - Family Consequence",
             },
             startingInnovation = "Dragon Speech",
-            startingSettlementLocation = "Throne",
+            startingInnovationDeck = {
+                "Ammonia - Language Consequence",
+                "Drums - Language Consequence",
+                "Hovel - Language Consequence",
+                "Inner Lantern - Language Consequence",
+                "Paint - Language Consequence",
+                "Symposium - Language Consequence",
+            },
+            startingSettlementLocations = { "Throne" },
+            references = {
+                ["Age Reference"] = "Age Reference",
+                ["Intimacy Reference"] = "Intimacy (People of the Stars) Reference",
+                ["Bold Reference"] = "Awake (Courage) Reference",
+                ["Insight Reference"] = "Awake (Understanding) Reference",
+            },
         },
     },
 
     timelineEvents = {
-        [8] = { name = "Glowing Crater", notCampaign = "People of the Stars" },
+        { year = 8, event = "Glowing Crater", notCampaign = "People of the Stars" },
     },
 
     terrain = {
@@ -91,6 +118,10 @@ return {
         archive = "Dragon King Archive",
         entries = {
             { "Dragon King Rules", "Rulebook" },
+
+            { "Intimacy (People of the Stars) Reference", "Reference" },
+            { "Awake (Courage) Reference", "Reference" },
+            { "Awake (Understanding) Reference", "Reference" },
 
             { "Dragon King Abilities", "Abilities" },
             { "Dragon King Fighting Arts", "Fighting Arts" },

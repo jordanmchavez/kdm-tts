@@ -90,36 +90,4 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Trie.Print(trie, stringFunc)
-  for _, child in pairs(trie.children) do
-    Trie.PrintImpl(child, stringFunc, "", "")
-  end
-end
-
-function Trie.PrintImpl(node, stringFunc, output, tab)
-  local originalOutput = output
-
-  output = output..string.char(node.byte)
-
-  tab = tab.."  "
-  if next(node.values) != nil then
-    output = output.." -> {"
-    for _, v in pairs(node.values) do
-      output = output..stringFunc(v)..", "
-    end
-    output = output.." }"
-    log(output)
-    output = tab
-  elseif next(node.children) == nil then
-    log(output)
-  end
-
-  for _, child in pairs(node.children) do
-    Trie.PrintImpl(child, stringFunc, output, tab)
-    output = tab
-  end
-end
-
----------------------------------------------------------------------------------------------------
-
 return Trie

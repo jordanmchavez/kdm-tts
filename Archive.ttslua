@@ -46,7 +46,7 @@ local Archive = {
 
     bags = {},
     bagX = -150,
-    bagY = -120,
+    bagZ = 120,
 }
 
 for archive, entries in pairs(Archive.reverseIndex) do
@@ -106,7 +106,7 @@ function Archive.GetBag(name, type)
 
     -- spawn new bag and cache
     local bag = Guids.GetObject(archive).takeObject({
-        position = { Archive.bagX, -10, Archive.bagZ },
+        position = { x = Archive.bagX, y = 15, z = Archive.bagZ },
         smooth = false,
     })
     Assert(bag, "Couldn't take from %s", archive)
@@ -129,21 +129,22 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.ClearBags()
-    for _, bag in ipairs(Archive.bags) do
+function Archive.CleanupBags()
+    for _, bag in pairs(Archive.bags) do
+        Log.Debugf("Destroying archive bag %s (%s)", bag.getName(), bag.getGUID())
         bag.destruct()
     end
 
     local hits = Physics.cast({
-        origin    = { 0, 10, 95 },
+        origin    = { 0, 100, 95 },
         direction = { 0, -1, 0 },
         type      = 3,
-        size      = { 300, 10, 50 },
+        size      = { 350, 50, 100 },
     })
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
-        if obj.getGMNotes() == "Archive" then
-            Log.Debugf("Destroying archive %s (%s)", obj.getName(), obj.getGUID())
+        if obj.tag == "Bag" and obj.getGMNotes() == "Archive Bag" then
+            Log.Debugf("Destroying leftover archive bag %s (%s)", obj.getName(), obj.getGUID())
             obj.destruct()
         end
     end

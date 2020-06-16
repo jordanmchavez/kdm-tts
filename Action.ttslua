@@ -1,0 +1,216 @@
+local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("Action")
+local Archive = require("Kdm/Archive")
+local Locations = require("Kdm/Locations")
+
+local Action = {}
+
+local OBJ_CLEAN_IGNORE_TAGS = { "Board", "Table" }
+
+Action.FACE_UP = { 0, 180, 0 }
+Action.FACE_DOWN = { 0, 180, 180 }
+
+---------------------------------------------------------------------------------------------------
+
+function Action.Matches(obj, tags, types)
+    if tags and Util.ArrayContains(tags, obj.tag) then
+        return true
+    end
+    if types and Util.ArrayContains(types, obj.getGMNotes()) then
+        return true
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.Clean(params, castFunc)
+    location, tags, types, debug = params.location, params.tags, params.types, params.debug
+    Log.Debugf("Cleaning %s", location)
+
+    local hits = castFunc(location, debug)
+    local blocking = {}
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+
+        if Action.Matches(obj, tags, types) then
+            Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
+            obj.destruct()
+
+        elseif not Util.ArrayContains(OBJ_CLEAN_IGNORE_TAGS, obj.tag) then
+            Log.Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
+            table.insert(blocking, obj)
+        end
+    end
+
+    return blocking
+end
+
+function Action.BoxClean(params) Action.Clean(params, Locations.BoxCast) end
+function Action.RayClean(params) Action.Clean(params, Locations.RayCast) end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.FindInContainer(name, type, container)
+    for _, entry in ipairs(container.getObjects()) do
+        if entry.name == name and entry.gm_notes == type then
+            return entry.guid
+        end
+    end
+    Assert.Fail("%s/%s not found in container %s (%s)", name, type, container.getName(), container.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.TakeFromArchive(params)
+    local name, type, location, facing = params.name, params.type, params.location, params.facing
+    local yOffset = params.yOffset or 0
+    Log.Debugf("Taking %s/%s from archive to %s +%f", name, type, location, yOffset)
+
+    local container = Archive.GetBag(name, type)
+    local guid = Action.FindInContainer(name, type, container)
+    local pos = Locations.WorldCenter(location)
+    pos.y = pos.y + yOffset
+    Log.Debugf("to: %f, %f, %f", pos.x, pos.y, pos.z)
+    local object = container.takeObject({
+        guid = guid,
+        position = pos,
+        rotation = facing,
+        smooth = false,
+    })
+
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.TakeFromContainer(params)
+    local container, name, type, location, facing = params.container, params.name, params.type, params.location, params.facing
+    local yOffset = params.yOffset or 0
+    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name, type, container.getName(), container.getGUID(), location, yOffset)
+
+    local guid = Action.FindInContainer(name, type, container)
+    local pos = Locations.WorldCenter(location)
+    pos.y = pos.y + yOffset
+    local object = container.takeObject({
+        guid = guid,
+        position = pos,
+        rotation = facing,
+        smooth = false,
+    })
+
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.DeleteFromContainer(container, names)
+    if #names == 0 then
+        return
+    end
+
+    local index = Util.Index(container.getObjects(), "name")
+    for _, name in ipairs(names) do
+        Assert(index[name], "%s not found in %s (%s)", name, container.getName(), container.getGUID())
+        local guid = index[name].guid
+        local object = container.takeObject({
+            guid = guid,
+            position = { x = -150, y = -100, z = 150 },
+            smooth = false,
+        })
+        Assert(object, "Couldn't take %s (%s) container %s (%s)", name, guid, container.getName(), container.getGUID())
+        object.destruct()
+        Log.Debugf("Deleted %s (%s) from container %s (%s)", name, guid, container.getName(), container.getGUID())
+        index[name] = nil
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.ArchiveSource(name, type)
+    return {
+        source = "Archive",
+        name = name,
+        type = type,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.ContainerSource(container, name, type)
+    return {
+        source = "Container",
+        container = container,
+        name = name,
+        type = type,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.TakeObjectFromSource(source, position, rotation)
+    if source.source == "Archive" then
+        local name, type = source.name, source.type
+
+        Log.Debugf("Taking %s/%s from archive to (%f, %f, %f)", name, type, position.x, position.y, position.z)
+
+        local bag = Archive.GetBag(name, type)
+        local guid = Action.FindInContainer(name, type, bag)
+        local object = bag.takeObject({
+            guid = guid,
+            position = position,
+            rotation = rotation,
+            smooth = false,
+        })
+        Assert(object, "Couldn't take %s/%s (%s) from %s (%s)", name, type, guid, bag.getName(), bag.getGUID())
+
+        return object
+
+    elseif source.source == "Container" then
+        local container, name, type = source.container, source.name, source.type
+
+        Log.Debugf("Taking %s/%s from container %s (%s) to (%f, %f, %f)", name, type, container.getName(), container.getGUID(), position.x, position.y, position.z)
+
+        local guid = Action.FindInContainer(name, type, container)
+        local object = container.takeObject({
+            guid = guid,
+            position = position,
+            rotation = rotation,
+            smooth = false,
+        })
+        Assert(object, "Couldn't take %s/%s (%s) from %s (%s)", name, type, guid, container.getName(), container.getGUID())
+
+        return object
+
+    else
+        Assert.Fail("Unrecognized source: %s", Util.TabStr(source))
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Action.CreateDeck(params)
+    local pos = Locations.WorldCenter(params.location)
+
+    local objects = {}
+    for i, source in ipairs(params.sources) do
+        table.insert(objects, Action.TakeObjectFromSource(
+            source,
+            { x = pos.x, y = pos.y + (i - 1) * 0.5, z = pos.z },
+            params.facing
+        ))
+    end
+
+    local deck = group(objects)[1]
+    Assert(deck)
+    deck.setName(params.name)
+    deck.setGMNotes(params.type)
+
+    Log.Debugf("Created deck %s (%s) at %s", deck.getName(), deck.getGUID(), params.location)
+
+    return deck
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Action

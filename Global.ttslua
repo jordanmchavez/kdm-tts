@@ -4,7 +4,7 @@ local Log = require("Kdm/Util/Log").ForPackage("G")
 local Guids = require("Kdm/Guids")
 local Archive = require("Kdm/Archive")
 local Latch = require("Kdm/Util/Latch")
-local Expansion = require("Kdm/Expansion")
+local Setup = require("Kdm/Setup")
 local Rules = require("Kdm/Rules")
 local DropZone = require("Kdm/Util/DropZone")
 local CharSheet = require("Kdm/CharSheet")
@@ -38,7 +38,7 @@ local Sunstalker = require("Kdm/Expansions/Sunstalker")
 
 function onSave()
     local saveState = {
-        Expansion = Expansion.Save(),
+        Setup = Setup.Save(),
         Showdown = Showdown.Save(),
         PlayerBoard = PlayerBoard.Save(),
         Settlement = Settlement.Save(),
@@ -96,10 +96,10 @@ function onLoad(saveJson)
     BattleUi.Init(ui)
 
     for _, expansion in ipairs({ Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }) do
-        Expansion.RegisterExpansion(expansion)
+        Setup.RegisterExpansion(expansion)
     end
 
-    Expansion.Init(saveState.Expansion, ui)
+    Setup.Init(saveState.Setup, ui)
 
     self.UI.setXmlTable(ui.children)
 end

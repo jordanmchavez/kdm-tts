@@ -27,46 +27,54 @@ LOCATIONS_CAST_HEIGHT = 50
 local Locations = {
     data = {
         ["Monster Board"] = {
-            center = { x = -6.8852435, y = 10.801341, z = 0.4781955 },
             corner1 = { x = -4.789728, y = 15, z = -3.075452 },
             corner2 = { x = -8.980759, y = 5, z = 4.031843 },
             objectName = "Showdown Board",
         },
         ["Showdown Board"] = {
-            center = { x = 0, y = 10.801341, z = 0 },
             corner1 = { x = 11.994016, y = 15, z = -5.993566 },
             corner2 = { x = -11.994016, y = 5, z = 5.993566 },
             objectName = "Showdown Board",
         },
         ["Showdown Grid"] = {
-            center = { x = 0.224678, y = 10.801341, z = 0.4832455 },
             corner1 = { x = 4.885550, y = 15, z = -2.834642 },
             corner2 = { x = -4.436194, y = 5, z = 3.801133 },
             objectName = "Showdown Board",
         },
+        ["Deck Board"] = {
+            corner1 = { x = 7.708387, y = 15, z = -1.550515 },
+            corner2 = { x = 5.312227, y = 5, z = 3.953730 },
+            objectName = "Showdown Board",
+        },
         ["Hunt Cards"] = {
-            center = { x = 0, y = 0, z = -5.170868 },
             corner1 = { x = 3.833936, y = 6, z = -7.537293 },
             corner2 = { x = -3.839113, y = -4, z = -2.886444 },
             objectName = "Hunt Board",
         },
         ["Hunt Track"] = {
-            center = { x = 0, y = 0, z = 2.921043 },
             corner1 = { x = 7.85826, y = 6, z = -0.780489 },
             corner2 = { x = -7.831961, y = -4, z = 6.639576 },
             objectName = "Hunt Board",
         },
         ["Hunt Board"] = {
-            center = { x = 0, y = 10.801341, z = 0 },
             corner1 = { x = 8.268137, y = 6, z = -8.185212 },
             corner2 = { x = -8.268137, y = -4, z = 8.185212 },
             objectName = "Hunt Board",
         },
         ["Rules Board"] = {
-            center = { x = 0, y = 0.703098, z = 0 },
             corner1 = { x = -8.277505, y =    5, z = 8.241768 },
             corner2 = { x =    8.277505, y = -5, z = -8.241768 },
             objectName = "Rules Board",
+        },
+        ["Settlement Location Board"] = {
+            corner1 = { x =  8.083157, y = 0.647072, z = -8.142129 },
+            corner2 = { x = -8.087925, y = 0.647072, z = -1.754732 },
+            objectName = "Settlement Board",
+        },
+        ["Innovation Board"] = {
+            corner1 = { x =  8.083157, y = 0.647072, z = -1.534902 },
+            corner2 = { x = -8.087925, y = 0.647072, z = 3.00576 },
+            objectName = "Settlement Board",
         },
 
         -----------------------------------------------------------------------------
@@ -497,8 +505,44 @@ local Locations = {
             objectName = "Settlement Board",
         },
 
-        ["Innovation Archive"] = {
-            center = { x = -3.056074, y = 0.647072, z = -0.816151 },
+        ["Innovation Deck"] = {
+            center = { x = 3.052227, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Principle: Death"] = {
+            center = { x = 2.180485, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Principle: New Life"] = {
+            center = { x = 1.308742, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Principle: Society"] = {
+            center = { x = -1.310653, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Principle: Conviction"] = {
+            center = { x = -2.183363, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Innovations"] = {
+            center = { x = -3.056074, y = 0.647072, z = -0.816845 },
+            size = LOCATIONS_CARD_SIZE,
+            objectName = "Settlement Board",
+        },
+
+        ["Starting Innovation"] = {
+            center = { x = 3.050901, y = 0.647072, z = 0.219390 },
             size = LOCATIONS_CARD_SIZE,
             objectName = "Settlement Board",
         },
@@ -524,6 +568,21 @@ local Locations = {
             center = { x = -1.772863, y = 10.861341, z = 5.302254 },
             size = LOCATIONS_CARD_SIZE,
             objectName = "Showdown Board",
+        },
+
+        -----------------------------------------------------------------------------
+        -- References
+        ["Age Reference"] = {
+            center = { x = 87.130890, y = 2, z = -65.862335 },
+        },
+        ["Intimacy Reference"] = {
+            center = { x = 108.531082, y = 2, z = -65.862335 },
+        },
+        ["Bold Reference"] = {
+            center = { x = 87.130890, y = 2, z = -82.648521 },
+        },
+        ["Insight Reference"] = {
+            center = { x = 108.531082, y = 2, z = -82.648521 },
         },
 
         -----------------------------------------------------------------------------
@@ -675,56 +734,93 @@ for col = 1, 8 do
 end
 ---------------------------------------------------------------------------------------------------
 
-function Locations.WorldCenter(location, object)
-    Assert.Str(location, "location")
+function Locations.Center(location)
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
 
-    object = object or Guids.GetObject(locationData.objectName)
+    if locationData.center then
+        return { x = locationData.center.x, y = locationData.center.y, z = locationData.center.z }
+    end
 
-    return object.positionToWorld(locationData.center)
+    return {
+        x = (locationData.corner1.x + locationData.corner2.x) / 2,
+        y = (locationData.corner1.y + locationData.corner2.y) / 2,
+        z = (locationData.corner1.z + locationData.corner2.z) / 2,
+    }
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Locations_Cast(location, debug, type)
-    Assert.Str(location, "location")
+function Locations.WorldCenter(location)
+    local center = Locations.Center(location)
+    local objectName = Locations.data[location].objectName
+    if objectName then
+        return Guids.GetObject(objectName).positionToWorld(center)
+    else
+        -- return a copy, not a reference
+        return { x = center.x, y = center.y, z = center.z }
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Locations.WorldSize(location)
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
+    if locationData.size then
+        return locationData.size
 
-    local object = Guids.GetObject(locationData.objectName)
-
-    local origin = object.positionToWorld(locationData.center)
-    origin.y = origin.y + LOCATIONS_CAST_HEIGHT
-
-    local size = locationData.size
-    if not size then
-        local objectName = Guids.GetObject(locationData.objectName)
-        wc1 = objectName.PositionToWorld(locationData.corner1)
-        wc2 = objectName.PositionToWorld(locationData.corner2)
-        size = {
+    elseif locationData.objectName then
+        local object = Guids.GetObject(locationData.objectName)
+        wc1 = object.PositionToWorld(locationData.corner1)
+        wc2 = object.PositionToWorld(locationData.corner2)
+        return {
             x = math.abs(wc1.x - wc2.x),
             y = math.abs(wc1.y - wc2.y),
             z = math.abs(wc1.z - wc2.z),
         }
+
+    else
+        return {
+            x = math.abs(locationData.corner1.x - locationData.corner2.x),
+            y = math.abs(locationData.corner1.y - locationData.corner2.y),
+            z = math.abs(locationData.corner1.z - locationData.corner2.z),
+        }
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Locations.BoxCast(location, debug)
+    local locationData = Locations.data[location]
+    Assert(locationData, "Unknown location: %s", location)
+
+    local center = Locations.WorldCenter(location)
+    center.y = center.y + LOCATIONS_CAST_HEIGHT
+
+    local size = Locations.WorldSize(location)
     size.y = 10 -- doesn't matter, just needs to be > epsilon for a top-down cast
 
     return Physics.cast({
-        origin    = origin,
+        origin    = center,
         direction = { 0, -1, 0 },
-        type      = type,
+        type      = 3,
         size      = size,
         debug     = debug,
     })
 end
 
-function Locations.BoxCast(location, debug)
-    return Locations_Cast(location, debug, 3)
-end
-
 function Locations.RayCast(location, debug)
-    return Locations_Cast(location, debug, 1)
+    local locationData = Locations.data[location]
+    Assert(locationData, "Unknown location: %s", location)
+
+    local center = Locations.WorldCenter(location)
+    center.y = center.y + LOCATIONS_CAST_HEIGHT
+
+    return Physics.cast({
+        origin    = center,
+        direction = { 0, -1, 0 },
+        type      = 1,
+        debug     = debug,
+    })
 end
 
 ---------------------------------------------------------------------------------------------------

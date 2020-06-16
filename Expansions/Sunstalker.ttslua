@@ -14,32 +14,66 @@ return {
         ["Innovations"] = "Sunstalker Innovations",
         ["Rare Gear"] = "Sunstalker Rare Gear",
         ["Settlement Locations"] = "Sunstalker Settlement Locations",
-        ["Monsters"] = "Sunstalker",
     },
+
+    monsters = { "Sunstalker" },
 
     campaigns = {
         {
             name = "People of the Sun",
             years = 25,
             timeline = {
-                [1] = { "The Pool and the Sun" },
-                [2] = { "Endless Screams" },
-                [4] = { "Sun Dipping" },
-                [5] = { "The Great Sky Gift" },
-                [7] = { "Phoenix Feather" },
-                [10] = { "Birth of Color" },
-                [11] = { "Principle: Conviction" },
-                [12] = { "Sun Dipping" },
-                [13] = { "The Great Sky Gift" },
-                [19] = { "Sun Dipping" },
-                [20] = { "Final Gift" },
-                [21] = { showdown = "Nemesis Encounter - King's Man Lvl 3" },
-                [22] = { showdown = "Nemesis Encounter - ButcherLvl 3" },
-                [23] = { showdown = "Nemesis Encounter - King's Man Lvl 3" },
-                [24] = { showdown = "Nemesis Encounter - The Hand Lvl 3" },
-                [25] = { "The Great Devourer" },
-            }
-        }
+                { year = 1, event = "The Pool and the Sun" },
+                { year = 2, event = "Endless Screams" },
+                { year = 4, event = "Sun Dipping" },
+                { year = 5, event = "The Great Sky Gift" },
+                { year = 7, event = "Phoenix Feather" },
+                { year = 10, event = "Birth of Color" },
+                { year = 11, event = "Principle: Conviction" },
+                { year = 12, event = "Sun Dipping" },
+                { year = 13, event = "The Great Sky Gift" },
+                { year = 19, event = "Sun Dipping" },
+                { year = 20, event = "Final Gift" },
+                { year = 25, event = "The Great Devourer" },
+            },
+            nemeses = {
+                ["Butcher"] = {
+                    { year = 22, level = 3 },
+                },
+                ["King's Man"] = {
+                    { year = 21, level = 2  },
+                    { year = 23, level = 3 },
+                },
+                ["The Hand"] = {
+                    { year = 24, level = 3 },
+                },
+            },
+            removedFightingArts = { "Leader" },
+            removedInnovations = { "Language", "Inner Lantern - Language Consequence" },
+            startingInnovation = "Sun Language",
+            startingInnovationDeck = {
+                "Ammonia - Language Consequence",
+                "Drums - Language Consequence",
+                "Hovel - Language Consequence",
+                "Paint - Language Consequence",
+                "Symposium - Language Consequence",
+                "Hands of the Sun", -- may be a typo, but Hands of the Sun doesn't actually have "language consequence" on the card
+            },
+            startingPrinciples = {
+                ["Principle: New Life"] = "Survival of the Fittest - New Life Principle",
+            },
+            startingSettlementLocations = { "The Sun", "Sacred Pool" },
+            references = {
+                ["Age Reference"] = "Age Reference",
+                ["Intimacy Reference"] = "Intimacy (People of the Sun) Reference",
+                ["Bold Reference"] = "Bold Reference",
+                ["Insight Reference"] = "Insight Reference",
+            },
+        },
+    },
+
+    timelineEvents = {
+        { year = 8, event = "Promise Under the Sun", notCampaign = "People of the Sun" },
     },
 
     terrain = {
@@ -91,6 +125,8 @@ return {
         archive = "Sunstalker Archive",
         entries = {
             { "Sunstalker Rules", "Rulebook" },
+
+            { "Intimacy (People of the Sun) Reference", "Reference"},
 
             { "Sunstalker Abilities", "Abilities" },
             { "Sunstalker Fighting Arts", "Fighting Arts" },

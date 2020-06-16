@@ -24,18 +24,18 @@ return {
         ["Rare Gear"] = "Core Rare Gear",
 
         ["Hunt Events"] = "Core Hunt Events",
+    },
 
-        ["Monsters"] = {
-            "Butcher",
-            "Gold Smoke Knight",
-            "King's Man",
-            "Phoenix",
-            "Screaming Antelope",
-            "The Hand",
-            "Watcher",
-            "White Gigalion",
-            "White Lion",
-        },
+    monsters = {
+        "Butcher",
+        "Gold Smoke Knight",
+        "King's Man",
+        "Phoenix",
+        "Screaming Antelope",
+        "The Hand",
+        "Watcher",
+        "White Gigalion",
+        "White Lion",
     },
 
     campaigns = {
@@ -43,25 +43,53 @@ return {
             name = "People of the Lantern",
             years = 30,
             timeline = {
-                [1] = { "Returning Survivors" },
-                [2] = { "Endless Screams" },
-                [4] = { showdown = "Nemesis Encounter - Butcher Lvl 1" },
-                [5] = { "Hands of Heat" },
-                [6] = { "Armored Strangers" },
-                [7] = { "Phoenix Feather" },
-                [9] = { showdown = "Nemesis Encounter - King's Man Lvl 1" },
-                [11] = { "Regal Visit" },
-                [12] = { "Principle: Conviction" },
-                [13] = { showdown = "Nemesis Encounter - The Hand Lvl 1" },
-                [16] = { showdown = "Nemesis Encounter - Butcher Lvl 2" },
-                [19] = { showdown = "Nemesis Encounter - King's Man Lvl 2" },
-                [20] = { "Watched" },
-                [23] = { showdown = "Nemesis Encounter - Butcher Lvl 3" },
-                [25] = { showdown = "Nemesis Encounter - Watcher" },
-                [28] = { showdown = "Nemesis Encounter - King's Man Lvl 3" },
-                [30] = { showdown = "Nemesis Encounter - Gold Smoke Knight" },
-            }
-        }
+                { year = 1, event = "Returning Survivors" },
+                { year = 2, event = "Endless Screams" },
+                { year = 5, event = "Hands of Heat" },
+                { year = 6, event = "Armored Strangers" },
+                { year = 7, event = "Phoenix Feather" },
+                { year = 11, event = "Regal Visit" },
+                { year = 12, event = "Principle: Conviction" },
+                { year = 20, event = "Watched" },
+            },
+            nemeses = {
+                ["Butcher"] = {
+                    { year = 4, level = 1 },
+                    { year = 16, level = 2 },
+                    { year = 23, level = 3 },
+                },
+                ["King's Man"] = {
+                    { year = 9, level = 1 },
+                    { year = 19, level = 2 },
+                    { year = 28, level = 3 },
+                },
+                ["The Hand"] = {
+                    { year = 13, level = 1 },
+                },
+                ["Watcher"] = {
+                    { year = 25, },
+                },
+                ["Gold Smoke Knight"] = {
+                    { year = 30 },
+                },
+            },
+            startingInnovation = "Language",
+            startingInnovationDeck = {
+                "Ammonia - Language Consequence",
+                "Drums - Language Consequence",
+                "Hovel - Language Consequence",
+                "Inner Lantern - Language Consequence",
+                "Paint - Language Consequence",
+                "Symposium - Language Consequence",
+            },
+            startingSettlementLocations = { "Lantern Hoard" },
+            references = {
+                ["Age Reference"] = "Age Reference",
+                ["Intimacy Reference"] = "Intimacy Reference",
+                ["Bold Reference"] = "Bold Reference",
+                ["Insight Reference"] = "Insight Reference",
+            },
+        },
     },
 
     terrain = {
@@ -292,6 +320,10 @@ return {
         archive = "Core Archive",
         entries = {
             { "Core Rules", "Rulebook" },
+            { "Age Reference", "Reference" },
+            { "Intimacy Reference", "Reference" },
+            { "Bold Reference", "Reference" },
+            { "Insight Reference", "Reference" },
 
             { "Core Abilities", "Abilities" },
             { "Core Fighting Arts", "Fighting Arts" },
