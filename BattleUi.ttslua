@@ -1,10 +1,10 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("BattleUi")
-local Util = require("Kdm/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("BattleUi")
+local Util = require("Kdm/Util/Util")
 local Guids = require("Kdm/Guids")
-local EventManager = require("Kdm/EventManager")
+local EventManager = require("Kdm/Util/EventManager")
 local PlayerBoard = require("Kdm/PlayerBoard")
-local ShowdownBoard = require("Kdm/ShowdownBoard")
+local Showdown = require("Kdm/Showdown")
 local CharSheet = require("Kdm/CharSheet")
 
 ---------------------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_BuildUi()
+function BattleUi_BuildUi(ui)
     local mainPanelChildren = {}
 
     local panelY = 0
@@ -137,7 +137,7 @@ function BattleUi_BuildUi()
         }
     })
 
-    return {
+    table.insert(ui, {
         tag = "Panel",
         attributes = {
             id = BATTLE_UI_PANEL_ID,
@@ -148,10 +148,10 @@ function BattleUi_BuildUi()
             color = "#00000000",
             allowDragging = true,
             returnToOriginalPositionWhenReleased = false,
-            active = false,
+            --active = false,
         },
         children = mainPanelChildren,
-    }
+    })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -172,9 +172,9 @@ function BattleUi_Update()
 
             self.UI.setAttribute(playerId.."NameText", "text", CharSheet.GetNameOrUnnamed(charSheet))
 
-            local monsterEvasion = ShowdownBoard.GetEvasion()
-            local monsterToughness = ShowdownBoard.GetToughness()
-            local monsterLuck = ShowdownBoard.GetLuck()
+            local monsterEvasion = Showdown.GetEvasion()
+            local monsterToughness = Showdown.GetToughness()
+            local monsterLuck = Showdown.GetLuck()
 
             local playerSpeed = CharSheet.GetSpeed(charSheet)
             local playerAccuracy = CharSheet.GetAccuracy(charSheet)
@@ -330,7 +330,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi.Init()
+function BattleUi.Init(ui)
     EventManager.AddHandler("onShowdownStart", BattleUi_OnShowdownStart)
     EventManager.AddHandler("onShowdownCleanup", BattleUi_OnShowdownCleanup)
     EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleUi_OnPlayerBoardLinkCharSheet)
@@ -340,11 +340,8 @@ function BattleUi.Init()
     EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleUi_OnPlayerBoardLinkWeapon)
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleUi_OnPlayerBoardUnlinkWeapon)
 
-    local ui = BattleUi_BuildUi()
-
+    BattleUi_BuildUi(ui)
     Wait.frames(BattleUi_Update, 5)   -- really only need 1, but 5 to be safe
-
-    return ui
 end
 
 ---------------------------------------------------------------------------------------------------

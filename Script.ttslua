@@ -1,8 +1,8 @@
-local Util = require("Kdm/Util")
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Script")
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Script")
 local Guids = require("Kdm/Guids")
-local Latch = require("Kdm/Latch")
+local Latch = require("Kdm/Util/Latch")
 local Archive = require("Kdm/Archive")
 local Locations = require("Kdm/Locations")
 
@@ -113,6 +113,7 @@ function Script.TakeAction(stage, params)
     Assert.BoolOrNil(params.smooth, "params.smooth")
     Assert.StrOrNil(params.saveId, "params.saveId")
     Assert.TabOrNil(params.set, "params.set")
+    Assert.BoolOrNil(params.ignoreMissing, "params.ignoreMissing")
 
     table.insert(stage.actions, {
         action = "take",
@@ -124,6 +125,7 @@ function Script.TakeAction(stage, params)
         smooth = params.smooth,
         saveId = params.saveId,
         set = params.set,
+        ignoreMissing = params.ignoreMissing,
         spawnFunc = params.spawnFunc,
     })
 
@@ -347,7 +349,7 @@ end
 
 function Script.From(action, scriptData)
     if action.from == nil then
-        return Archive.Get(action.name, action.type), "arc"
+        return Archive.GetBag(action.name, action.type), "arc"
     end
 
     if type(action.from) == "userdata" then
@@ -536,13 +538,17 @@ function Script.DoTake(action, scriptData)
     if toType != "loc" then
         local toName, toGuid = to.getName(), to.getGUID()
         local newTo = to.putObject(obj)
-        Assert(newTo, "Couldn't put %s (%s) into %s (%s)", obj.getName(), obj.getGUID(), toName, toGuid)
-        if toType == "id" then
-            -- it's possible the objects merged into a new deck, so replace any savedObjects ID with the new object
-            scriptData.savedObjects[action.to] = newTo
-        end
-        if newTo.getGUID() != toGuid then
-            Log.Debugf("Previous action.to %s (%s) merged and became %s (%s)", toName, toGuid, newTo.getName(), newTo.getGUID())
+        if newTo != nil then
+            --Assert(newTo, "Couldn't put %s (%s) into %s (%s)", obj.getName(), obj.getGUID(), toName, toGuid)
+            if toType == "id" then
+                -- it's possible the objects merged into a new deck, so replace any savedObjects ID with the new object
+                scriptData.savedObjects[action.to] = newTo
+            end
+            if newTo.getGUID() != toGuid then
+                Log.Debugf("Previous action.to %s (%s) merged and became %s (%s)", toName, toGuid, newTo.getName(), newTo.getGUID())
+            end
+        else
+            newTo = to
         end
         Log.Debugf("Put %s (%s)into %s  %s", obj.getName(), obj.getGUID(), action.from, newTo.getName(), newTo.getGUID())
     else
@@ -779,7 +785,7 @@ function Script.Run(script)
             end
         end
 
-        Archive.Clear()
+        Archive.ClearBags()
 
         coroutine.yield(0)
 

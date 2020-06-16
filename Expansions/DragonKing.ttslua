@@ -1,0 +1,369 @@
+return {
+    name = "Dragon King",
+
+    components = {
+        ["Abilities"] = "Dragon King Abilities",
+        ["Fighting Arts"] = "Dragon King Fighting Arts",
+        ["Secret Fighting Arts"] = "Dragon King Secret Fighting Arts",
+        ["Disorders"] = "Dragon King Disorders",
+        ["Weapon Specializations/Masteries"] = "Scythe",
+        ["Armor Sets"] = "Dragon Armor",
+        ["Strange Resources"] = "Dragon King Strange Resources",
+        ["Terrain"] = "Dragon King Terrain",
+        ["Terrain Tiles"] = { "Obsidian Tower", "Lava Pool" },
+        ["Innovations"] = "Dragon King Innovations",
+        ["Rare Gear"] = "Dragon King Rare Gear",
+        ["Settlement Locations"] = "Dragon King Settlement Locations",
+        ["Monsters"] = { "Dragon King", "The Tyrant" },
+    },
+
+    campaigns = {
+        {
+            name = "People of the Stars",
+            years = 25,
+            timeline = {
+                [1] = { "Foundlings" },
+                [2] = { "Endless Screams" },
+                [4] = { showdown = "Nemesis Encounter - The Tyrant Lvl 1" },
+                [5] = { "Midnight's Children" },
+                [7] = { "Phoenix Feather" },
+                [9] = { showdown = "Nemesis Encounter - The Tyrant Lvl 2" },
+                [10] = { "Unveil the Sky" },
+                [12] = { "Principle: Conviction" },
+                [16] = { showdown = "Nemesis Encounter - Butcher Lvl 2" },
+                [19] = { showdown = "Nemesis Encounter - The Tyrant Lvl 3" },
+                [20] = { "The Tomb" },
+                [23] = { showdown = "Nemesis Encounter - Butcher Lvl 3" },
+                [25] = { "Death of the Dragon King" },
+            },
+            startingInnovation = "Dragon Speech",
+            startingSettlementLocation = "Throne",
+        },
+    },
+
+    timelineEvents = {
+        [8] = { name = "Glowing Crater", notCampaign = "People of the Stars" },
+    },
+
+    terrain = {
+        ["Obsidian Tower"] = { terrainTile = "Obsidian Tower", count = 1 },
+        ["Lava Pool"] = { terrainTile = "Lava Pool", count = 1 },
+    },
+
+    terrainTileSizes = {
+        ["Obsidian Tower"] = { x = 2, y = 2 },
+        ["Lava Pool"] = { x = 2, y = 2 },
+        ["Gate"] = { x = 2, y = 2 },
+    },
+
+    settlementLocationGear = {
+        ["Dragon Armory"] = "Dragon Armory Gear",
+    },
+
+    armorStats = {
+        ["Dragon Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Blast Shield"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Dragonskull Helm"] = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Dragon Gloves"]    = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
+        ["Dragon Mantle"]    = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
+        ["Dragon Belt"]      = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
+        ["Dragon Boots"]     = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
+        ["Dragon Vestments"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Hazmat Shield"]    = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+    },
+
+    weaponStats = {
+        ["Blast Shield"]     = { speed = 1, accuracy = 7, strength = 4 },
+        ["Blast Sword"]      = { speed = 2, accuracy = 6, strength = 4 },
+        ["Dragon Bite Bolt"] = { speed = 1, accuracy = 6, strength = 6, slow = true, devastating = 1 },
+        ["Dragon Chakram"]   = { speed = 2, accuracy = 6, strength = 3 },
+        ["Nuclear Knife"]    = { speed = 3, accuracy = 6, strength = 3 },
+        ["Nuclear Scythe"]   = { speed = 2, accuracy = 6, strength = 4 },
+        ["Talon Knife"]      = { speed = 2, accuracy = 6, strength = 4, paired = true },
+        ["Celestial Spear"]  = { speed = 2, accuracy = 5, strength = 4 },
+        ["Hazmat Shield"]    = { speed = 2, accuracy = 4, strength = 7 },
+        ["Regal Edge"]       = { speed = 1, accuracy = 5, strength = 2, sharp = true },
+    },
+
+    namedGuids = { ["Dragon King Archive"] = "f3b47c" },
+
+    archiveEntries = {
+        archive = "Dragon King Archive",
+        entries = {
+            { "Dragon King Rules", "Rulebook" },
+
+            { "Dragon King Abilities", "Abilities" },
+            { "Dragon King Fighting Arts", "Fighting Arts" },
+            { "Dragon King Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Dragon King Disorders", "Disorders" },
+            { "Scythe", "Weapon Specializations/Masteries" },
+            { "Dragon Armor", "Armor Sets" },
+            { "Dragon King Strange Resources", "Strange Resources" },
+            { "Dragon King Resources", "Monster Resources" },
+
+            { "Dragon King Terrain", "Terrain" },
+            { "Gate", "Terrain" },
+
+            { "Obsidian Tower", "Terrain Tiles" },
+            { "Lava Pool", "Terrain Tiles" },
+            { "Gate", "Terrain Tiles" },
+
+            { "Dragon King Innovations", "Innovations" },
+
+            { "Dragon Armory Gear", "Gear" },
+            { "Dragon King Rare Gear", "Gear" },
+
+            { "Dragon King Settlement Locations", "Settlement Locations" },
+
+            { "Dragon King", "Monster Figurine" },
+
+            { "Dragon King Info", "AI" },
+            { "Dragon King Basic Action", "AI" },
+            { "Dragon King Basic AI", "AI" },
+            { "Dragon King Advanced AI", "AI" },
+            { "Dragon King Legendary AI", "AI" },
+            { "Dragon King Special AI", "AI" },
+            { "Dragon King Hit Locations", "Hit Locations" },
+            { "Dragon King Hunt Events", "Monster Hunt Events" },
+
+            { "The Tyrant", "Monster Figurine" },
+            { "The Tyrant Info", "AI" },
+            { "The Tyrant Basic Action", "AI" },
+            { "The Tyrant Basic AI", "AI" },
+            { "The Tyrant Advanced AI", "AI" },
+            { "The Tyrant Legendary AI", "AI" },
+            { "The Tyrant Special AI", "AI" },
+            { "The Tyrant Hit Locations", "Hit Locations" },
+
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Dragon King Rules",
+            pages = {
+                ["Dragon King Rules"] = {
+                    keywords = { "Dragon", "King", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["Glowing Crater"] = {
+                    keywords = { "Glowing", "Crater" },
+                    state = 3,
+                },
+                ["Showdown: Dragon King"] = {
+                    keywords = { "Showdown:", "Dragon", "King" },
+                    state = 4,
+                },
+                ["Meltdown"] = {
+                    keywords = { "Meltdown" },
+                    state = 5,
+                },
+                ["Foundlings"] = {
+                    keywords = { "Foundlings" },
+                    state = 6,
+                },
+                ["Intimacy (Dragon King)"] = {
+                    keywords = { "Intimacy" },
+                    state = 7,
+                },
+                ["Midnight's Children"] = {
+                    keywords = { "Midnight's", "Children" },
+                    state = 8,
+                },
+                ["Awake"] = {
+                    keywords = { "Awake" },
+                    state = 9,
+                },
+                ["Unveil the Sky"] = {
+                    keywords = { "Unveil", "Sky" },
+                    state = 10,
+                },
+                ["Faces in the Sky"] = {
+                    keywords = { "Faces", "Sky" },
+                    state = 11,
+                },
+                ["The Tomb"] = {
+                    keywords = { "The ", "Tomb" },
+                    state = 12,
+                },
+                ["Showdown: The Tyrant"] = {
+                    keywords = { "Showdown:", "Tyrant" },
+                    state = 13,
+                },
+                ["Death of the Dragon King"] = {
+                    keywords = { "Death", "of", "the", "Dragon", "King" },
+                    state = 14,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Dragon King"] = 4,
+        ["The Tyrant"] = 2,
+    },
+
+    setups = {
+        ["Dragon King"] = {
+            rules = { "Dragon King Rules", 4 },
+            huntTrack = { "M", "H", "M", "M", "H", "O", "M", "H", "H", "M", "H" },
+            position = "(11.5, 8.5)",
+            playerPositions = { "(10, 16)", "(11, 16)", "(12, 16)", "(13, 16)" },
+            fixedTerrain = {
+                {
+                    terrain = "Toppled Pillar",
+                    positions = { "(4.5, 3)", "(18.5, 14)" },
+                    rotations = { { 0, 90, 0 }, { 0, -90, 0 } },
+                },
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(15.5, 2)", "(5, 11.5)", "(8.5, 15)" },
+                    rotations = { { 0, -90, 0 }, { 0, 180, 0 }, { 0, 90, 0 } },
+                },
+            },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 5,
+                    showdown = {
+                        basic  = 8,
+                        advanced = 4,
+                        starting = {
+                            special = { "Irradiate", "Unseen Agony" },
+                        },
+                        movement = 10,
+                        toughness = 13,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 8,
+                    showdown = {
+                        basic  = 8,
+                        advanced = 7,
+                        legendary = 1,
+                        starting = {
+                            special = { "Irradiate", "Unseen Agony" },
+                        },
+                        movement = 10,
+                        toughness = 15,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 11,
+                    showdown = {
+                        basic  = 9,
+                        advanced = 8,
+                        legendary = 2,
+                        starting = {
+                            special = { "Irradiate", "Unseen Agony", "Smolder" },
+                        },
+                        movement = 10,
+                        toughness = 17,
+                        speed = 2,
+                        damage = 2,
+                        luck = 1,
+                    },
+                },
+                {
+                    name = "Death of the Dragon King",
+                    level = 3,
+                    showdown = {
+                        rules = { "Dragon King Rules", 14 },
+                        position = "(11.5, 3.5)",
+                        customBasic  = { "Gnash", "One-Two Punch", "Overheat", "Rough Smack" },
+                        customAdvanced = { "Ashen Return", "Countdown", "Crisis Crater", "Glowing Fist", "Heated Strike", "Mournful Swipe" },
+                        customLegendary = { "Death Descending" },
+                        starting = {
+                            special = { "Irradiate", "Unseen Agony", "Smolder" },
+                            misc = { "Trample" },
+                        },
+                        life = 20,
+                        movement = 10,
+                        toughness = 17,
+                        speed = 2,
+                        damage = 3,
+                        fixedTerrain = {
+                            {
+                                terrain = "Toppled Pillar",
+                                positions = { "(4, 3.5)", "(19, 3.5)" },
+                                rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                            },
+                            {
+                                terrain = "3 Stone Columns",
+                                positions = { "(7, 5.5)", "(5.5, 11)", "(9.5, 14)", "(16, 5.5)", "(17.5, 11)", "(13.5, 14)" },
+                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 90, 0 }, { 0, 180, 0 }, { 0, -90, 0 }, { 0, -90, 0 } },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        ["The Tyrant"] = {
+            rules = { "Dragon King Rules", 13 },
+            resourcesDeck = false,
+            position = "(11.5, 8.5)",
+            playerPositions = { "(8, 5)", "(15, 5)", "(8, 11)", "(15, 11)" },
+            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            specialTerrain = {
+                {
+                    terrain = "Gate",
+                },
+            },
+            randomTerrain = 1,
+            miscObjects = { { name = "Gate", type = "Terrain Tiles" } },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    showdown = {
+                        starting = {
+                            special = { "Crooked Step", "Spectral Blast" },
+                        },
+                        basic = 6,
+                        advanced = 5,
+                        movement = 6,
+                        toughness = 8,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    showdown = {
+                        starting = {
+                            special = { "Crooked Step", "Spectral Blast", "Quickened" },
+                        },
+                        basic = 8,
+                        advanced = 6,
+                        movement = 7,
+                        toughness = 10,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    showdown = {
+                        starting = {
+                            special = { "Crooked Step", "Spectral Blast", "Quickened" },
+                        },
+                        basic = 12,
+                        advanced = 8,
+                        legendary = 2,
+                        movement = 7,
+                        toughness = 14,
+                        speed = 2,
+                        damage = 2,
+                    },
+                },
+            },
+        },
+    },
+}

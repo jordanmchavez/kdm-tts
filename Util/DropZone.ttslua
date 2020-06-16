@@ -1,8 +1,8 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("DropZone")
-local Util = require("Kdm/Util")
-local EventManager = require("Kdm/EventManager")
-local SpatialIndex = require("Kdm/SpatialIndex")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("DropZone")
+local Util = require("Kdm/Util/Util")
+local EventManager = require("Kdm/Util/EventManager")
+local SpatialIndex = require("Kdm/Util/SpatialIndex")
 
 ---------------------------------------------------------------------------------------------------
 

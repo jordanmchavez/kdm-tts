@@ -1,0 +1,169 @@
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Hunt")
+local Script = require("Kdm/Script")
+local EventManager = require("Kdm/Util/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local Hunt = {
+    setups = {},
+    settingUp = false,
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Hunt.RegisterSetups(setups)
+    for monster, setup in pairs(setups or {}) do
+        Assert(Hunt.setups[monster] == nil, "Monster setup %s already registered", monster)
+        if setup.huntEventsDeck == nil then setup.huntEventsDeck = monster.." Hunt Events" end
+        if setup.resourcesDeck == nil then setup.resourcesDeck = monster.." Resources" end
+        Hunt.setups[monster] = setup
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Hunt.AddCleanupStage(script, ignoreBlocking)
+    Assert.BoolOrNil(ignoreBlocking, "ignoreBlocking")
+
+    local cleanupStage = Script.Stage(script, "Cleanup Hunt Board")
+    Script.CleanAction(cleanupStage, {
+        from = "Hunt Cards",
+        types = {
+            "Hunt Events",
+            "Monster Hunt Events",
+            "Special Hunt Events",
+        },
+        ignoreBlocking = ignoreBlocking,
+    })
+    Script.CleanAction(cleanupStage, {
+        from = "Hunt Track",
+        types = {
+            "Hunt Events",
+            "Monster Hunt Events",
+            "Special Hunt Events",
+            "Monster Figurine",
+            "Hunt Party",
+        },
+        ignoreBlocking = ignoreBlocking,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Hunt.Cleanup()
+    startLuaCoroutine(self, "Hunt_CleanupCoroutine")
+end
+
+function Hunt_CleanupCoroutine()
+    Hunt.settingUpHunt = false
+
+    local script = Script.Create("Cleanup Hunt")
+    Hunt.AddCleanupStage(script, true)    -- ignoreBlocking = true
+    Script.Run(script)
+
+    EventManager.FireEvent("onHuntCleanup")
+
+    Log.Printf("Cleaned up hunt.")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Hunt.Setup(monster, level)
+    Hunt.setupHuntMonster, Hunt.setupHuntLevel = monster, level
+    startLuaCoroutine(self, "Hunt_SetupCoroutine")
+end
+
+function Hunt_SetupCoroutine()
+    if Hunt.settingUpHunt == true then
+        Log.Errorf("Hunt setup currently in progress, please wait until finished before setting up another hunt. If the hunt appears to be stuck, click 'Cleanup Hunt' from the 'Cleanup' menu to reset.")
+        return 1
+    end
+    Hunt.settingUpHunt = true
+
+    local monster, level = Hunt.setupHuntMonster, Hunt.setupHuntLevel
+    Assert.Str(monster, "monster")
+    Assert.Str(monster, "level")
+
+    Log.Printf("Setting up hunt for %s %s...", monster, level)
+
+    local monsterSetup = SetupData.setups[monster]
+    Assert(monsterSetup, "No setup for %s", monster)
+    local levelSetup = monsterSetup.levels[level]
+    Assert(levelSetup, "No hunt setup for %s, %s", monster, level)
+
+    local script = Script.Create("Hunt Hunt")
+    Hunt.AddCleanupStage(script, false)    -- ignoreBlocking = false
+
+    local spawnStage = Script.Stage(script, "Spawn Decks")
+    Script.TakeAction(spawnStage, { monster = "Hunt Events", type = "Hunt Events", to = "Hunt Events", rotation = Script.FACE_DOWN })
+    Script.TakeAction(spawnStage, { monster = monsterSetup.huntEventsDeck, type = "Monster Hunt Events",  to = "Monster Hunt Events", rotation = Script.FACE_DOWN })
+    Script.TakeAction(spawnStage, { monster = "The Forest Gate", type = "Special Hunt Events", to = "The Forest Gate" })
+    Script.TakeAction(spawnStage, { monster = "Herb Gathering", type = "Special Hunt Events", to = "Herb Gathering" })
+    Script.TakeAction(spawnStage, { monster = "Mineral Gathering", type = "Special Hunt Events", to = "Mineral Gathering" })
+    Script.TakeAction(spawnStage, { monster = "Sky Fishing", type = "Special Hunt Events", to = "Sky Fishing" })
+
+    if monsterSetup.resourcesDeck then
+        Script.TakeAction(spawnStage, { monster = monsterSetup.resourcesDeck, type = "Monster Resources", to = "Monster Resources", rotation = Script.FACE_DOWN })
+    end
+
+    local shuffleStage = Script.Stage(script, "Shuffle Decks")
+    Script.Stage(script)
+    Script.ShuffleAction(shuffleStage, { from = "Hunt Events" })
+    Script.ShuffleAction(shuffleStage, { from = "Monster Hunt Events" })
+    if monsterSetup.resourcesDeck then
+        Script.ShuffleAction(shuffleStage, { from = "Monster Resources" })
+    end
+
+    local huntTrackStage = Script.Stage(script, "Hunt Hunt Track")
+    for i, c in ipairs(monsterSetup.huntTrack) do
+        if c == 'H' then
+            Script.TakeAction(huntTrackStage, { from = "Hunt Events", type = "Hunt Events", to = "Hunt Track "..tostring(i) })
+        elseif c == 'M' then
+            Script.TakeAction(huntTrackStage, { from = "Monster Hunt Events", type = "Monster Hunt Events", to = "Hunt Track "..tostring(i) })
+        elseif c == 'O' then
+            -- Overwhelming Darkness, no card
+        elseif c == 'F' then
+            Script.MoveAction(huntTrackStage, { from = "The Forest Gate", to = "Hunt Track "..tostring(i) })
+        else
+            Script.Error("Unrecognized setup element %s at position %d in hunt setup %s %s", tostring(c), i, monster.level)
+            return 1
+        end
+    end
+
+    Script.TakeAction(huntTrackStage, {
+        monster = monster,
+        type = "Monster Figurine",
+        to = "Hunt Track "..levelSetup.monsterHuntPosition,
+        rotation = { 0, -90, 0 },
+        set = { use_snap_points = true },
+    })
+
+    Script.TakeAction(huntTrackStage, {
+        monster = "Hunt Party",
+        type = "Hunt Party",
+        to = levelSetup.partyHuntPosition and "Hunt Track "..levelSetup.partyHuntPosition or "Hunt Track Start",
+        rotation = { 0, 90, 0 },
+    })
+
+    _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj then
+        Hunt.Cleanup()
+        Log.Broadcastf("Found an object %s(%s) blocking the %s. Please move it out of the way and try again.", blockingObj.getmonster(), blockingObj.tag, locationBlocked)
+        return 1
+    end
+
+    EventManager.FireEvent("onHuntStart")
+
+    Hunt.settingUpHunt = false
+    Log.Printf("Hunt setup finished. May your lanterns guide you in the darkness.")
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Hunt

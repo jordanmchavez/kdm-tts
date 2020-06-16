@@ -1,0 +1,176 @@
+return {
+    name = "Gorm",
+
+    components = {
+        ["Fighting Arts"] = "Gorm Fighting Arts",
+        ["Secret Fighting Arts"] = "Immovable Object",
+        ["Disorders"] = "Gorm Disorders",
+        ["Armor Sets"] = "Gorment Armor",
+        ["Strange Resources"] = "Gorm Strange Resources",
+        ["Settlement Events"] = "Gorm Climate",
+        ["Innovations"] = "Gorm Innovations",
+        ["Settlement Locations"] = "Gorm Settlement Locations",
+        ["Monsters"] = "Gorm",
+    },
+
+    settlementLocationGear = {
+        ["Gormery"] = "Gormery Gear",
+        ["Gormchymist"] = "Gormchymist Gear",
+    },
+
+    armorStats = {
+        ["Gorment Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Gorment Mask"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Gorment Sleeves"]    = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Regeneration Suite"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
+        ["Gorment Suit"]       = { head = 0, arms = 0, body = 2, waist = 2, legs = 0 },
+        ["Gorment Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
+    },
+
+    weaponStats = {
+        ["Acid-Tooth Dagger"] = { speed = 2, accuracy = 7, strength = 2, paired = true },
+        ["Black Sword"]       = { speed = 3, accuracy = 5, strength = 10 },
+        ["Gaxe"]              = { speed = 1, accuracy = 6, strength = 4 },
+        ["Greater Gaxe"]      = { speed = 2, accuracy = 6, strength = 4, deadly = 1 },
+        ["Knuckle Shield"]    = { speed = 3, accuracy = 7, strength = 1 },
+        ["Rib Blade"]         = { speed = 1, accuracy = 6, strength = 5, slow = true, deadly = 1 },
+        ["Riot Mace"]         = { speed = 2, accuracy = 5, strength = 5, deadly = 1 },
+    },
+
+    namedGuids = { ["Gorm Archive"] = "211ef7" },
+
+    archiveEntries = {
+        archive = "Gorm Archive",
+        entries = {
+            { "Gorm Rules", "Rulebook" },
+
+            { "Gorm Fighting Arts", "Fighting Arts" },
+            { "Immovable Object", "Secret Fighting Arts" },
+            { "Gorm Disorders", "Disorders" },
+            { "Gorment Armor", "Armor Sets" },
+            { "Gorm Strange Resources", "Strange Resources" },
+            { "Gorm Resources", "Monster Resources" },
+
+            { "Gorm Climate", "Settlement Events" },
+
+            { "Gorm Innovations", "Innovations" },
+
+            { "Gorm Settlement Locations", "Settlement Locations" },
+
+            { "Gormery Gear", "Gear" },
+            { "Gormchymist Gear", "Gear" },
+
+            { "Gorm", "Monster Figurine" },
+
+            { "Gorm Hunt Events", "Monster Hunt Events" },
+
+            { "Gorm Info", "AI" },
+            { "Gorm Basic Action", "AI" },
+            { "Gorm Basic AI", "AI" },
+            { "Gorm Advanced AI", "AI" },
+            { "Gorm Legendary AI", "AI" },
+            { "Gorm Special AI", "AI" },
+            { "Gorm Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Gorm Rules",
+            pages = {
+                ["Gorm Rules"] = {
+                    keywords = { "Gorm", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["The Approaching Storm"] = {
+                    keywords = { "The", "Approaching", "Storm" },
+                    state = 2,
+                },
+                ["Fetid Grotto"] = {
+                    keywords = { "Fetid", "Grotto" },
+                    state = 3,
+                },
+                ["The Final March"] = {
+                    keywords = { "The", "Final", "March" },
+                    state = 4,
+                },
+                ["Showdown: Gorm"] = {
+                    keywords = { "Showdown:", "Gorm" },
+                    state = 5,
+                },
+                ["Melting Horror"] = {
+                    keywords = { "Melting", "Horror" },
+                    state = 6,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Gorm"] = 3,
+    },
+
+    setups = {
+        ["Gorm"] = {
+            rules = { "Gorm Rules", 5 },
+            huntTrack = { "M", "M", "H", "H", "M", "O", "H", "H", "M", "M", "H" },
+            position = "(11, 8)",
+            playerPositions = { "(10, 16)", "(11, 16)", "(12, 16)", "(13, 15)" },
+            fixedTerrain = {
+                {
+                    terrain = "2 Tall Grass",
+                    positions = { "(8.5, 5.5)", "(13.5, 10.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+            },
+            randomTerrain = 2,
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 4,
+                    showdown = {
+                        basic = 8,
+                        advanced = 2,
+                        movement = 6,
+                        toughness = 8,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 7,
+                    showdown = {
+                        basic = 9,
+                        advanced = 5,
+                        starting = {
+                            special = { "Gorm's Den", "Musth" },
+                        },
+                        movement = 9,
+                        toughness = 11,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 11,
+                    showdown = {
+                        basic = 10,
+                        advanced = 8,
+                        legendary = 2,
+                        starting = {
+                            special = { "Ancient Tusks", "Gormyard" },
+                        },
+                        movement = 8,
+                        toughness = 15,
+                        speed = 2,
+                        damage = 2,
+                        luck = 1,
+                    },
+                },
+            },
+        },
+    },
+}

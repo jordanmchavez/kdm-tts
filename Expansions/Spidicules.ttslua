@@ -1,0 +1,239 @@
+return {
+    name = "Spidicules",
+
+    components = {
+        ["Fighting Arts"] = "Spidicules Fighting Arts",
+        ["Secret Fighting Arts"] = "Spidicules Secret Fighting Arts",
+        ["Disorders"] = "Spidicules Disorders",
+        ["Armor Sets"] = "Silk Armor",
+        ["Strange Resources"] = "Spidicules Strange Resources",
+        ["Terrain"] = "Spidicules Terrain",
+        ["Terrain Tiles"] = { "Egg Sac", "Silk Nest" },
+        ["Innovations"] = "Spidicules Innovations",
+        ["Settlement Locations"] = "Silk Mill",
+        ["Settlement Events"] = "Spidicules Settlement Events",
+        ["Rare Gear"] = "Spidicules Rare Gear",
+        ["Monsters"] = "Spidicules"
+    },
+
+    terrain = {
+        ["Egg Sacs"] = {
+            terrainTile = "Egg Sac",
+            count = "*",
+            miscObjects = { name = "Spiderling", type = "AI" },
+        },
+        ["Silk Nest"] = { terrainTile = "Silk Nest", count = 1 },
+    },
+
+    terrainTileSizes = {
+        ["Egg Sac"] = 1,
+        ["Silk Nest"] = 2,
+    },
+
+    settlementLocationGear = {
+        ["Silk Mill"] = "Silk Mill Gear",
+    },
+
+    armorStats = {
+        ["Silk Armor"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Silk Turban"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Silk Wraps"]  = { head = 0, arms = 3, body = 0, waist = 0, legs = 0 },
+        ["Silk Robes"]  = { head = 0, arms = 0, body = 3, waist = 0, legs = 0 },
+        ["Silk Sash"]   = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },
+        ["Silk Boots"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 3 },
+        ["Blue Ring"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Green Ring"]  = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Red Ring"]    = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+    },
+
+    weaponStats = {
+        ["Amber Edge"]         = { speed = 1, accuracy = 6, strength = 4, slow = true },
+        ["Amber Poleaxe"]      = { speed = 2, accuracy = 6, strength = 3 },
+        ["Hooded Scrap Katar"] = { speed = 2, accuracy = 7, strength = 4, paired = true },
+        ["Silk Whip"]          = { speed = 2, accuracy = 6, strength = 3 },
+        ["Thowing Knife"]      = { speed = 4, accuracy = 9, strength = 2 },
+        ["Grinning Visage"]    = { speed = 2, accuracy = 7, strength = 4 },
+        ["The Weaver"]         = { speed = 3, accuracy = 6, strength = 2 },
+    },
+
+    namedGuids = { ["Spidicules Archive"] = "c5735b" },
+
+    archiveEntries = {
+        archive = "Spidicules Archive",
+        entries = {
+            { "Spidicules Rules", "Rulebook" },
+
+            { "Spidicules Fighting Arts", "Fighting Arts" },
+            { "Spidicules Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Spidicules Disorders", "Disorders" },
+            { "Silk Armor", "Armor Sets" },
+            { "Spidicules Strange Resources", "Strange Resources" },
+            { "Spidicules Terrain", "Terrain" },
+            { "Egg Sac", "Terrain Tiles" },
+            { "Silk Nest", "Terrain Tiles" },
+            { "Spidicules Innovations", "Innovations" },
+            { "Silk Mill", "Settlement Locations" },
+            { "Spidicules Settlement Events", "Settlement Events" },
+            { "Silk Mill Gear", "Gear" },
+            { "Spidicules Rare Gear", "Gear" },
+
+            { "Spidicules", "Monster Figurine" },
+            { "Spiderling", "AI" },
+            { "Spidicules Info", "AI" },
+            { "Spidicules Basic Action", "AI" },
+            { "Spidicules Basic AI", "AI" },
+            { "Spidicules Advanced AI", "AI" },
+            { "Spidicules Legendary AI", "AI" },
+            { "Spidicules Special AI", "AI" },
+            { "Spidicules Hit Locations", "Hit Locations" },
+            { "Spidicules Hunt Events", "Monster Hunt Events" },
+            { "Spidicules Resources", "Monster Resources" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Spidicules Rules",
+            pages = {
+                ["Spidicules Rules"] = {
+                    keywords = { "Spidicules", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["Young Rivals"] = {
+                    keywords = { "Young", "Rivals" },
+                    state = 3,
+                },
+                ["Showdown: Spidicules"] = {
+                    keywords = { "Showdown:", "Spidicules" },
+                    state = 5,
+                },
+                ["The Forest Wants What it Wants (Spidicules)"] = {
+                    keywords = { "The", "Forest", "Wants", "What", "it", "Wants" },
+                    state = 6,
+                },
+                ["Spidisisyphus"] = {
+                    keywords = { "Spidisisyphus" },
+                    state = 7,
+                },
+                ["Puppet's Embalming"] = {
+                    keywords = { "Puppet's", "Embalming" },
+                    state = 8,
+                },
+                ["Silk Surgery"] = {
+                    keywords = { "Silk", "Surgery" },
+                    state = 9,
+                },
+                ["Taken"] = {
+                    keywords = { "Taken" },
+                    state = 10,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Spidicules"] = 2,
+    },
+
+    setups = {
+        ["Spidicules"] = {
+            rules = { "Spidicules Rules", 5 },
+            huntTrack = { "M", "M", "H", "H", "M", "F", "H", "M", "M", "H", "H" },
+            position = "(11.5, 8.5)",
+            playerPositions = { "(10, 1)", "(11, 1)", "(12, 1)", "(13, 1)" },
+            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+            -- no need for misc { "Spiderling" } since egg sacs fixed terrain will snag it
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 4,
+                    showdown = {
+                        starting = {
+                            advanced = { "Frantic Spinning" },
+                            special = { "Twitching Leg Pile", "Spawn", "Spiderling Action" },
+                        },
+                        basic = 5,
+                        advanced = 4,
+                        movement = 11,
+                        toughness = 8,
+                        fixedTerrain = {
+                            {
+                                terrain = "Silk Nest",
+                                positions = { "(11.5, 8.5)" },
+                                rotations = { { 0, 180, 0 } },
+                            },
+                            {
+                                terrain = "Egg Sacs",
+                                positions = { "(11, 4)", "(12, 4)" },
+                                rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                            }
+                        },
+                        randomTerrain = 2,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 7,
+                    showdown = {
+                        starting = {
+                            advanced = { "Feeding Time" },
+                            special = { "Twitching Leg Pile", "Spawn", "Spiderling Action", "Hivemind" },
+                        },
+                        basic = 8,
+                        advanced = 4,
+                        movement = 14,
+                        toughness = 10,
+                        speed = 1,
+                        damage = 1,
+                        fixedTerrain = {
+                            {
+                                terrain = "Silk Nest",
+                                positions = { "(11.5, 8.5)" },
+                                rotations = { { 0, 180, 0 } },
+                            },
+                            {
+                                terrain = "Egg Sacs",
+                                positions = { "(10, 5)", "(11, 4)", "(12, 4)", "(13, 5)" },
+                                rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                            }
+                        },
+                        randomTerrain = 2,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 10,
+                    showdown = {
+                        starting = {
+                            advanced = { "Necrotoxins" },
+                            special = { "Twitching Leg Pile", "Spawn", "Spiderling Action", "Hivemind", "10,000 Teeth" },
+                        },
+                        basic = 12,
+                        advanced = 7,
+                        legendary = 2,
+                        movement = 16,
+                        toughness = 12,
+                        speed = 2,
+                        damage = 2,
+                        fixedTerrain = {
+                            {
+                                terrain = "Silk Nest",
+                                positions = { "(11.5, 8.5)" },
+                                rotations = { { 0, 180, 0 } },
+                            },
+                            {
+                                terrain = "Egg Sacs",
+                                positions = { "(9, 6)", "(10, 5)", "(11, 4)", "(12, 4)", "(13, 5)", "(14, 6)" },
+                                rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                            }
+                        },
+                        randomTerrain = 2,
+                    },
+                },
+            },
+        },
+    },
+}

@@ -1,0 +1,531 @@
+local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("Expansion")
+local Guids = require("Kdm/Guids")
+local Archive = require("Kdm/Archive")
+local Locations = require("Kdm/Locations")
+local Script = require("Kdm/Script")
+local Terrain = require("Kdm/Terrain")
+local SettlementBoard = require("Kdm/SettlementBoard")
+local Settlement = require("Kdm/Settlement")
+local Armor = require("Kdm/Armor")
+local Weapons = require("Kdm/Weapons")
+local Rules = require("Kdm/Rules")
+local Hunt = require("Kdm/Hunt")
+local Showdown = require("Kdm/Showdown")
+local Ui = require("Kdm/XmlUi")
+
+---------------------------------------------------------------------------------------------------
+
+local EXPANSION_COMPONENT_TYPES = {
+    "Abilities",
+    "Fighting Arts",
+    "Secret Fighting Arts",
+    "Disorders",
+    "Severe Injuries",
+    "Tactics",
+    "Weapon Specializations/Masteries",
+    "Armor Sets",
+    "Vermin",
+    "Strange Resources",
+    "Basic Resources",
+    "Terrain",
+--    "Terrain Tiles",
+    "Settlement Events",
+    "Innovations",
+    "Settlement Locations",
+    "Rare Gear",
+    "Hunt Events",
+}
+
+local Expansion = {
+    expansions = {},
+    components = {},
+    campaigns = {},
+    archiveOverrides = {},
+
+    componentMetadata = {},
+
+    enabledExpansions = { ["Core"] = true },
+}
+
+for _, componentType in ipairs(EXPANSION_COMPONENT_TYPES) do
+    Expansion.componentMetadata[componentType] = {
+        type = componentType,
+        location = componentType,
+        rotation = Script.FACE_DOWN,
+        rename = componentType,
+        reset = true,
+        respawn = true,
+        shuffle = false,
+    }
+end
+
+Expansion.componentMetadata["Fighting Arts"].shuffle = true
+Expansion.componentMetadata["Secret Fighting Arts"].shuffle = true
+Expansion.componentMetadata["Disorders"].shuffle = true
+Expansion.componentMetadata["Tactics"].shuffle = true
+Expansion.componentMetadata["Vermin"].shuffle = true
+Expansion.componentMetadata["Basic Resources"].shuffle = true
+
+-- Expansion.componentMetadata["Terrain Tiles"].respawn = false
+-- Expansion.componentMetadata["Terrain Tiles"].rotation = Script.FACE_UP
+
+Expansion.componentMetadata["Settlement Events"].reset = false
+Expansion.componentMetadata["Settlement Events"].respawn = false
+Expansion.componentMetadata["Settlement Events"].shuffle = true
+
+Expansion.componentMetadata["Innovations"].location = "Innovation Archive"
+Expansion.componentMetadata["Innovations"].rename = "Innovation Archive"
+Expansion.componentMetadata["Innovations"].reset = false
+Expansion.componentMetadata["Innovations"].respawn = false
+
+Expansion.componentMetadata["Settlement Locations"].rotation = Script.FACE_UP
+Expansion.componentMetadata["Settlement Locations"].reset = false
+Expansion.componentMetadata["Settlement Locations"].respawn = false
+
+Expansion.componentMetadata["Rare Gear"].type = "Gear"
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.RegisterExpansion(expansion)
+    Log.Debugf("Registering expansion %s", expansion.name)
+
+    table.insert(Expansion.expansions, expansion.name)
+
+
+    local components = {}
+    if expansion.components then
+        for _, componentType in ipairs(EXPANSION_COMPONENT_TYPES) do
+            local value = expansion.components[componentType]
+            components[componentType] = type(value) != "table" and { value } or value
+        end
+    end
+    Expansion.components[expansion.name] = components
+
+
+    Expansion.archiveOverrides[expansion.name] = expansion.archiveOverrides
+
+    for _, campaign in ipairs(expansion.campaigns or {}) do
+        table.insert(Expansion.campaigns, {
+            name = campaign.name,
+            expansion = expansion.name,
+            years = campaign.years,
+            timeline = campaign.timeline,
+        })
+    end
+
+    Terrain.RegisterTerrainData(expansion.terrain)
+    Terrain.RegisterTerrainTileSizes(expansion.terrainTileSizes)
+    SettlementBoard.RegisterSettlementLocationGear(expansion.settlementLocationGear)
+    Armor.RegisterArmorStats(expansion.armorStats)
+    Weapons.RegisterWeaponStats(expansion.weaponStats)
+    Guids.RegisterNamedGuids(expansion.namedGuids)
+    Archive.RegisterArchiveEntries(expansion.archiveEntries)
+    Rules.RegisterRulebooks(expansion.rulebooks)
+    Hunt.RegisterSetups(expansion.setups)
+    Showdown.RegisterSetups(expansion.setups)
+    Showdown.RegisterMonsterSizes(expansion.monsterSizes)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.Setup(campaign, expansions)
+    Expansion.SetupArgs = { campaign, expansions }
+    startLuaCoroutine(self, "Expansions_SetupCoroutine")
+end
+
+function Expansions_SetupCoroutine()
+    local campaign, expansions = Expansion.SetupArgs[1], Expansion.SetupArgs[2]
+
+    -- Always include core
+    expansions["Core"] = true
+
+    local script = Script.Create("Clean Area", false)
+    local cleanupStage = Script.Stage(script, "Cleanup")
+    for name, metadata in pairs(Expansion.componentMetadata) do
+        Script.CleanAction(cleanupStage, {
+            from = metadata.location,
+            types = { metadata.type },
+            tags = { "Deck", "Card", "Bag" },
+            ignoreBlocking = false,
+        })
+    end
+    local _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj != nil then
+        Log.Broadcastf("Found an object %s(%s) blocking %s. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag, locationBlocked)
+        return 1
+    end
+
+    -- Special case for Community Edition: it's just a re-index of the script archive before the actual deck construction
+    local communityEditionEnabled = false
+    if expansions["Community Edition"] then
+        local defaultIntimacyReference = getObjectFromGUID("5556e1")
+        if defaultIntimacyReference then
+            defaultIntimacyReference.setState(2)
+        end
+    else
+        local ceIntimacyReference = getObjectFromGUID("9bdc6a")
+        if ceIntimacyReference then
+            ceIntimacyReference.setState(1)
+        end
+    end
+
+
+    local script = Script.Create("Setup Expansion", false)
+    -- The first time we spawn a component, we save it to an ID
+    -- Subsequent adds will directly PutAction() to this id to add to the deck or bag
+    -- This works with terrain tiles, because the Core Terrain Tiles are already a bag and are taken out first (and therefore saved to a script ID)
+    local componentContainerIds = {}
+
+    for _, expansion in ipairs(Expansion.expansions) do
+        if expansions[expansion] then
+            if Expansion.archiveOverrides[expansion] then
+                Log.Debugf("Overriding archive entries for %s", expansion)
+                Archive.RegisterArchiveEntries(Expansion.archiveOverrides[expansion], true)
+            end
+
+            for componentType, components in pairs(Expansion.components[expansion]) do
+                Log.Debugf("Adding stage for %s %s", expansion, componentType)
+
+                local addComponentStage = Script.Stage(script, "Add "..expansion.." "..componentType)
+                Script.PrintAction(addComponentStage, "Adding %s %s...", expansion, componentType)
+
+                local metadata = Expansion.componentMetadata[componentType]
+                for _, component in ipairs(components) do
+                    if componentContainerIds[componentType] then
+                        Script.TakeAction(addComponentStage, {
+                            name = component,
+                            type = metadata.type,
+                            to = "id:"..componentContainerIds[componentType],
+                            rotation = metadata.rotation,
+                        })
+                    else
+                        Script.TakeAction(addComponentStage, {
+                            name = component,
+                            type = metadata.type,
+                            to = metadata.location,
+                            rotation = metadata.rotation,
+                            saveId = componentType,
+                        })
+                        componentContainerIds[componentType] = componentType
+                    end
+                    Script.WaitAction(addComponentStage, 5)
+                end
+            end
+        end
+    end
+
+    local waitSettleStage = Script.Stage(script, "Wait for Decks to Settle")
+    Script.PrintAction(waitSettleStage, "Waiting for decks to settle before resetting...")
+    Script.WaitAction(waitSettleStage, 60)
+
+    local nameDecksStage = Script.Stage(script, "Name Decks")
+    for componentType, metadata in pairs(Expansion.componentMetadata) do
+        if componentContainerIds[componentType] and metadata.rename then
+            Script.NameAction(nameDecksStage, {
+                from = metadata.location,
+                name = metadata.rename,
+                gmNotes = metadata.type,
+            })
+        end
+    end
+
+    local resetArchivesStage = Script.Stage(script, "Reset Archive")
+    for componentType, metadata in pairs(Expansion.componentMetadata) do
+        if metadata.reset then
+            -- reset the archives regardless of whether a obj was built
+            Script.PrintAction(resetArchivesStage, "Resetting %s", componentType)
+            Script.ResetAction(resetArchivesStage, {
+                from = "obj:"..componentType.." Archive",
+            })
+        end
+    end
+
+    local putDecksStage = Script.Stage(script, "Put Deck into Archive")
+    for componentType, metadata in pairs(Expansion.componentMetadata) do
+        if componentContainerIds[componentType] and metadata.reset then
+            Script.PrintAction(putDecksStage, "Saving %s to archive...", componentType)
+            Script.PutAction(putDecksStage, {
+                from = metadata.location,
+                to = "obj:"..componentType.." Archive",
+            })
+        end
+    end
+
+    for componentType, metadata in pairs(Expansion.componentMetadata) do
+        if componentContainerIds[componentType] and metadata.respawn then
+            local resetStage = Script.Stage(script, "Respawning %s", componentType)
+            Script.PrintAction(resetStage, "Respawning %s...", componentType)
+            Script.TakeAction(resetStage, {
+                name = componentType,
+                type = metadata.type,
+                to = metadata.location,
+                rotation = metadata.rotation,
+            })
+        end
+    end
+
+    local shuffleStage = Script.Stage(script, "Shuffling Expansion.componentMetadata", obj)
+    for componentType, metadata in pairs(Expansion.componentMetadata) do
+        if componentContainerIds[componentType] and metadata.shuffle then
+            Script.ShuffleAction(shuffleStage, { from = metadata.location })
+        end
+    end
+
+    local savedObjects = Script.Run(script)
+    Assert(savedObjects)
+
+     local innovationArchive = savedObjects["id:Innovations"]
+     Assert(innovationArchive, "No saved object with id 'id:Innovation Archive'")
+     -- starting locations
+     -- starting innovations
+
+     Log.Printf("Setting up %s timeline", campaign.name)
+     Settlement.ClearTimeline()
+     for year, events in pairs(campaign.timeline) do
+         for event, eventName in ipairs(events) do
+             local rulebook, state = Rules.GetRulebookAndState(eventName)
+             Log.Debugf("rulebook/state for %s: %s, %d", eventName, rulebook, state)
+             Settlement.AddTimelineEvent({ year = year, event = event, name = eventName, rulebook = rulebook, state = state })
+         end
+         if events.showdown then
+             Settlement.AddTimelineEvent({ year = year, event = 6, name = events.showdown, isShowdown = true })
+         end
+     end
+    Settlement.OpenSettlementPanel()
+
+    Log.Broadcastf("Done adding expansions.")
+
+    Expansion.enabledExpansions = expansions
+    if communityEditionEnabled then
+        Expansion.enabledExpansions["Community Edition"] = true
+        Wait.frames(
+            function() Log.Broadcastf("Please replace any existing Settlement Locations and Innovations with their Community Edition versions.") end,
+            120
+        )
+        Wait.frames(
+            function()
+                Log.Broadcastf("Boxes for CE Innovations and Settlement Locations have been highlighted.")
+                Util.Highlight(Guids.GetObject("Community Edition Archive"))
+                Util.Highlight(Guids.GetObject("Community Edition Settlement Locations"))
+            end,
+            240
+        )
+    end
+
+    return 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.Save()
+    return Expansion.enabledExpansions
+end
+
+---------------------------------------------------------------------------------------------------
+
+Expansion.campaignSetup = {
+    open = false,
+    selectedCampaignIndex = 1,
+    selectedExpansions = { Core = true },
+}
+
+function Expansion.CloseCampaignSetup()
+    self.UI.hide("Expansion_CampaignSetupPanel")
+    Expansion.campaignSetup.open = false
+end
+
+function Expansion.OpenCampaignSetup()
+    self.UI.show("Expansion_CampaignSetupPanel")
+    Expansion.campaignSetup.open = true
+end
+
+function Expansion_CampaignExpansionButton_OnClick()
+    if Expansion.campaignSetupPanelOpen then
+        Expansion.CloseCampaignSetup()
+    else
+        Expansion.OpenCampaignSetup()
+    end
+end
+
+function Expansion_CampaignOptionButton_OnSelect(campaignIndex)
+    Log.Debugf("Campaign %d: %s selected", campaignIndex, Expansion.campaigns[campaignIndex].name)
+    Expansion.campaignSetup.selectedCampaignIndex = campaignIndex
+end
+
+function Expansion_ExpansionCheckButton_OnCheck(expansionName, checked)
+    Log.Debugf("Expansion %s %s", expansionName, checked and "selected" or "deselected")
+    Expansion.campaignSetup.selectedExpansions[expansionName] = checked
+end
+
+function Ui.OptionGroup(parent, params)
+    local optionGroup = {
+        parent = parent,
+        id = params.id,
+        options = {},
+        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
+        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
+        textColor = params.textColor or Ui.LIGHT_BROWN,
+        fontSize = params.fontSize or 16,
+        onClick = "OptionGroup_"..params.id.."_OnClick",
+    }
+
+    self.SetVar(optionGroup.onClick, function(_, _, id)
+        for _, option in ipairs(optionGroup.options) do
+            if option.id != id then
+                self.UI.setAttributes(option.id, {
+                    colors = optionGroup.unselectedColors,
+                    textColor = optionGroup.textColor,
+                })
+            else
+                self.UI.setAttributes(option.id, {
+                    colors = optionGroup.selectedColors,
+                    textColor = optionGroup.textColor,
+                })
+                params.onSelect(option.value)
+            end
+        end
+    end)
+
+    return optionGroup
+end
+
+function Ui.OptionButton(optionGroup, params)
+    local id = optionGroup.id..(#optionGroup.options + 1)
+    table.insert(optionGroup.options, { id = id, value = params.value })
+
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = params.text,
+            colors = params.selected and optionGroup.selectedColors or optionGroup.unselectedColors,
+            textColor = optionGroup.textColor,
+            fontSize = optionGroup.fontSize,
+            textAlignment = "MiddleCenter",
+            onClick = optionGroup.onClick,
+        },
+    }
+    table.insert(optionGroup.parent.children, elem)
+    return elem
+end
+
+function Ui.CheckButton(parent, params)
+    local checkButton = {
+        id = params.id,
+        value = params.value,
+        checked = params.checked,
+        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
+        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
+        textColor = params.textColor or Ui.LIGHT_BROWN,
+        fontSize = params.fontSize or 16,
+        onCheck = params.onCheck,
+    }
+
+    local onClick = params.id.."_OnClick"
+    self.SetVar(onClick, function(_, _, id)
+        if checkButton.checked then
+            self.UI.setAttributes(checkButton.id, {
+                colors = checkButton.unselectedColors,
+                textColor = checkButton.textColor,
+            })
+            checkButton.checked = nil
+        else
+            self.UI.setAttributes(checkButton.id, {
+                colors = checkButton.selectedColors,
+                textColor = checkButton.textColor,
+            })
+            checkButton.checked = true
+        end
+
+        params.onCheck(checkButton.value, checkButton.checked)
+    end)
+
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = params.id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = params.text,
+            colors = params.checked and checkButton.selectedColors or checkButton.unselectedColors,
+            textColor = checkButton.textColor,
+            fontSize = checkButton.fontSize,
+            textAlignment = "MiddleCenter",
+            onClick = onClick,
+        },
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+function Expansion_CampaignSetup_CloseButton_OnClick()
+    Expansion.CloseCampaignSetup()
+end
+
+function Expansion_CampaignSetup_CancelButton_OnClick()
+    Expansion.CloseCampaignSetup()
+end
+
+function Expansion_CampaignSetup_BeginCampaignButton_OnClick()
+    local selectedCampaign = Expansion.campaigns[Expansion.campaignSetup.selectedCampaignIndex]
+    if not Expansion.campaignSetup.selectedExpansions[selectedCampaign.expansion] then
+        Log.Broadcastf("%s requires %s expansion", selectedCampaign.name, selectedCampaign.expansion)
+        return
+    end
+
+    Expansion.CloseCampaignSetup()
+    Expansion.Setup(selectedCampaign, Expansion.campaignSetup.selectedExpansions)
+end
+
+function Expansion.Init(saveState, ui)
+    Expansion.enabledExpansions = saveState or Expansion.enabledExpansions
+    for expansion, _ in pairs(Expansion.enabledExpansions) do
+        if Expansion.archiveOverrides[expansion] then
+            Archive.RegisterArchiveEntries(Expansion.archiveOverrides[expansion], true)
+        end
+    end
+
+    Ui.ImageButton(ui, { rectAlignment = "UpperLeft", x = 80, y = -10, width = 200, height = 30, image = "CampaignExpansionsButton", onClick = "Expansion_CampaignExpansionButton_OnClick" })
+
+    local campaignSetupPanel = Ui.Panel(ui, { id = "Expansion_CampaignSetupPanel", width = 885, height = 723, active = true })
+    Ui.Image(campaignSetupPanel, { image = "CampaignSetup", width = 885, height = 723 })
+    Ui.InvisibleButton(campaignSetupPanel, { x = 845, y = 683, width = 30, height = 30, onClick = "Expansion_CampaignSetup_CloseButton_OnClick"})
+
+    local x = 128
+    local y = 568
+    local campaignOptionGroup = Ui.OptionGroup(campaignSetupPanel, { id = "Expansion_Campaign", onSelect = Expansion_CampaignOptionButton_OnSelect })
+    for i, campaign in ipairs(Expansion.campaigns) do
+        Log.Debugf("Adding campaign %s", campaign.name)
+        Ui.OptionButton(campaignOptionGroup, { x = x, y = y, width = 200, height = 30, text = campaign.name, selected = (i == Expansion.campaignSetup.selectedCampaignIndex), value = i })
+        x = x + 200 + 15
+    end
+
+    local x = 20
+    local y = 425
+    for i, expansion in ipairs(Expansion.expansions) do
+        if expansion != "Core" then
+            Log.Debugf("Adding expansion %s", expansion)
+            Ui.CheckButton(campaignSetupPanel, { id = "Expansion_"..expansion.."Button", x = x, y = y, width = 200, height = 30, text = expansion, value = expansion, onCheck = Expansion_ExpansionCheckButton_OnCheck })
+            x = x + 200 + 15
+            if x > 665 then
+                x = 20
+                y = y - 30 - 15
+            end
+        end
+    end
+
+    Ui.InvisibleButton(campaignSetupPanel, { x = 117, y = 20, width = 300, height = 60, onClick = "Expansion_CampaignSetup_BeginCampaignButton_OnClick"})
+    Ui.InvisibleButton(campaignSetupPanel, { x = 468, y = 20, width = 300, height = 60, onClick = "Expansion_CampaignSetup_CancelButton_OnClick"})
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Expansion

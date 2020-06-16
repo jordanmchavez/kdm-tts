@@ -1,0 +1,322 @@
+return {
+    name = "Sunstalker",
+
+    components = {
+        ["Abilities"] = "Sunstalker Abilities",
+        ["Fighting Arts"] = "Sunstalker Fighting Arts",
+        ["Secret Fighting Arts"] = "Sunstalker Secret Fighting Arts",
+        ["Disorders"] = "Sunstalker Disorders",
+        ["Weapon Specializations/Masteries"] = "Katana",
+        ["Armor Sets"] = "Cycloid Scale Armor",
+        ["Strange Resources"] = "Sunstalker Strange Resources",
+        ["Terrain"] = "2 Salt Sculptures",
+        ["Terrain Tiles"] = { "Salt Sculpture" },
+        ["Innovations"] = "Sunstalker Innovations",
+        ["Rare Gear"] = "Sunstalker Rare Gear",
+        ["Settlement Locations"] = "Sunstalker Settlement Locations",
+        ["Monsters"] = "Sunstalker",
+    },
+
+    campaigns = {
+        {
+            name = "People of the Sun",
+            years = 25,
+            timeline = {
+                [1] = { "The Pool and the Sun" },
+                [2] = { "Endless Screams" },
+                [4] = { "Sun Dipping" },
+                [5] = { "The Great Sky Gift" },
+                [7] = { "Phoenix Feather" },
+                [10] = { "Birth of Color" },
+                [11] = { "Principle: Conviction" },
+                [12] = { "Sun Dipping" },
+                [13] = { "The Great Sky Gift" },
+                [19] = { "Sun Dipping" },
+                [20] = { "Final Gift" },
+                [21] = { showdown = "Nemesis Encounter - King's Man Lvl 3" },
+                [22] = { showdown = "Nemesis Encounter - ButcherLvl 3" },
+                [23] = { showdown = "Nemesis Encounter - King's Man Lvl 3" },
+                [24] = { showdown = "Nemesis Encounter - The Hand Lvl 3" },
+                [25] = { "The Great Devourer" },
+            }
+        }
+    },
+
+    terrain = {
+        ["2 Salt Sculptures"] = { terrainTile = "Salt Sculpture", count = 2 },
+    },
+
+    terrainTileSizes = {
+        ["Salt Sculpture"] = { x = 1, y = 2 },
+    },
+
+    settlementLocationGear = {
+        ["Skyreef Sanctuary"] = "Skyreef Sanctuary Gear",
+    },
+
+    armorStats = {
+        ["Cycloid Scale Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Cycloid Scale Hood"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Cycloid Scale Sleeves"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Cycloid Scale Jacket"]  = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
+        ["Cycloid Scale Skirt"]   = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
+        ["Cycloid Scale Shoes"]   = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
+        ["Apostle Crown"]         = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+
+    weaponStats = {
+        ["Denticle Axe"]    = { speed = 2, accuracy = 6, strength = 5 },
+        ["Ink Blood Bow"]   = { speed = 2, accuracy = 7, strength = 8, deadly = 1 },
+        ["Ink Sword"]       = { speed = 4, accuracy = 4, strength = 4, deadly = 3 },
+        ["Skleaver"]        = { speed = 1, accuracy = 5, strength = 10 },
+        ["Sky Harpoon"]     = { speed = 1, accuracy = 5, strength = 5 , savage = true},
+        ["Sunshark Arrows"] = { speed = 1, accuracy = 4, strength = 6, sharp = true },
+        ["Sunshark Bow"]    = { speed = 3, accuracy = 6, strength = 0, sharp = true },
+        ["Sunspot Dart"]    = { speed = 4, accuracy = 7, strength = 3, deadly = 1 },
+        ["Prism Mace"]      = { speed = 3, accuracy = 6, strength = 10 },
+        ["Sunring Bow"]     = { speed = 2, accuracy = 4, strength = 4 },
+    },
+
+    locations = {
+        ["Sun Dial"] = {
+            center = { x = -10.535775, y = 10.801341, z = 0.399195 },
+            size = { x = 2, y = 2, z = 4 },
+            objectName = "Showdown Board",
+        },
+    },
+
+    namedGuids = { ["Sunstalker Archive"] = "2fb312" },
+
+    archiveEntries = {
+        archive = "Sunstalker Archive",
+        entries = {
+            { "Sunstalker Rules", "Rulebook" },
+
+            { "Sunstalker Abilities", "Abilities" },
+            { "Sunstalker Fighting Arts", "Fighting Arts" },
+            { "Sunstalker Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Sunstalker Disorders", "Disorders" },
+            { "Katana", "Weapon Specializations/Masteries" },
+            { "Cycloid Scale Armor", "Armor Sets" },
+            { "Sunstalker Strange Resources", "Strange Resources" },
+            { "Sunstalker Resources", "Monster Resources" },
+
+            { "2 Salt Sculptures", "Terrain" },
+            { "Salt Sculpture", "Terrain Tiles" },
+            { "Sun Dial", "Terrain Tiles" },
+
+            { "Sunstalker Innovations", "Innovations" },
+
+            { "Sunstalker Settlement Locations", "Settlement Locations" },
+
+            { "Skyreef Sanctuary Gear", "Gear" },
+            { "Sunstalker Rare Gear", "Gear" },
+
+            { "Sunstalker", "Monster Figurine" },
+
+            { "Sunstalker Hunt Events", "Monster Hunt Events" },
+            { "Sky Fishing", "Special Hunt Events" },
+
+            { "Shades", "AI" },
+            { "Sunstalker Info", "AI" },
+            { "Sunstalker Basic Action", "AI" },
+            { "Sunstalker Basic AI", "AI" },
+            { "Sunstalker Advanced AI", "AI" },
+            { "Sunstalker Legendary AI", "AI" },
+            { "Sunstalker Special AI", "AI" },
+            { "Sunstalker Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Sunstalker Rules",
+            pages = {
+                ["Sunstalker Rules"] = {
+                    keywords = { "Sunstalker", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["Promise Under the Sun"] = {
+                    keywords = { "Promise", "Under", "the", "Sun" },
+                    state = 3,
+                },
+                ["Showdown: Sunstalker"] = {
+                    keywords = { "Showdown:", "Sunstalker" },
+                    state = 5,
+                },
+                ["Conquer Your Shadow"] = {
+                    keywords = { "Conquer", "Your", "Shadow" },
+                    state = 6,
+                },
+                ["Sky Fishing"] = {
+                    keywords = { "Sky", "Fishing" },
+                    state = 7,
+                },
+                ["The Pool and the Sun"] = {
+                    keywords = { "Pool", "and", "the", "Sun" },
+                    state = 8,
+                },
+                ["Intimacy (Sunstalker)"] = {
+                    keywords = { "Intimacy" },
+                    state = 9,
+                },
+                ["The Great Sky Gift"] = {
+                    keywords = { "The", "Great", "Sky", "Gift" },
+                    state = 10,
+                },
+                ["Birth of Color"] = {
+                    keywords = { "Birth", "Color" },
+                    state = 11,
+                },
+                ["Final Gift"] = {
+                    keywords = { "Final", "Gift" },
+                    state = 12,
+                },
+                ["Umbilical Symbiosis"] = {
+                    keywords = { "Umbilical", "Symbiosis" },
+                    state = 13,
+                },
+                ["Edged Tonometry"] = {
+                    keywords = { "Edged", "Tonometry" },
+                    state = 14,
+                },
+                ["Sun Dipping"] = {
+                    keywords = { "Sun", "Dipping" },
+                    state = 15,
+                },
+                ["Warriors of the Sun"] = {
+                    keywords = { "Warriors", "of", "the", "Sun" },
+                    state = 16,
+                },
+                ["The Great Devourer"] = {
+                    keywords = { "The", "Great", "Devourer" },
+                    state = 17,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Sunstalker"] = 4,
+    },
+
+    setups = {
+        ["Sunstalker"] = {
+            rules = { "Sunstalker Rules", 5 },
+            huntTrack = { "H", "M", "M", "H", "H", "O", "M", "H", "H", "M", "H" },
+            position = "(11.5, 8.5)",
+            rotation = { 0, -90, 0 },
+            playerPositions = { "(1, 7)", "(1, 8)", "(1, 9)", "(1, 10)" },
+            playerRotations = { { 0, 90, 0 }, { 0, 90, 0 }, { 0, 90, 0 }, { 0, 90, 0 } },
+            specialTerrain = {
+                {
+                    terrainTile = "Sun Dial",
+                    position = "Sun Dial",
+                    rotation = { 0, 180, 0 },
+                },
+            },
+            miscObjects = { { name = "Shades", type = "AI" } },
+            fixedTerrain = {
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(3, 3.5)", "(10.5, 3)" },
+                    rotations = { { 0, 180, 0 }, { 0, 90, 0 } },
+                },
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(3, 13.5)", "(10.5, 14)" },
+                    rotations = { { 0, 180, 0 }, { 0, 90, 0 } },
+                },
+                {
+                    terrain = "2 Salt Sculptures",
+                    positions = { "(18, 5.5)", "(18, 11.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+            },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 4,
+                    showdown = {
+                        basic  = 7,
+                        advanced = 2,
+                        legendary = 1,
+                        starting = {
+                            special = { "Solar Energy", "Sun Dial", "Light & Shadow", "Shade", "Shadows of Darkness" },
+                        },
+                        movement = 16,
+                        toughness = 10,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 8,
+                    showdown = {
+                        basic  = 9,
+                        advanced = 5,
+                        legendary = 1,
+                        starting = {
+                            special = { "Solar Energy", "Sun Dial", "Light & Shadow", "Shade", "Shadows of Darkness", "Living Shadows" },
+                        },
+                        movement = 16,
+                        toughness = 12,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 11,
+                    showdown = {
+                        basic  = 12,
+                        advanced = 6,
+                        legendary = 2,
+                        starting = {
+                            special = { "Solar Energy", "Sun Dial", "Light & Shadow", "Shade", "Shadows of Darkness", "Living Shadows", "Monochrome" },
+                        },
+                        movement = 16,
+                        toughness = 16,
+                        speed = 2,
+                        damage = 2,
+                        accuracy = 1,
+                        luck = 1,
+                    },
+                },
+                {
+                    name = "The Great Devourer",
+                    level = 3,
+                    showdown = {
+                        rules = { "Sunstalker Rules", 17 },
+                        basic  = 12,
+                        advanced = 6,
+                        legendary = 2,
+                        starting = {
+                            special = { "Solar Energy", "Sun Dial", "Light & Shadow", "Shade", "Shadows of Darkness", "Living Shadows", "Monochrome" },
+                        },
+                        movement = 16,
+                        toughness = 18,
+                        speed = 2,
+                        damage = 2,
+                        accuracy = 1,
+                        luck = 2,
+                        fixedTerrain = {
+                            {
+                                terrain = "3 Stone Columns",
+                                positions = { "(4, 5.5)", "(11.5, 3)", "(18, 5.5)" },
+                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 180, 0 } },
+                            },
+                            {
+                                terrain = "3 Stone Columns",
+                                positions = { "(4, 11.5)", "(11.5, 14)", "(18, 11.5)" },
+                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 180, 0 } },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+}

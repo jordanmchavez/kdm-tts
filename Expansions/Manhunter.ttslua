@@ -1,0 +1,176 @@
+return {
+    name = "Manhunter",
+
+    components = {
+        ["Fighting Arts"] = "Manhunter Fighting Arts",
+        ["Secret Fighting Arts"] = "Eternal Will",
+        ["Strange Resources"] = "Manhunter Strange Resources",
+        ["Innovations"] = "Manhunter Innovations",
+        ["Rare Gear"] = "Manhunter Rare Gear",
+        ["Monsters"] = "Manhunter",
+    },
+
+    armorStats = {
+        ["Manhunter's Hat"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+    namedGuids = { ["Manhunter Archive"] = "e5fe39" },
+
+    archiveEntries = {
+        archive = "Manhunter Archive",
+        entries = {
+            { "Manhunter Rules", "Rulebook" },
+
+            { "Manhunter Fighting Arts", "Fighting Arts" },
+            { "Eternal Will", "Secret Fighting Arts" },
+            { "Manhunter Strange Resources", "Strange Resources" },
+
+            { "Manhunter Innovations", "Innovations" },
+
+            { "Manhunter Rare Gear", "Gear" },
+
+            { "Manhunter", "Monster Figurine" },
+
+            { "Manhunter Info", "AI" },
+            { "Manhunter Basic Action", "AI" },
+            { "Manhunter Basic AI", "AI" },
+            { "Manhunter Advanced AI", "AI" },
+            { "Manhunter Legendary AI", "AI" },
+            { "Manhunter Special AI", "AI" },
+            { "Manhunter Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Manhunter Rules",
+            pages = {
+                ["Manhunter Rules"] = {
+                    keywords = { "Manhunter", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["The Hanged Man"] = {
+                    keywords = { "The", "Hanged", "Man" },
+                    state = 2,
+                },
+                ["Showdown: Manhunter"] = {
+                    keywords = { "Showdown:", "Manhunter" },
+                    state = 5,
+                },
+                ["Lottery"] = {
+                    keywords = { "Lottery" },
+                    state = 6,
+                },
+                ["Death Pit"] = {
+                    keywords = { "Death", "Pit" },
+                    state = 7,
+                },
+                ["Sonorous Rest"] = {
+                    keywords = { "Sonorous", "Rest" },
+                    state = 8,
+                },
+                ["Bleeding Heart"] = {
+                    keywords = { "Bleeding", "Heart" },
+                    state = 9,
+                },
+                ["Tools of War"] = {
+                    keywords = { "Tools", "of", "War" },
+                    state = 10,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Manhunter"] = 2,
+    },
+
+    setups = {
+        ["Manhunter"] = {
+            rules = { "Manhunter Rules", 5 },
+            resourcesDeck = false,
+            position = "(11.5, 8.5)",
+            playerPositions = { "(12, 13)", "(7, 8)", "(11, 4)", "(16, 9)" },
+            playerRotations = { { 0, 0, 0 }, { 0, 90, 0 }, { 0, 180, 0 }, { 0, 270, 0 } },
+            fixedTerrain = {
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(8.5, 7)", "(8.5, 10)", "(11, 12.5)" },
+                    rotations = { { 0, 90, 0 }, { 0, 90, 0 }, { 0, 0, 0 } },
+                },
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(14.5, 7)", "(14.5, 10)", "(12, 4.5)" },
+                    rotations = { { 0, -90, 0 }, { 0, -90, 0 }, { 0, 180, 0 } },
+                },
+            },
+            randomTerrain = 1,
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    showdown = {
+                        starting = {
+                            special = { "Short Stride", "Tombstone", "Gun Action", "Gritty Armament" },
+                        },
+                        basic = 7,
+                        advanced = 3,
+                        removeHitLocations = { "Mangled Groin", "Stake", "Stake", "Stake", "Stake", "Man Trap", "Man Trap", "Man Trap" },
+                        movement = 6,
+                        toughness = 8,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    showdown = {
+                        starting = {
+                            special = { "Full Stride", "Tombstone", "Gun Action", "Gritty Armament" },
+                        },
+                        basic = 7,
+                        advanced = 6,
+                        removeHitLocations = { "Mangled Groin", "Stake", "Stake", "Stake", "Stake", "Man Trap", "Man Trap", "Man Trap" },
+                        movement = 7,
+                        toughness = 11,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    showdown = {
+                        starting = {
+                            special = { "Full Stride", "Tombstone", "Gun Action", "Gritty Armament" },
+                        },
+                        basic = 8,
+                        advanced = 7,
+                        legendary = 1,
+                        removeHitLocations = { "Mangled Groin", "Man Trap", "Man Trap", "Man Trap" },
+                        movement = 8,
+                        toughness = 11,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 4",
+                    level = 4,
+                    showdown = {
+                        starting = {
+                            special = { "Full Stride", "Tombstone", "Gun Action", "Gritty Armament" },
+                        },
+                        basic = 8,
+                        advanced = 8,
+                        legendary = 2,
+                        removeHitLocations = { "Mangled Groin" },
+                        movement = 9,
+                        toughness = 13,
+                        speed = 2,
+                        damage = 2,
+                        accuracy = 2,
+                    },
+                },
+            },
+        },
+    },
+}

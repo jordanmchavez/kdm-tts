@@ -1,0 +1,225 @@
+return {
+    name = "Dung Beetle Knight",
+
+    components = {
+        ["Fighting Arts"] = "Dung Beetle Knight Fighting Arts",
+        ["Secret Fighting Arts"] = "Beetle Strength",
+        ["Disorders"] = "Dung Beetle Knight Disorders",
+        ["Strange Resources"] = "Dung Beetle Knight Strange Resources",
+        ["Tactics"] = "Dung Beetle Knight Tactics",
+        ["Armor Sets"] = "Rolling Armor",
+        ["Terrain"] = "Resin Dung Ball",
+        ["Terrain Tiles"] = { "Resin Dung Ball" },
+        ["Innovations"] = "Dung Beetle Knight Innovations",
+        ["Settlement Locations"] = "Wet Resin Crafter",
+        ["Rare Gear"] = "Dung Beetle Knight Rare Gear",
+        ["Monsters"] = "Dung Beetle Knight",
+    },
+
+    terrainTileSizes = {
+        ["Resin Dung Ball"] = 2,
+    },
+
+    settlementLocationGear = {
+        ["Wet Resin Crafter"] = "Wet Resin Crafter Gear",
+    },
+
+    armorStats = {
+        ["Rolling Armor"]           = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Calcified Greaves"]       = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
+        ["Calcified Shoulder Pads"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
+        ["Century Greaves"]         = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Century Shoulder Pads"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["DBK Errant Badge"]        = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Scarab Circlet"]          = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Trash Crown"]             = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+
+    weaponStats = {
+        ["Digging Claw"]               = { speed = 1, accuracy = 4, strength = 5, paired = true },
+        ["Calcified Digging Claw"]     = { speed = 1, accuracy = 4, strength = 5, sharp = true, paired = true },
+        ["Calcified Juggernaut Blade"] = { speed = 1, accuracy = 5, strength = 9, slow = true },
+        ["Calcified Zanbato"]          = { speed = 1, accuracy = 5, strength = 8, slow = true, deadly = 1 },
+    },
+
+    namedGuids = { ["Dung Beetle Knight Archive"] = "d7ba5b" },
+
+    archiveEntries = {
+        archive = "Dung Beetle Knight Archive",
+        entries = {
+            { "Dung Beetle Knight Rules", "Rulebook" },
+
+            { "Momentum", "Abilities" },
+            { "Steadfast", "Abilities" },
+
+            { "Dung Beetle Knight Fighting Arts", "Fighting Arts" },
+            { "Beetle Strength", "Secret Fighting Arts" },
+            { "Dung Beetle Knight Disorders", "Disorders" },
+            { "Dung Beetle Knight Strange Resources", "Strange Resources" },
+            { "Dung Beetle Knight Tactics", "Tactics" },
+            { "Rolling Armor", "Armor Sets" },
+            { "Dung Beetle Knight Resources", "Monster Resources" },
+
+            { "Resin Dung Ball", "Terrain" },
+            { "Resin Dung Ball", "Terrain Tiles" },
+
+            { "Dung Beetle Knight Innovations", "Innovations" },
+
+            { "Wet Resin Crafter Gear", "Gear" },
+            { "Dung Beetle Knight Rare Gear", "Gear" },
+
+            { "Wet Resin Crafter", "Settlement Locations" },
+
+            { "Dung Beetle Knight", "Monster Figurine" },
+
+            { "Dung Beetle Knight Hunt Events", "Monster Hunt Events" },
+
+            { "Dung Beetle Knight Info", "AI" },
+            { "Dung Beetle Knight Basic Action", "AI" },
+            { "Dung Beetle Knight Basic AI", "AI" },
+            { "Dung Beetle Knight Advanced AI", "AI" },
+            { "Dung Beetle Knight Legendary AI", "AI" },
+            { "Dung Beetle Knight Special AI", "AI" },
+            { "Dung Beetle Knight Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Dung Beetle Knight Rules",
+            pages = {
+                ["Dung Beetle Knight Rules"] = {
+                    keywords = { "Dung", "Beetle", "Knight", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["Rumbling in the Dark"] = {
+                    keywords = { "Rumbling", "in", "the", "Dark" },
+                    state = 3,
+                },
+                ["Showdown: Dung Beetle Knight"] = {
+                    keywords = { "Showdown:", "Dung", "Beetle", "Knight" },
+                    state = 6,
+                },
+                ["Spelunking of Death"] = {
+                    keywords = { "Spelunking", "of", "Death" },
+                    state = 7,
+                },
+                ["Underground Sow"] = {
+                    keywords = { "Underground", "Sow" },
+                    state = 8,
+                },
+                ["Black Harvest"] = {
+                    keywords = { "Black", "Harvest" },
+                    state = 9,
+                },
+                ["Secret Meeting"] = {
+                    keywords = { "Secret", "Meeting" },
+                    state = 10,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Dung Beetle Knight"] = 2,
+    },
+
+    setups = {
+        ["Dung Beetle Knight"] = {
+            rules = { "Dung Beetle Knight Rules", 6 },
+            huntTrack = { "H", "M", "M", "H", "H", "O", "M", "H", "H", "M", "H" },
+            position = "(11.5, 8.5)",
+            playerPositions = { "(10, 15)", "(11, 14)", "(12, 14)", "(13, 15)" },
+            fixedTerrain = {
+                {
+                    terrain = "Resin Dung Ball",
+                    positions = { "(11.5, 6.5)" },
+                    rotations = { { 0, 180, 0 } },
+                },
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(3, 3.5)", "(5, 8.5)", "(3, 13.5)", "(20, 3.5)", "(18, 8.5)", "(20, 13.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+                {
+                    terrain = "Bug Patch",
+                    positions = { "(11, 4)" },
+                    rotations = { { 0, 180, 0 } },
+                },
+            },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 5,
+                    showdown = {
+                        basic  = 7,
+                        advanced = 3,
+                        starting = {
+                            special = { "Baller", "Power Forward", "Separation Anxiety", "Ground Pound" },
+                        },
+                        movement = 7,
+                        toughness = 12,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 8,
+                    showdown = {
+                        basic  = 7,
+                        advanced = 6,
+                        legendary = 1,
+                        starting = {
+                            special = { "Baller", "Power Forward", "Separation Anxiety", "Ground Pound", "Heavy Load" },
+                        },
+                        movement = 7,
+                        toughness = 14,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 11,
+                    showdown = {
+                        basic  = 8,
+                        advanced = 9,
+                        legendary = 2,
+                        starting = {
+                            special = { "Baller", "Power Forward", "Separation Anxiety", "Ground Pound", "Burrow" },
+                        },
+                        movement = 8,
+                        toughness = 18,
+                        speed = 2,
+                        damage = 2,
+                        accuracy = 1,
+                        evasion = 1,
+                    },
+                },
+                {
+                    name = "The Old Master",
+                    level = 4,
+                    showdown = {
+                        rules = { "Dung Beetle Knight Rules", 10 },
+                        customBasic  = { "Backspin Shot", "Smash Shot", "Feculent Drumming", "Resin-Plated Right", "Shoulder Bash" },
+                        customAdvanced = { "Resin Sword Slash" },
+                        starting = {
+                            legendary = { "Sword Master" },
+                            special = { "Baller", "Power Forward", "Separation Anxiety", "Ground Pound" },
+                            misc = { "Berserker" },
+                        },
+                        life = 25,
+                        movement = 9,
+                        toughness = 25,
+                        speed = 2,
+                        damage = 5,
+                        accuracy = 1,
+                        luck = 3,
+                    },
+                },
+            },
+        },
+    },
+}

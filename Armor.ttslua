@@ -1,187 +1,23 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Armor")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Armor")
 
 local Armor = {
-    armorStats = {
-        ["Oxidized Beacon Shield"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-
-        ["Beacon Shield"]     = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Lantern Helm"]      = { head = 5, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Lantern Gauntlets"] = { head = 0, arms = 5, body = 0, waist = 0, legs = 0 },
-        ["Lantern Cuirass"]   = { head = 0, arms = 0, body = 5, waist = 0, legs = 0 },
-        ["Lantern Mail"]      = { head = 0, arms = 0, body = 0, waist = 5, legs = 0 },
-        ["Lantern Greaves"]   = { head = 0, arms = 0, body = 0, waist = 0, legs = 5 },
-
-        ["Scrap Shield"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-
-        ["Skull Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-
-        ["White Lion Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Lion Headdress"]        = { head = 1, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Helm"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Gauntlet"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["White Lion Coat"]       = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Lion Slayer Cape"]      = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
-        ["White Lion Skirt"]      = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
-        ["White Lion Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
-
-        ["White Lion Armor (CE)"] = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Lion Headdress (CE)"]   = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Helm (CE)"]  = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Gauntlet"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["White Lion Coat (CE)"]  = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["White Lion Skirt (CE)"] = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
-        ["White Lion Boots (CE)"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
-
-        ["Dragon Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Blast Shield"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Dragonskull Helm"] = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Dragon Gloves"]    = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
-        ["Dragon Mantle"]    = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
-        ["Dragon Belt"]      = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
-        ["Dragon Boots"]     = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-
-        ["Gorment Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Gorment Mask"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Gorment Sleeves"]    = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Regeneration Suite"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Gorment Suit"]       = { head = 0, arms = 0, body = 2, waist = 2, legs = 0 },
-        ["Gorment Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
-
-        ["Green Armor"]  = { head = 5, arms = 5, body = 5, waist = 5, legs = 5 },
-        ["Fetorsaurus"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Green Helm"]   = { head = 5, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Green Gloves"] = { head = 0, arms = 5, body = 0, waist = 0, legs = 0 },
-        ["Green Plate"]  = { head = 0, arms = 0, body = 5, waist = 0, legs = 0 },
-        ["Green Faulds"] = { head = 0, arms = 0, body = 0, waist = 5, legs = 0 },
-        ["Green Boots"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 5 },
-
-        ["Leather Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Leather Shield"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Leather Mask"]    = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Leather Bracers"] = { head = 0, arms = 3, body = 0, waist = 0, legs = 0 },
-        ["Leather Cuirass"] = { head = 0, arms = 0, body = 3, waist = 0, legs = 0 },
-        ["Leather Skirt"]   = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },
-        ["Leather Boots"]   = { head = 0, arms = 0, body = 0, waist = 0, legs = 3 },
-
-        ["Antelope Mask"]   = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Death Mask"]      = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["God Mask"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Man Mask"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Phoenix Mask"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-
-        ["Antelope Mask (CE)"]   = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["God Mask (CE)"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Man Mask (CE)"]        = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Phoenix Mask (CE)"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["White Lion Mask (CE)"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-
-        ["Phoenix Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Phoenix Helm"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Phoenix Gauntlet"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
-        ["Phoenix Plackart"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
-        ["Phoenix Faulds"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
-        ["Phoenix Greaves"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-
-        ["Phoenix Gauntlet (CE)"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
-        ["Phoenix Faulds (CE)"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
-        ["Phoenix Greaves (CE)"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-
-        ["Cloth Leggings"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 1 },
-        ["Corsair Coat"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Detective Cap"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Dormant Twilight Cloak"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Hard Breastplate"] = { head = 0, arms = 0, body = 3, waist = 0, legs = 0 },
-        ["Piranha Helm"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Scout's Tunic"] = { head = 2, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Speaker Mask"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Tabard"] = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
-        ["White Dragon Gauntlets"] = { head = 0, arms = 12, body = 0, waist = 0, legs = 0 },
-
-        ["Ancient Lion Claws"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Apostle Crown"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Dragon Vestments"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Flower Knight Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Forsaker Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Forsaker Mask (CE)"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Gloom Bracelets"] = { head = 0, arms = 6, body = 0, waist = 0, legs = 0 },
-        ["Gloom Mehndi"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Hazmat Shield"] = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Hideous Disguise"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Manhunter's Hat"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Necromancer's Eye"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Trash Crown"] = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
-
-        ["Regal Helm"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Regal Gauntlet"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
-        ["Regal Plackart"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
-        ["Regal Faulds"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
-        ["Regal Greaves"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-
-        ["Regal Helm (CE)"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Regal Gauntlet (CE)"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
-        ["Regal Plackart (CE)"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
-        ["Regal Faulds (CE)"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
-        ["Regal Greaves (CE)"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-
-        ["Blue Ring"]  = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Green Ring"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Red Ring"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-
-        ["Silk Armor"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Silk Turban"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Silk Wraps"]  = { head = 0, arms = 3, body = 0, waist = 0, legs = 0 },
-        ["Silk Robes"]  = { head = 0, arms = 0, body = 3, waist = 0, legs = 0 },
-        ["Silk Sash"]   = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },
-        ["Silk Boots"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 3 },
-
-        ["Rawhide Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Rawhide Headband"] = { head = 1, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Rawhide Gloves"]   = { head = 0, arms = 1, body = 0, waist = 0, legs = 0 },
-        ["Rawhide Vest"]     = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
-        ["Rawhide Pants"]    = { head = 0, arms = 0, body = 0, waist = 1, legs = 0 },
-        ["Rawhide Boots"]    = { head = 0, arms = 0, body = 0, waist = 0, legs = 1 },
-
-        ["Cycloid Scale Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Cycloid Scale Hood"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Cycloid Scale Sleeves"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Cycloid Scale Jacket"]  = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Cycloid Scale Skirt"]   = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
-        ["Cycloid Scale Shoes"]   = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
-
-        ["Cloth"] = { head = 0, arms = 0, body = 0, waist = 1, legs = 0 },
-
-        ["Screaming Armor"]       = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Screaming Horns"]       = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Screaming Horns (CE)"]  = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Screaming Bracers"]     = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Screaming Coat"]        = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Screaming Skirt"]       = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },
-        ["Screaming Leg Warmers"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
-
-        ["Rolling Armor"]           = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Calcified Greaves"]       = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Calcified Shoulder Pads"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Century Greaves"]         = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Century Shoulder Pads"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["DBK Errant Badge"]        = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Scarab Circlet"]          = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-
-        ["Vagabond Armor"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-
-        ["Brawler Armor"] = { head = 4, arms = 4, body = 4, waist = 4, legs = 4 },
-        ["Dancer Armor"]  = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Warlord Armor"] = { head = 5, arms = 5, body = 5, waist = 5, legs = 5 },
-
-        ["Crystal Skin"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-    }
+    armorStats = {}
 }
 
 ---------------------------------------------------------------------------------------------------
 
-function Armor.GetStats(name)
-    return Armor.armorStats[name]
+function Armor.RegisterArmorStats(armorStats)
+    for armor, stats in pairs(armorStats or {}) do
+        Assert(Armor.armorStats[armor] == nil, "Armor %s is already registered", armor)
+        Armor.armorStats[armor] = stats
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Armor.GetStats(armor)
+    return Armor.armorStats[armor]
 end
 
 ---------------------------------------------------------------------------------------------------

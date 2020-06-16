@@ -1,0 +1,169 @@
+return {
+    name = "Slenderman",
+
+    components = {
+        ["Fighting Arts"] = "Slenderman Fighting Arts",
+        ["Secret Fighting Arts"] = "Clarity of Darkness",
+        ["Disorders"] = "Slenderman Disorders",
+        ["Strange Resources"] = "Slenderman Strange Resources",
+        ["Settlement Events"] = "Slenderman Settlement Events",
+        ["Innovations"] = "Dark Water Research",
+        ["Rare Gear"] = "Slenderman Rare Gear",
+        ["Monsters"] = "Slenderman",
+    },
+
+    armorStats = {
+        ["Gloom Bracelets"] = { head = 0, arms = 6, body = 0, waist = 0, legs = 0 },
+        ["Gloom Mehndi"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+    },
+
+    weaponStats = {
+        ["Gloom-Coated Arrow"] = { speed = 5, accuracy = 6, strength = 5, deadly = 1 },
+        ["Gloom Hammer"]       = { speed = 2, accuracy = 7, strength = 13, deadly = 1 },
+        ["Gloom Katana"]       = { speed = 4, accuracy = 5, strength = 0 },
+    },
+
+    namedGuids = { ["Slenderman Archive"] = "797b30" },
+
+    archiveEntries = {
+        archive = "Slenderman Archive",
+        entries = {
+            { "Slenderman Rules", "Rulebook" },
+
+            { "Path of Gloom", "Abilities" },
+            { "Darkness Awareness", "Abilities" },
+            { "Slenderman Fighting Arts", "Fighting Arts" },
+            { "Clarity of Darkness", "Secret Fighting Arts" },
+            { "Slenderman Disorders", "Disorders" },
+            { "Slenderman Strange Resources", "Strange Resources" },
+
+            { "Slenderman Settlement Events", "Settlement Events" },
+
+            { "Dark Water Research", "Innovations" },
+
+            { "Slenderman Rare Gear", "Gear" },
+
+            { "Slenderman", "Monster Figurine" },
+
+            { "Slenderman Info", "AI" },
+            { "Slenderman Basic Action", "AI" },
+            { "Slenderman Basic AI", "AI" },
+            { "Slenderman Advanced AI", "AI" },
+            { "Slenderman Legendary AI", "AI" },
+            { "Slenderman Special AI", "AI" },
+            { "Slenderman Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Slenderman Rules",
+            pages = {
+                ["Slenderman Rules"] = {
+                    keywords = { "Slenderman", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["It's Already Here"] = {
+                    keywords = { "It's", "Its", "Already", "Here" },
+                    state = 2,
+                },
+                ["Showdown: Slenderman"] = {
+                    keywords = { "Showdown:", "Slenderman" },
+                    state = 5,
+                },
+                ["A Dark Place"] = {
+                    keywords = { "A", "Dark", "Place" },
+                    state = 6,
+                },
+                ["Light-Forging"] = {
+                    keywords = { "Light", "Forging" },
+                    state = 7,
+                },
+                ["Forgotten Fear"] = {
+                    keywords = { "Forgotten", "Fear" },
+                    state = 8,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Slenderman"] = 2,
+    },
+
+    setups = {
+        ["Slenderman"] = {
+            rules = { "Slenderman Rules", 5 },
+            resourcesDeck = false,
+            position = "(11.5, 8.5)",
+            playerPositions = { "(1, 16)", "(1, 1)", "(22, 1)", "(22, 16)" },
+            playerRotations = { { 0, 90, 0 }, { 0, 90, 0 }, { 0, -90, 0 }, { 0, -90, 0 } },
+            fixedTerrain = {
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(3, 3.5)", "(20, 3.5)", "(3, 11.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+                {
+                    terrain = "Bug Patch",
+                    positions = { "(20, 11)" },
+                    rotations = { { 0, 180, 0 } },
+                },
+            },
+            randomTerrain = 1,
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    showdown = {
+                        survivorStatus = { "Madness Inversion", "Madness Inversion", "Madness Inversion", "Madness Inversion" },
+                        starting = {
+                            special = { "Ensnare", "Gloom" },
+                        },
+                        basic = 8,
+                        advanced = 5,
+                        movement = 6,
+                        toughness = 11,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    showdown = {
+                        survivorStatus = { "Madness Inversion", "Madness Inversion", "Madness Inversion", "Madness Inversion" },
+                        starting = {
+                            special = { "Ensnare", "Gloom" },
+                        },
+                        basic = 8,
+                        advanced = 6,
+                        legendary = 1,
+                        movement = 6,
+                        toughness = 13,
+                        speed = 1,
+                        damage = 1,
+                        accuracy = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    showdown = {
+                        survivorStatus = { "Madness Inversion", "Madness Inversion", "Madness Inversion", "Madness Inversion" },
+                        starting = {
+                            special = { "Ensnare", "Gloom", "Hounds" },
+                        },
+                        basic = 10,
+                        advanced = 8,
+                        legendary = 2,
+                        movement = 6,
+                        toughness = 17,
+                        speed = 2,
+                        damage = 2,
+                        accuracy = 2,
+                        luck = 1,
+                    },
+                },
+            },
+        },
+    },
+}

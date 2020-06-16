@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Assert")
+local Assert = require("Kdm/Util/Assert")
 local Ui = require("Kdm/Ui")
 
 local UiCounter = {}

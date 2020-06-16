@@ -1,0 +1,180 @@
+return {
+    name = "Flower Knight",
+    components = {
+        ["Fighting Arts"] = "Otherworldly Luck",
+        ["Secret Fighting Arts"] = "Flower Knight Secret Fighting Arts",
+        ["Disorders"] = "Flower Knight Disorders",
+        ["Tactics"] = "Flower Knight Tactics",
+        ["Innovations"] = "Petal Spiral - Forbidden Dance Consequence",
+        ["Terrain"] = "Flower Patches",
+        ["Terrain Tiles"] = { "Flower Patch" },
+        ["Rare Gear"] = "Flower Knight Rare Gear",
+        ["Monsters"] = "Flower Knight",
+    },
+
+    terrain = {
+        ["Flower Patches"] = { terrainTile = "Flower Patch", count = "*" },
+    },
+
+    terrainTileSizes = {
+        ["Flower Patch"] = { x = 1, y = 1 },
+    },
+
+    armorStats = {
+        ["Flower Knight Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+
+    weaponStats = {
+        ["Replica Flower Sword"] = { speed = 2, accuracy = 6, strength = 6 },
+        ["Vespertine Arrow"]     = { speed = 2, accuracy = 6, strength = 0, deadly = 4 },
+        ["Vespertine Bow"]       = { speed = 3, accuracy = 6, strength = 4, deadly = 1 },
+    },
+
+    namedGuids = { ["Flower Knight Archive"] = "475b51" },
+
+    archiveEntries = {
+        archive = "Flower Knight Archive",
+        entries = {
+            { "Flower Knight Rules", "Rulebook" },
+
+            { "Otherworldly Luck", "Fighting Arts" },
+            { "Flower Knight Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Flower Knight Disorders", "Disorders" },
+            { "Flower Knight Tactics", "Tactics" },
+            { "Flower Knight Resources", "Monster Resources" },
+
+            { "Flower Patches", "Terrain" },
+            { "Flower Patch", "Terrain Tiles" },
+            { "Fairy Ring", "Terrain Tiles" },
+
+            { "Petal Spiral - Forbidden Dance Consequence", "Innovations" },
+
+            { "Flower Knight Rare Gear", "Gear" },
+
+            { "Flower Knight", "Monster Figurine" },
+
+            { "Flower Knight Hunt Events", "Monster Hunt Events" },
+
+            { "Flower Knight Info", "AI" },
+            { "Flower Knight Basic Action", "AI" },
+            { "Flower Knight Basic AI", "AI" },
+            { "Flower Knight Advanced AI", "AI" },
+            { "Flower Knight Legendary AI", "AI" },
+            { "Flower Knight Special AI", "AI" },
+            { "Flower Knight Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Flower Knight Rules",
+            pages = {
+                ["Flower Knight Rules"] = {
+                    keywords = { "Flower", "Knight", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["A Crone's Tale"] = {
+                    keywords = { "A", "Crone's", "Tale" },
+                    state = 3,
+                },
+                ["Showdown: Flower Knight"] = {
+                    keywords = { "Showdown:", "Flower", "Knight" },
+                    state = 6,
+                },
+                ["The Forest Wants What it Wants (Flower Knight)"] = {
+                    keywords = { "The", "Forest", "Wants", "What", "It", "Wants" },
+                    state = 7,
+                },
+                ["Breakthrough"] = {
+                    keywords = { "Breakthrough" },
+                    state = 8,
+                },
+                ["Sense Memory"] = {
+                    keywords = { "Sense", "Memory" },
+                    state = 9,
+                },
+                ["A Warm Virus"] = {
+                    keywords = { "A", "Warm", "Virus" },
+                    state = 10,
+                },
+                ["Necrotoxic Mistletoe"] = {
+                    keywords = { "Necrotoxic", "Mistletoe" },
+                    state = 11,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Flower Knight"] = 2,
+    },
+
+    setups = {
+        ["Flower Knight"] = {
+            rules = { "Flower Knight Rules", 6 },
+            huntTrack = { "H", "H", "H", "H", "H", "F", "M", "M", "M", "M", "M" },
+            position = "(11.5, 8.5)",
+            playerPositions = { "(10, 14)", "(11, 14)", "(12, 14)", "(13, 14)" },
+            specialTerrain = {
+                {
+                    terrainTile = "Fairy Ring",
+                    position = "(11.5, 8.5)",
+                    rotation = { 0, 0, 0 },
+                },
+            },
+            unfixedTerrain = { "Flower Patches" },
+            randomTerrain = 1,
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 8,
+                    partyHuntPosition = 2,
+                    showdown = {
+                        basic  = 7,
+                        advanced = 4,
+                        starting = {
+                            special = { "Bloom", "Set Roots" },
+                        },
+                        movement = 7,
+                        toughness = 6,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 9,
+                    partyHuntPosition = 1,
+                    showdown = {
+                        basic  = 8,
+                        advanced = 4,
+                        legendary = 1,
+                        starting = {
+                            special = { "Bloom", "Set Roots", "Razor Bulbs" },
+                        },
+                        movement = 8,
+                        toughness = 8,
+                        damage = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 10,
+                    showdown = {
+                        basic  = 9,
+                        advanced = 5,
+                        legendary = 2,
+                        starting = {
+                            special = { "Bloom", "Set Roots", "Razor Bulbs", "Perfect Aim", "Heart of the Woods" },
+                        },
+                        movement = 9,
+                        toughness = 11,
+                        speed = 1,
+                        damage = 2,
+                    },
+                },
+            }
+        },
+    },
+}

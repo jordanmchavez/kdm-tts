@@ -1,0 +1,191 @@
+return {
+    name = "Lion God",
+
+    components = {
+        ["Fighting Arts"] = "Lion God Fighting Arts",
+        ["Secret Fighting Arts"] = "Lion God Secret Fighting Arts",
+        ["Disorders"] = "Lion God Disorders",
+        ["Strange Resources"] = "Lion God Strange Resources",
+        ["Terrain"] = "Lion God Terrain",
+        ["Terrain Tiles"] = { "Lion Statue", "Sinkhole" },
+        ["Innovations"] = "The Knowledge Worm",
+        ["Rare Gear"] = "Lion God Rare Gear",
+        ["Monsters"] = "Lion God",
+    },
+
+    terrain = {
+        ["Lion Statue"] = { terrainTile = "Lion Statue", count = 1 },
+        ["Sinkhole"] = { terrainTile = "Sinkhole", count = 1 },
+    },
+
+    terrainTileSizes = {
+        ["Lion Statue"] = 2,
+        ["Sinkhole"] = 2,
+    },
+
+    armorStats = {
+        ["Ancient Lion Claws"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Necromancer's Eye"]  = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+
+    namedGuids = { ["Lion God Archive"] = "f2cc04" },
+
+    archiveEntries = {
+        archive = "Lion God Archive",
+        entries = {
+            { "Lion God Rules", "Rulebook" },
+
+            { "Lion God Fighting Arts", "Fighting Arts" },
+            { "Lion God Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Lion God Disorders", "Disorders" },
+            { "Lion God Strange Resources", "Strange Resources" },
+
+            { "Lion God Terrain", "Terrain" },
+            { "Lion Statue", "Terrain Tiles" },
+            { "Sinkhole", "Terrain Tiles" },
+
+            { "The Knowledge Worm", "Innovations" },
+
+            { "Lion God Rare Gear", "Gear" },
+
+            { "Lion God", "Monster Figurine" },
+
+            { "Lion God Hunt Events", "Monster Hunt Events" },
+
+            { "Lion God Info", "AI" },
+            { "Lion God Basic Action", "AI" },
+            { "Lion God Basic AI", "AI" },
+            { "Lion God Advanced AI", "AI" },
+            { "Lion God Legendary AI", "AI" },
+            { "Lion God Special AI", "AI" },
+            { "Lion God Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Lion God Rules",
+            pages = {
+                ["Lion God Rules"] = {
+                    keywords = { "Lion", "God", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["The Silver City"] = {
+                    keywords = { "The", "Silver", "City" },
+                    state = 2,
+                },
+                ["Showdown: Lion God"] = {
+                    keywords = { "Showdown:", "Lion", "God" },
+                    state = 5,
+                },
+                ["Necropolis"] = {
+                    keywords = { "Necropolis" },
+                    state = 6,
+                },
+                ["The Knowledge Worm"] = {
+                    keywords = { "The", "Knowledge", "Worm" },
+                    state = 7,
+                },
+                ["A Gracious Host"] = {
+                    keywords = { "A", "Gracious", "Host" },
+                    state = 8,
+                },
+                ["Death Reading"] = {
+                    keywords = { "Death", "Reading" },
+                    state = 9,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Lion God"] = 3,
+    },
+
+    setups = {
+        ["Lion God"] = {
+            rules = { "Lion God Rules", 5 },
+            resourcesDeck = false,
+            huntTrack = { "H", "M", "H", "M", "H", "O", "H", "M", "H", "M", "H" },
+            position = "(12, 9)",
+            playerPositions = { "(10, 11)", "(10, 7)", "(14, 7)", "(14, 11)" },
+            playerRotations = { { 0, 0, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 } },
+            fixedTerrain = {
+                {
+                    terrain = "3 Stone Columns",
+                    positions = { "(2, 6.5)", "(2, 12.5)", "(21, 6.5)", "(21, 11.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+                {
+                    terrain = "Toppled Pillar",
+                    positions = { "(6.5, 9)", "(17.5, 9)" },
+                    rotations = { { 0, 90, 0 }, { 0, -90, 0 } },
+                },
+                {
+                    terrain = "Giant Stone Face",
+                    positions = { "(12, 4.5)", "(12, 13.5)" },
+                    rotations = { { 0, -90, 0 }, { 0, -90, 0 } },
+                },
+                {
+                    terrain = "Lion Statue",
+                    positions = { "(8.5, 5.5)", "(15.5, 5.5)", "(8.5, 12.5)", "(15.5, 12.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+            },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    monsterHuntPosition = 7,
+                    showdown = {
+                        starting = {
+                            special = { "Whiplash", "Hollow Earth", "Heft" },
+                        },
+                        basic = 7,
+                        advanced = 7,
+                        legendary = 1,
+                        movement = 8,
+                        toughness = 14,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    monsterHuntPosition = 9,
+                    showdown = {
+                        starting = {
+                            special = { "Whiplash", "Hollow Earth", "Heft", "Divine Prowess" },
+                        },
+                        basic = 11,
+                        advanced = 8,
+                        legendary = 1,
+                        movement = 9,
+                        toughness = 16,
+                        speed = 1,
+                        damage = 1,
+                        luck = 1,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    monsterHuntPosition = 11,
+                    showdown = {
+                        starting = {
+                            special = { "Whiplash", "Hollow Earth", "Heft", "Divine Prowess", "Immaculate Intuition" },
+                        },
+                        basic = 14,
+                        advanced = 9,
+                        legendary = 2,
+                        movement = 10,
+                        toughness = 21,
+                        speed = 2,
+                        damage = 3,
+                        evasion = 1,
+                        luck = 2,
+                    },
+                },
+            }
+        },
+    },
+}

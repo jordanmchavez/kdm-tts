@@ -1,383 +1,48 @@
-local Util = require("Kdm/Util")
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("G")
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("G")
 local Guids = require("Kdm/Guids")
 local Archive = require("Kdm/Archive")
-local Latch = require("Kdm/Latch")
-local Expansions = require("Kdm/Expansions")
+local Latch = require("Kdm/Util/Latch")
+local Expansion = require("Kdm/Expansion")
 local Rules = require("Kdm/Rules")
-local Setup = require("Kdm/Setup")
-local DropZone = require("Kdm/DropZone")
+local DropZone = require("Kdm/Util/DropZone")
 local CharSheet = require("Kdm/CharSheet")
-local SetupData = require("Kdm/SetupData")
 local PlayerBoard = require("Kdm/PlayerBoard")
-local ShowdownBoard = require("Kdm/ShowdownBoard")
+local Showdown = require("Kdm/Showdown")
 local SettlementBoard = require("Kdm/SettlementBoard")
 local RulesNav = require("Kdm/RulesNav")
-local Monster = require("Kdm/Monster")
-local TerrainTile = require("Kdm/TerrainTile")
-local MessageBox = require("Kdm/MessageBox")
+local Terrain = require("Kdm/Terrain")
+local Decks = require("Kdm/Decks")
+local PopulationSheet = require("Kdm/PopulationSheet")
 local Settlement = require("Kdm/Settlement")
 local BattleUi = require("Kdm/BattleUi")
 
 ---------------------------------------------------------------------------------------------------
 
-g_panelData = {
-    ["Hunt"] = {
-        monster = nil,
-        monsterButtonId = nil,
-        level = nil,
-        levelButtonId = nil,
-    },
-    ["Showdown"] = {
-        monster = nil,
-        monsterButtonId = nil,
-        level = nil,
-        levelButtonId = nil,
-    },
-    ["Expansions"] = {
-    },
-}
-
-g_activePanelId = nil
-
-G_MAX_PANEL_LEVELS = 6
-
-G_MONSTER_EXPANSIONS = {
-    ["Butcher"] = "Core",
-    ["Gold Smoke Knight"] = "Core",
-    ["King's Man"] = "Core",
-    ["Phoenix"] = "Core",
-    ["Screaming Antelope"] = "Core",
-    ["The Hand"] = "Core",
-    ["Watcher"] = "Core",
-    ["White Gigalion"] = "Core",
-    ["White Lion"] = "Core",
-    ["Dragon King"] = "Dragon King",
-    ["The Tyrant"] = "Dragon King",
-    ["Dung Beetle Knight"] = "Dung Beetle Knight",
-    ["Flower Knight"] = "Flower Knight",
-    ["Gorm"] = "Gorm",
-    ["Lion God"] = "Lion God",
-    ["Lion Knight"] = "Lion Knight",
-    ["Lonely Tree"] = "Lonely Tree",
-    ["Manhunter"] = "Manhunter",
-    ["Slenderman"] = "Slenderman",
-    ["Spidicules"] = "Spidicules",
-    ["Sunstalker"] = "Sunstalker",
-}
-
----------------------------------------------------------------------------------------------------
-
-function G_Search_Change(_, value)
-    results = Rules.Find(value)
-    if #results == 0 then
-        G_SetSearchResults({})
-    else
-        G_SetSearchResults(results)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_CancelSearch_Click()
-    G_SetSearchResults({})
-    self.UI.setAttribute("Search", "text", "")
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_Dud() end
-
-function G_SetSearchResults(results)
-    if #results == 0 then
-        self.UI.hide("SearchResults")
-        return
-    end
-
-    self.UI.show("SearchResults")
-
-    local i = 1
-    while i <= #results and i <= 5 do
-        local result = results[i]
-
-        local textId = "SearchResult"..tostring(i).."Text"
-        self.UI.setAttribute(textId, "text", result.name)
-
-        local buttonId = "SearchResult"..tostring(i).."Button"
-        self.UI.show(buttonId)
-        self.setVar(buttonId.."_OnClick", function () G_SearchResult_Click(result.rulebook, result.state) end)
-        self.UI.setAttribute(buttonId, "onClick", buttonId.."_OnClick")
-
-        i = i + 1
-    end
-
-    self.UI.setAttribute("SearchResults", "height", 10 + ((i - 1) * 30))
-
-    while i <= 5 do
-        local textId = "SearchResult"..tostring(i).."Text"
-        self.UI.setAttribute(textId, "text", "")
-
-        local buttonId = "SearchResult"..tostring(i).."Button"
-        self.UI.hide(buttonId)
-        self.UI.setAttribute(buttonId, "onClick", "G_Dud")
-
-        i = i + 1
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_SearchResult_Click(rulebook, state)
-    G_SetSearchResults({})
-    self.UI.setAttribute("Search", "text", "")
-    Rules.SpawnRules(rulebook, state)
-end
-
----------------------------------------------------------------------------------------------------
-
-g_setupOpen = false
-g_setupTabId = "HuntTab"
-
-function G_CloseSetupPanel()
-    self.UI.hide("SetupPanel")
-    g_setupOpen = false
-end
-
-function G_OpenSetupPanel()
-    self.UI.setAttribute(g_setupTabId, "color", "#453824")
-    self.UI.show("SetupPanel")
-    self.UI.show(string.sub(g_setupTabId, 1, -4).."Panel")
-
-    local enabledExpansions = Expansions.GetEnabledExpansions()
-    local allExpansions = Expansions.GetAllExpansions()
-
-    g_selectedExpansions = {}
-    for _, expansion in ipairs(allExpansions) do
-        local expansionButtonId = expansion.."Button"
-        if enabledExpansions[expansion] then
-            self.UI.setAttribute(expansionButtonId, "color", "#453824")
-            g_selectedExpansions[expansion] = true
-        else
-            self.UI.setAttribute(expansionButtonId, "color", "#7f7059")
-            g_selectedExpansions[expansion] = nil
-        end
-    end
-
-    g_setupOpen = true
-end
-
-function G_SetupButton_Click()
-    if g_setupOpen then
-        G_CloseSetupPanel()
-    else
-        G_OpenSetupPanel()
-    end
-end
-
-function G_CloseSetupButton_Click()
-    G_CloseSetupPanel()
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_SelectTab(tabId)
-    if g_setupTabId == tabId then
-        return
-    end
-
-    self.UI.setAttribute(g_setupTabId, "color", "#7f7059")
-    self.UI.hide(string.sub(g_setupTabId, 1, -4).."Panel")
-    g_setupTabId = tabId
-    self.UI.setAttribute(g_setupTabId, "color", "#453824")
-    self.UI.show(string.sub(g_setupTabId, 1, -4).."Panel")
-end
-
-function G_HuntTabButton_Click() G_SelectTab("HuntTab") end
-function G_ShowdownTabButton_Click() G_SelectTab("ShowdownTab") end
-function G_CleanupTabButton_Click() G_SelectTab("CleanupTab") end
-
-g_selectedExpansions = {}
-
-function G_ExpansionsTabButton_Click()
-    local enabledExpansions = Expansions.GetEnabledExpansions()
-    local allExpansions = Expansions.GetAllExpansions()
-
-    g_selectedExpansions = {}
-    for _, expansion in ipairs(allExpansions) do
-        local expansionButtonId = expansion.."Button"
-        if enabledExpansions[expansion] then
-            self.UI.setAttribute(expansionButtonId, "color", "#453824")
-            g_selectedExpansions[expansion] = true
-        else
-            self.UI.setAttribute(expansionButtonId, "color", "#7f7059")
-            g_selectedExpansions[expansion] = nil
-        end
-    end
-
-    G_SelectTab("ExpansionsTab")
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_SelectMonster(panel, monsterButtonId)
-    if g_panelData[panel].monsterButtonId then
-        self.UI.setAttribute(g_panelData[panel].monsterButtonId, "color", "#00000000")
-        g_panelData[panel].monster = nil
-        g_panelData[panel].monsterButtonId = nil
-        g_panelData[panel].level = nil
-        g_panelData[panel].levelButtonId = nil
-    end
-
-    for i = 1, G_MAX_PANEL_LEVELS do
-        self.UI.setAttribute(panel.."Level"..i.."Text", "text", "")
-        self.UI.hide(panel.."Level"..i.."Button")
-        self.UI.setAttribute(panel.."Level"..i.."Button", "color", "#00000000")
-    end
-
-    local monsterTextId = string.sub(monsterButtonId, 1, -1 - string.len("Button")) .. "Text"
-    local monster = self.UI.getValue(monsterTextId)
-    local levels = {}
-    for level, setup in pairs(Setup.setups[monster].levels) do
-        if (panel == "Hunt" and setup.monsterHuntPosition) or (panel == "Showdown") then
-            table.insert(levels, level)
-        end
-    end
-
-    g_panelData[panel].monster = monster
-    g_panelData[panel].monsterButtonId = monsterButtonId
-    self.UI.setAttribute(g_panelData[panel].monsterButtonId, "color", "#453824")
-
-    for i, level in ipairs(levels) do
-        local levelButtonId = panel.."Level"..i.."Button"
-        self.UI.show(levelButtonId)
-        self.UI.setAttribute(panel.."Level"..i.."Text", "text", level)
-
-        if i == 1 then
-            g_panelData[panel].level = level
-            g_panelData[panel].levelButtonId = levelButtonId
-            self.UI.setAttribute(levelButtonId, "color", "#453824")
-            self.UI.setAttribute("Begin"..panel.."Button", "color", "#453824")
-        end
-    end
-
-    self.UI.setAttribute("Begin"..panel.."Button", "color", "#453824")
-end
-
-function G_MonsterButton_Click(_, _, monsterButtonId)
-    if string.sub(monsterButtonId, 1, 4) == "Hunt" then
-        G_SelectMonster("Hunt", monsterButtonId)
-    else
-        G_SelectMonster("Showdown", monsterButtonId)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_SelectLevel(panel, levelButtonId)
-    if g_panelData[panel].levelButtonId then
-        self.UI.setAttribute(g_panelData[panel].levelButtonId, "color", "#00000000")
-        g_panelData[panel].level = nil
-        g_panelData[panel].levelButtonId = nil
-    end
-
-    local levelTextId = string.sub(levelButtonId, 1, -1 - string.len("Button")) .. "Text"
-    g_panelData[panel].level = self.UI.getAttribute(levelTextId, "text")
-    g_panelData[panel].levelButtonId = levelButtonId
-
-    self.UI.setAttribute(g_panelData[panel].levelButtonId, "color", "#453824")
-
-    Assert(g_panelData[panel].monster != nil, "Somehow selected a %s level without first selecting a monster", panel)
-
-    self.UI.setAttribute("Begin"..panel.."Button", "color", "#453824")
-end
-
-function G_LevelButton_Click(_, _, levelButtonId)
-    if string.sub(levelButtonId, 1, 4) == "Hunt" then
-        G_SelectLevel("Hunt", levelButtonId)
-    else
-        G_SelectLevel("Showdown", levelButtonId)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_BeginHuntButton_Click()
-    local monster, level = g_panelData.Hunt.monster, g_panelData.Hunt.level
-    if monster == nil or level == nil then
-        return Log.Printf("Please select a monster and level.")
-    end
-
-    if not Expansions.GetEnabledExpansions()[G_MONSTER_EXPANSIONS[monster]] then
-        return Log.Broadcastf("This monster's expansion has not been set up. You can add it in the 'Expansions' tab.")
-    end
-
-    Setup.SetupHunt(monster, level)
-
-    G_CloseSetupPanel()
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_BeginShowdownButton_Click()
-    local monster, level = g_panelData.Showdown.monster, g_panelData.Showdown.level
-    if monster == nil or level == nil then
-        return Log.Printf("Please select a monster and level.")
-    end
-
-    if not Expansions.GetEnabledExpansions()[G_MONSTER_EXPANSIONS[monster]] then
-        return Log.Broadcastf("This monster's expansion has not been set up. You can add it in the 'Expansions' tab.")
-    end
-
-    Setup.SetupShowdown(monster, level)
-
-    G_CloseSetupPanel()
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_CleanupHuntButton_Click()
-    Setup.CleanupHunt()
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_CleanupShowdownButton_Click()
-    Setup.CleanupShowdown()
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_ExpansionButton_OnClick(_, _, expansionButtonId)
-    local expansion = string.sub(expansionButtonId, 1, -7) -- len("Button")
-    Log.Debugf("expansion: %s", expansion)
-
-    if g_selectedExpansions[expansion] then
-        self.UI.setAttribute(expansionButtonId, "color", "#7f7059")
-        g_selectedExpansions[expansion] = nil
-    else
-        self.UI.setAttribute(expansionButtonId, "color", "#453824")
-        g_selectedExpansions[expansion] = true
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function G_SetupExpansionsButton_Click()
-    Log.Debugf("Setting expansions %s", Util.TabStr(g_selectedExpansions))
-    Expansions.SetExpansions(g_selectedExpansions)
-
-    G_CloseSetupPanel()
-end
+local Core = require("Kdm/Expansions/Core")
+local CommunityEdition = require("Kdm/Expansions/CommunityEdition")
+local DragonKing = require("Kdm/Expansions/DragonKing")
+local DungBeetleKnight = require("Kdm/Expansions/DungBeetleKnight")
+local FlowerKnight = require("Kdm/Expansions/FlowerKnight")
+local Gorm = require("Kdm/Expansions/Gorm")
+local LionGod = require("Kdm/Expansions/LionGod")
+local LionKnight = require("Kdm/Expansions/LionKnight")
+local LonelyTree = require("Kdm/Expansions/LonelyTree")
+local Manhunter = require("Kdm/Expansions/Manhunter")
+local Slenderman = require("Kdm/Expansions/Slenderman")
+local Spidicules = require("Kdm/Expansions/Spidicules")
+local Sunstalker = require("Kdm/Expansions/Sunstalker")
 
 ---------------------------------------------------------------------------------------------------
 
 function onSave()
     local saveState = {
-        Expansions = Expansions.Save(),
-        ShowdownBoard = ShowdownBoard.Save(),
+        Expansion = Expansion.Save(),
+        Showdown = Showdown.Save(),
         PlayerBoard = PlayerBoard.Save(),
         Settlement = Settlement.Save(),
+        PopulationSheet = PopulationSheet.Save(),
     }
 
     return JSON.encode(saveState)
@@ -413,31 +78,30 @@ function onLoad(saveJson)
 
     local saveState = JSON.decode(saveJson) or {}
 
+    local ui = { children = self.UI.getXmlTable() }
+
     Log.Init()
     Latch.Init()
     DropZone.Init()
-    Expansions.Init(saveState.Expansions)
     CharSheet.Init()
     PlayerBoard.Init(saveState.PlayerBoard)
-    ShowdownBoard.Init(Guids.GetObject("Showdown Board"), saveState.ShowdownBoard)
+    Showdown.Init(saveState.Showdown)
     SettlementBoard.Init(Guids.GetObject("Settlement Board"))
-    Rules.Init()
+    Rules.Init(ui)
     RulesNav.Init(Guids.GetObject("Rules Navigation Board"))
-    Monster.Init()
-    TerrainTile.Init()
+    Terrain.Init()
+    Decks.Init()
+    PopulationSheet.Init(Guids.GetObject("Population Sheet"), saveState.PopulationSheet)
+    Settlement.Init(saveState.Settlement, ui)
+    BattleUi.Init(ui)
 
-    local ui = self.UI.getXmlTable()
+    for _, expansion in ipairs({ Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }) do
+        Expansion.RegisterExpansion(expansion)
+    end
 
-    local settlementUi = Settlement.Init(saveState.Settlement)
-    table.insert(ui, settlementUi)
+    Expansion.Init(saveState.Expansion, ui)
 
-    local messageBoxUi = MessageBox.Init()
-    table.insert(ui, messageBoxUi)
-
-    local battleUi = BattleUi.Init()
-    table.insert(ui, battleUi)
-
-    self.UI.setXmlTable(ui)
+    self.UI.setXmlTable(ui.children)
 end
 
 ---------------------------------------------------------------------------------------------------

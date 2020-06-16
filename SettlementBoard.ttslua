@@ -1,49 +1,27 @@
-local Util = require("Kdm/Util")
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("SettlementBoard")
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("SettlementBoard")
 local UiButton = require("Kdm/UiButton")
 local Script = require("Kdm/Script")
-local DropZone = require("Kdm/DropZone")
+local DropZone = require("Kdm/Util/DropZone")
 local Locations = require("Kdm/Locations")
 
 ---------------------------------------------------------------------------------------------------
 
-local SettlementBoard = {}
+local SettlementBoard = {
+    settlementLocationGear = {},
+}
 
 SETTLEMENT_BOARD_UI_HEIGHT = 0.59
 
-SettlementBoard.slocHasGear = {
-    ["Barber Surgeon"] = true,
-    ["Blacksmith"] = true,
-    ["Bone Smith"] = true,
-    ["Catarium"] = true,
-    ["Giga-Catarium"] = true,
-    ["Dragon Armory"] = true,
-    ["Exhausted Lantern Hoard"] = true,
-    ["Gormchymist"] = true,
-    ["Gormery"] = true,
-    ["Leather Worker"] = true,
-    ["Mask Maker"] = true,
-    ["Organ Grinder"] = true,
-    ["Plumery"] = true,
-    ["Silk Mill"] = true,
-    ["Skinnery"] = true,
-    ["Skyreef Sanctuary"] = true,
-    ["Song of the Green Knight"] = true,
-    ["Stone Circle"] = true,
-    ["Weapon Crafter"] = true,
-    ["Wet Resin Crafter"] = true,
-}
+---------------------------------------------------------------------------------------------------
 
-SettlementBoard.settlementLocationGearNames = {
-    ["Song of the Green Knight"] = "Green Armor",
-}
-setmetatable(SettlementBoard.settlementLocationGearNames, { __index = function(table, key)
-    if key == nil then return nil end
-    return key.." Gear"
-end })
-
-SettlementBoard.initialized = false
+function SettlementBoard.RegisterSettlementLocationGear(settlementLocationGear)
+    for settlementLocation, gear in pairs(settlementLocationGear or {}) do
+        Assert(SettlementBoard.settlementLocationGear[settlementLocation] == nil, "Settlement location %s already registered", settlementLocation)
+        SettlementBoard.settlementLocationGear[settlementLocation] = gear
+    end
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -53,6 +31,11 @@ function SettlementBoard.ResetSlocGear(col, row)
 
     local gearLocation = string.format("Gear_%d_%d", col, row)
     local slocLocation = string.format("SettlementLocation_%d_%d", col, row)
+
+    local gear = SettlementBoard.settlementLocationGear[sloc.getName()]
+    if not gear then
+        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
+    end
 
     local sloc = nil
     local hits = Locations.RayCast(slocLocation)
@@ -70,11 +53,7 @@ function SettlementBoard.ResetSlocGear(col, row)
         return Log.Broadcastf("No settlement location in this slot to reset gear for.")
     end
 
-    if not SettlementBoard.slocHasGear[sloc.getName()] then
-        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
-    end
-
-    SettlementBoard.resetGearName = SettlementBoard.settlementLocationGearNames[sloc.getName()]
+    SettlementBoard.resetGearName = gear
     SettlementBoard.resetGearLocation = gearLocation
     startLuaCoroutine(self, "SettlementBoard_ResetGearCoroutine")
 end
@@ -140,14 +119,19 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function SettlementBoard_OnDrop(colRow, object)
-    if object.getGMNotes() != "Settlement Locations" or not SettlementBoard.slocHasGear[object.getName()] then
+    if object.getGMNotes() != "Settlement Locations" then
+        return
+    end
+
+    local gear = SettlementBoard.settlementLocationGear[object.getName()]
+    if not gear then
         return
     end
 
     local col, row = colRow.col, colRow.row
-    Log.Debugf("Settlement location %s (%s) was dropped on settlement location (%d, %d)", object.getName(), object.getGUID(), col, row)
+    Log.Debugf("Settlement location %s (%s) was dropped on settlement location (%d, %d) for gear", object.getName(), object.getGUID(), col, row, gear)
 
-    SettlementBoard.resetGearName = SettlementBoard.settlementLocationGearNames[object.getName()]
+    SettlementBoard.resetGearName = gear
     SettlementBoard.resetGearLocation = string.format("Gear_%d_%d", col, row)
     startLuaCoroutine(self, "SettlementBoard_ResetGearCoroutine")
 end
@@ -155,7 +139,11 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function SettlementBoard_OnPickUp(colRow, object)
-    if object.getGMNotes() != "Settlement Locations" or not SettlementBoard.slocHasGear[object.getName()] then
+    if object.getGMNotes() != "Settlement Locations" then
+        return
+    end
+
+    if not SettlementBoard.settlementLocationGear[object.getName()] then
         return
     end
 

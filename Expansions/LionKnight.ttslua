@@ -1,0 +1,194 @@
+return {
+    name = "Lion Knight",
+
+    components = {
+        ["Fighting Arts"] = "Lion Knight Fighting Arts",
+        ["Secret Fighting Arts"] = "Lion Knight Secret Fighting Arts",
+        ["Disorders"] = "Lion Knight Disorders",
+        ["Tactics"] = "Lion Knight Tactics",
+        ["Innovations"] = "Lion Knight Innovations",
+        ["Armor Sets"] = "Lion Knight Armor Sets",
+        ["Rare Gear"] = "Lion Knight Rare Gear",
+        ["Monsters"] = "Lion Knight",
+    },
+
+    terrainTileSizes = {
+        ["Horn"] = { x = 1, y = 1 },
+        ["Throne"] = { x = 1, y = 1 },
+        ["Stage"] = { x = 4, y = 4 },
+        ["Balcony"] = { x = 2, y = 1 }
+    },
+
+    armorStats = {
+        ["Brawler Armor"]    = { head = 4, arms = 4, body = 4, waist = 4, legs = 4 },
+        ["Dancer Armor"]     = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
+        ["Warlord Armor"]    = { head = 5, arms = 5, body = 5, waist = 5, legs = 5 },
+        ["Hideous Disguise"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+    },
+
+    weaponStats = {
+        ["Lion Knight's Left Claw"]  = { speed = 2, accuracy = 5, strength = 4 },
+        ["Lion Knight's Right Claw"] = { speed = 2, accuracy = 8, strength = 8 },
+    },
+
+    namedGuids = { ["Lion Knight Archive"] = "37eaad" },
+
+    archiveEntries = {
+        archive = "Lion Knight Archive",
+        entries = {
+            { "Lion Knight Rules", "Rulebook" },
+
+            { "Lion Knight Fighting Arts", "Fighting Arts" },
+            { "Lion Knight Secret Fighting Arts", "Secret Fighting Arts" },
+            { "Lion Knight Disorders", "Disorders" },
+            { "Lion Knight Tactics", "Tactics" },
+            { "Lion Knight Armor Sets", "Armor Sets" },
+
+            { "Balcony (Terrain)", "Terrain" },
+            { "Horn (Terrain)", "Terrain" },
+            { "Throne (Terrain)", "Terrain" },
+            { "Stage (Terrain)", "Terrain" },
+            { "Balcony", "Terrain Tiles" },
+            { "Horn", "Terrain Tiles" },
+            { "Throne", "Terrain Tiles" },
+            { "Stage", "Terrain Tiles" },
+
+            { "Lion Knight Innovations", "Innovations" },
+
+            { "Lion Knight Rare Gear", "Gear" },
+
+            { "Lion Knight", "Monster Figurine" },
+
+            { "Lion Knight Info", "AI" },
+            { "Lion Knight Basic Action", "AI" },
+            { "Lion Knight Basic AI", "AI" },
+            { "Lion Knight Advanced AI", "AI" },
+            { "Lion Knight Special AI", "AI" },
+            { "Lion Knight Hit Locations", "Hit Locations" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Lion Knight Rules",
+            pages = {
+                ["Lion Knight Rules"] = {
+                    keywords = { "Lion", "Knight", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["An Uninvited Guest"] = {
+                    keywords = { "An", "Uninvited", "Guest" },
+                    state = 3,
+                },
+                ["Places Everyone!"] = {
+                    keywords = { "Places", "Everyone!" },
+                    state = 4,
+                },
+                ["Showdown: Lion Knight"] = {
+                    keywords = { "Showdown:", "Lion", "Knight" },
+                    state = 5,
+                },
+                ["Intermission"] = {
+                    keywords = { "Intermission" },
+                    state = 6,
+                },
+                ["Strange Caravan"] = {
+                    keywords = { "Strange", "Caravan" },
+                    state = 7,
+                },
+                ["Finale"] = {
+                    keywords = { "Finale" },
+                    state = 8,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Lion Knight"] = 2,
+    },
+
+    setups = {
+        ["Lion Knight"] = {
+            rules = { "Lion Knight Rules", 5 },
+            resourcesDeck = false,
+            legendaryAiDeck = false,
+            position = "(11.5, 8.5)",
+            playerPositions = { "(8, 12)", "(8, 5)", "(15, 5)", "(15, 12)" },
+            playerRotations = { { 0, 0, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 } },
+            specialTerrain = {
+                {
+                    terrain = "Balcony (Terrain)",
+                    terrainTile = "Balcony",
+                    position = "(11.5, 1)",
+                    rotation = { 0, 270, 0 },
+                },
+                {
+                    terrain = "Horn (Terrain)",
+                    terrainTile = "Horn",
+                    position = "(18, 9)",
+                    rotation = { 0, 180, 0 },
+                },
+                {
+                    terrain = "Stage (Terrain)",
+                    terrainTile = "Stage",
+                    position = "(11.5, 8.5)",
+                    rotation = { 0, 180, 0 },
+                },
+                {
+                    terrain = "Throne (Terrain)",
+                    terrainTile = "Throne",
+                    position = "(5, 9)",
+                    rotation = { 0, 180, 0 },
+                },
+            },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    showdown = {
+                        specialTerrain = {},
+                        survivorStatus = { "Ruler", "Damsel", "Villain", "Fool" },
+                        starting = {
+                            special = { "Zeal", "Outburst" },
+                        },
+                        basic = 10,
+                        advanced = 2,
+                        movement = 7,
+                        toughness = 10,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    showdown = {
+                        survivorStatus = { "Ruler", "Damsel", "Villain", "Fool" },
+                        starting = {
+                            special = { "Zeal", "Outburst", "Drama Lessons" },
+                        },
+                        basic = 10,
+                        advanced = 5,
+                        movement = 8,
+                        toughness = 12,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    showdown = {
+                        survivorStatus = { "Ruler", "Damsel", "Villain", "Fool" },
+                        starting = {
+                            special = { "Zeal", "Outburst", "Drama Lessons", "Last Act" },
+                        },
+                        basic = 12,
+                        advanced = 9,
+                        movement = 9,
+                        toughness = 15,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+            },
+        },
+    },
+}

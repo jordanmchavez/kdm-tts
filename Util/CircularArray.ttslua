@@ -1,5 +1,5 @@
-local Assert = require("Kdm/Assert")
-local Util = require("Kdm/Util")
+local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 

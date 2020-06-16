@@ -1,4 +1,10 @@
 <Defaults>
+  <Button rectAlignment="UpperLeft" />
+  <Text rectAlignment="UpperLeft" />
+  <Panel rectAlignment="UpperLeft" />
+  <VerticalScrollView rectAlignment="UpperLeft" />
+  <InputField rectAlignment="UpperLeft" />
+
   <Button class="SetupButton" width="100" height="30" color="#453824" textColor="#bbb4a1" />
 
   <Panel class="Tab" width="100" height="30" color="#7f7059" />
@@ -46,7 +52,7 @@
     <Button id="CleanupTabButton" class="TabButton" onClick="G_CleanupTabButton_Click">Cleanup</Button>
   </Panel>
   <Panel id="ExpansionsTab" class="Tab" offsetXY="300 30">
-    <Button id="ExpansionsTabButton" class="TabButton" onClick="G_ExpansionsTabButton_Click">Expansions</Button>
+    <Button id="ExpansionsTabButton" class="TabButton" onClick="G_ExpansionsTabButton_Click">Expansion</Button>
   </Panel>
 
   <Panel class="SetupPanelInner">
@@ -231,7 +237,7 @@
         <Text class="BigText">Cleanup Hunt</Text>
       </Button>
 
-      <Button rectAlignment="MiddleCenter" offsetXY="0 -50" class="BigButton" onClick="G_CleanupShowdownButton_Click">
+      <Button rectAlignment="MiddleCenter" offsetXY="0 -50" class="BigButton" onClick="G_CleanupButton_Click">
         <Text class="BigText">Cleanup Showdown</Text>
       </Button>
     </Panel>
@@ -278,7 +284,7 @@
       </Button>
 
       <Button rectAlignment="UpperCenter" offsetXY="0 -270" class="BigButton" onClick="G_SetupExpansionsButton_Click">
-        <Text class="BigText">Setup Expansions</Text>
+        <Text class="BigText">Setup Expansion</Text>
       </Button>
     </Panel>
   </Panel>

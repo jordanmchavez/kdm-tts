@@ -1,19 +1,63 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Rules")
-local Util = require("Kdm/Util")
-local CircularArray = require("Kdm/CircularArray")
-local Trie = require("Kdm/Trie")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Rules")
+local Util = require("Kdm/Util/Util")
+local CircularArray = require("Kdm/Util/CircularArray")
+local Trie = require("Kdm/Util/Trie")
 local Script = require("Kdm/Script")
 local Locations = require("Kdm/Locations")
-local RulesData = require("Kdm/RulesData")
+local Ui = require("Kdm/XmlUi")
 
 ---------------------------------------------------------------------------------------------------
 
 Rules = {
-    history = nil,
-    trie = nil,
+    trie = Trie.Create(),
+    history = CircularArray.Create(100),
     index = {},
 }
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.RegisterRulebooks(rulebooks)
+    Assert.TabOrNil(rulebooks, "rulebooks")
+    for rulebookIndex, rulebook in ipairs(rulebooks or {}) do
+        local rulebookName = rulebook.name
+        Assert.Str(rulebookName, "rulebook.name")
+
+        local pages = rulebook.pages
+        Assert.Tab(rulebook.pages)
+
+        for pageName, pageData in pairs(pages) do
+            Assert.Str(pageName, "rulebooks[%s].pages[pageName]", rulebookName)
+            local state = pageData.state
+            Assert.Num(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName)
+
+            Assert(Rules.index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules.index[pageName])
+            Rules.index[pageName] = { rulebook = rulebookName, state = state }
+
+            local keywords = pageData.keywords
+            Assert.Tab(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName)
+
+            local entry = { rulebook = rulebookName, name = pageName, state = state }
+
+            for keywordIndex, keyword in ipairs(keywords) do
+                Assert.Str(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex)
+                Trie.Set(Rules.trie, keyword, entry)
+            end
+
+            if pageData.huntEventStart then
+                local huntEventStart = pageData.huntEventStart
+                Assert.Num(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex)
+
+                local huntEventEnd = pageData.huntEventEnd
+                Assert.Num(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex)
+
+                for huntEventNumber = huntEventStart, huntEventEnd do
+                    Trie.Set(Rules.trie, tostring(huntEventNumber), entry)
+                end
+            end
+        end
+    end
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -171,24 +215,61 @@ function Rules.NextPage() Rules.ChangePage(1) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Init()
-    Rules.trie = Trie.Create()
-    for rulebook, entries in pairs(RulesData) do
-        for name, data in pairs(entries) do
-            Rules.index[name] = { rulebook = rulebook, state = data.state }
-            for _, keyword in ipairs(data.keywords) do
-                local toAdd = { rulebook = rulebook, name = name, state = data.state }
-                Trie.Set(Rules.trie, keyword, toAdd)
-            end
-            if data.huntEventStart != nil then
-                for hi = data.huntEventStart, data.huntEventEnd do
-                    Trie.Set(Rules.trie, tostring(hi), { rulebook = rulebook, name = name, state = data.state })
-                end
-            end
-        end
+function Rules_SearchInput_OnValueChanged(_, value)
+    Rules_SetSearchResults(Rules.Find(value))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules_CancelSearchButton_OnClick()
+    Rules_SetSearchResults({})
+    self.UI.setAttribute("Rules_SearchInput", "text", nil)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules_SearchResult_Click(rulebook, state)
+    Rules_SetSearchResults({})
+    self.UI.setAttribute("Rules_SearchInput", "text", nil)
+    Rules.SpawnRules(rulebook, state)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules_SetSearchResults(results)
+    if #results == 0 then
+        self.UI.hide("Rules_SearchResultsPanel")
+        return
     end
 
-    Rules.history = CircularArray.Create(100)
+    self.UI.show("Rules_SearchResultsPanel")
+
+    for i, result in ipairs(results) do
+        local buttonId = "Rules_SearchResult"..i.."Button"
+        self.UI.show(buttonId)
+        self.setVar(buttonId.."_OnClick", function () Rules_SearchResult_Click(result.rulebook, result.state) end)
+        self.UI.setAttributes(buttonId, {
+            onClick = buttonId.."_OnClick",
+            text = result.name,
+            textColor = "#dddddd",
+        })
+    end
+
+    self.UI.setAttribute("Rules_SearchResultsPanel", "height", 10 + (#results * 30))
+
+    for i = #results + 1, 5 do
+        local buttonId = "Rules_SearchResult"..i.."Button"
+        self.UI.hide(buttonId)
+        self.UI.setAttributes(buttonId, {
+            onClick = nil,
+            text = nil,
+        })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.Init(ui)
     local rules = Rules.GetCurrentRules()
     if rules != nil then
         local currentState = rules.getStateId()
@@ -204,6 +285,14 @@ function Rules.Init()
         end
         Assert(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID())
         CircularArray.Push(Rules.history, { rulebookName, currentState})
+    end
+
+    Ui.Input(ui, { id = "Rules_SearchInput", rectAlignment = "UpperLeft", x = 80, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = "Rules_SearchInput_OnValueChanged" })
+    Ui.Button(ui, { id = "Rules_CancelSearchButton", rectAlignment = "UpperLeft", x = 335, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = "Rules_CancelSearchButton_OnClick" })
+    local searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResultsPanel", rectAlignment = "UpperLeft", x = 80, y = -90, width = 300, height = 160, color = "#00000088", active = false })
+    for i = 1, 5 do
+        log(INVISIBLE_BUTTON_COLORS)
+        Ui.Button(searchResultsPanel, { id = "Rules_SearchResult"..i.."Button", rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_BUTTON_COLORS, textColor = "#dddddd" })
     end
 end
 

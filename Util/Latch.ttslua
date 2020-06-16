@@ -1,9 +1,9 @@
 -- A countdown latch for tracking and doing blocking waits on object spawns.
 
-local Util = require("Kdm/Util")
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Latch")
-local EventManager = require("Kdm/EventManager")
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Latch")
+local EventManager = require("Kdm/Util/EventManager")
 
 ---------------------------------------------------------------------------------------------------
 

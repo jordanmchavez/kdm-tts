@@ -1,0 +1,205 @@
+local Ui = {}
+
+-- Ui.DARK_BROWN = "#3e341c"
+-- Ui.MID_BROWN = "#756b50"
+-- Ui.LIGHT_BROWN = "#b3a793"
+
+Ui.DARK_BROWN = "#453824"
+Ui.MID_BROWN = "#7f7059"
+Ui.LIGHT_BROWN = "#bbb4a1"
+
+
+Ui.DARK_BROWN_BUTTON_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
+Ui.MID_BROWN_BUTTON_COLORS = "#7f7059|#655741|#655741|#ffffff"
+
+Ui.INVISIBLE_BUTTON_COLORS = "#00000000|#00000088|#00000000|#00000000"
+Ui.IMAGE_BUTTON_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Panel(parent, params)
+    local elem = {
+        tag = "Panel",
+        attributes = {
+            id = params.id,
+            rectAlignment = params.rectAlignment or "MiddleCenter",
+            offsetXY = params.x and params.x.." "..params.y or nil,
+            width = params.width,
+            height = params.height,
+            color = params.color or "#00000000",
+            active = params.active,
+        },
+        children = {},
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Image(parent, params)
+    local elem = {
+        tag = "Image",
+        attributes = {
+            image = params.image,
+            rectAlignment = params.rectAlignment or "MiddleCenter",
+            width = params.width,
+            height = params.height,
+        },
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Input(parent, params)
+    local elem = {
+        tag = "InputField",
+        attributes = {
+            id = params.id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height or 30,
+            colors = params.colors or INPUT_COLORS,
+            placeholder = params.placeholder or " " ,
+            text = params.text,
+            fontSize = params.fontSize or 16,
+            textColor = params.textColor,
+            lineType = params.lineType,
+            onValueChanged = params.onValueChanged,
+            selectionColor = "#44444488",
+            textAlignment = params.textAlignment or "MiddleLeft",
+            textOffset = params.textOffset or "0 0 0 0",
+        }
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+function Ui.DarkInput(parent, params)
+    params.textColor = Ui.DARK_BROWN
+    params.colors = Ui.INVISIBLE_BUTTON_COLORS
+    return Ui.Input(parent, params)
+end
+
+function Ui.LightInput(parent, params)
+    params.textColor = Ui.LIGHT_BROWN
+    params.colors = Ui.INVISIBLE_BUTTON_COLORS
+    return Ui.Input(parent, params)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Text(parent, params)
+    local elem = {
+        tag = "Text",
+        attributes = {
+            id = params.id,
+            rectAlignment = "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height or 30,
+            text = params.text,
+            color = params.color,
+            alignment = params.alignment or "MiddleLeft",
+            fontSize = params.fontSize or 36,
+            textOffset = "0 0 0 0",
+            active = params.active,
+        },
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+function Ui.DarkText(parent, params)
+    params.color = params.color or Ui.DARK_BROWN
+    return Ui.Text(parent, params)
+end
+
+function Ui.LightText(parent, params)
+    params.color = params.color or Ui.LIGHT_BROWN
+    return Ui.Text(parent, params)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Button(parent, params)
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = params.id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = params.text,
+            colors = params.colors,
+            textColor = params.textColor,
+            fontSize = params.fontSize or 12,
+            image = params.image,
+            textAlignment = params.textAlignment or "MiddleLeft",
+            onClick = params.onClick,
+            active = params.active
+        },
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+function Ui.InvisibleButton(parent, params)
+     params.colors = Ui.INVISIBLE_BUTTON_COLORS
+     return Ui.Button(parent, params)
+end
+
+function Ui.ImageButton(parent, params)
+     params.colors = Ui.IMAGE_BUTTON_COLORS
+     return Ui.Button(parent, params)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Checkbox(parent, params)
+    local elem = {
+        tag = "Button",
+        attributes = {
+            id = params.id,
+            rectAlignment = "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            colors = Ui.INVISIBLE_BUTTON_COLORS,
+            onClick = params.onClick,
+            active = params.active
+        },
+    }
+    if params.checked then
+        elem.attributes.image = "CheckboxFilled"
+        elem.attributes.colors = Ui.IMAGE_BUTTON_COLORS
+    end
+    table.insert(parent.children, elem)
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.VerticalScroll(parent, params)
+    local elem = {
+        tag = "VerticalScrollView",
+        attributes = {
+            rectAlignment = "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            color = "#00000000",
+        },
+        children = {},
+    }
+    table.insert(parent.children, elem)
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Ui

@@ -1,86 +1,79 @@
-local Assert = require("Kdm/Assert")
+local Assert = require("Kdm/Util/Assert")
 
 ---------------------------------------------------------------------------------------------------
 
-local Guids = {}
+local Guids = {
+    nameGuids = {
+        ["Table"] = "0b2ed0",
+        ["Top Table"] = "bafa19",
+        ["Left Table"] = "8bf5e2",
+        ["Bottom Table"] = "dff000",
+        ["Right Table"] = "f7805a",
 
-Guids.nameGuids = {
-  ["Table"] = "0b2ed0",
-  ["Top Table"] = "bafa19",
-  ["Left Table"] = "8bf5e2",
-  ["Bottom Table"] = "dff000",
-  ["Right Table"] = "f7805a",
+        ["Abilities Archive"] = "da72c5",
+        ["Fighting Arts Archive"] = "0dc4b8",
+        ["Secret Fighting Arts Archive"] = "13a43d",
+        ["Disorders Archive"] = "590a4f",
+        ["Severe Injuries Archive"] = "1d3367",
+        ["Tactics Archive"] = "379dcf",
+        ["Weapon Specializations/Masteries Archive"] = "a80b96",
+        ["Armor Sets Archive"] = "d843fb",
+        ["Vermin Archive"] = "43ac01",
+        ["Strange Resources Archive"] = "dd76f7",
+        ["Basic Resources Archive"] = "57a8b5",
+        ["Terrain Archive"] = "7223e1",
+        ["Terrain Tiles Archive"] = "2551b1",
+        ["Hunt Events Archive"] = "5d72f3",
+        ["Rare Gear Archive"] = "7a04ec",
 
-  ["Kingdom Death: Monster Archive"] = "6392cb",
-  ["Community Edition Archive"] = "49ea5e",
-  ["Community Edition Settlement Locations"] = "c65185",
+        ["Showdown Board"] = "437cd7",
+        ["Hunt Board"] = "51a21e",
+        ["Settlement Board"] = "226d8a",
+        ["Rules Board"] = "456dc5",
+        ["Rules Navigation Board"] = "58f2b5",
 
-  ["Dragon King Archive"] = "f3b47c",
-  ["Dung Beetle Knight Archive"] = "d7ba5b",
-  ["Flower Knight Archive"] = "475b51",
-  ["Gorm Archive"] = "211ef7",
-  ["Lion God Archive"] = "f2cc04",
-  ["Lion Knight Archive"] = "37eaad",
-  ["Lonely Tree Archive"] = "0857d8",
-  ["Manhunter Archive"] = "e5fe39",
-  ["Slenderman Archive"] = "797b30",
-  ["Spidicules Archive"] = "c5735b",
-  ["Sunstalker Archive"] = "2fb312",
+        ["Player 1 Board"] = "9f3675",
+        ["Player 2 Board"] = "22a900",
+        ["Player 3 Board"] = "fa505f",
+        ["Player 4 Board"] = "281a3b",
 
-  ["Abilities Archive"] = "da72c5",
-  ["Fighting Arts Archive"] = "0dc4b8",
-  ["Secret Fighting Arts Archive"] = "13a43d",
-  ["Disorders Archive"] = "590a4f",
-  ["Severe Injuries Archive"] = "1d3367",
-  ["Tactics Archive"] = "379dcf",
-  ["Weapon Specializations/Masteries Archive"] = "a80b96",
-  ["Armor Sets Archive"] = "d843fb",
-  ["Vermin Archive"] = "43ac01",
-  ["Strange Resources Archive"] = "dd76f7",
-  ["Basic Resources Archive"] = "57a8b5",
-  ["Terrain Archive"] = "7223e1",
-  ["Terrain Tiles Archive"] = "2551b1",
-  ["Hunt Events Archive"] = "5d72f3",
-  ["Rare Gear Archive"] = "7a04ec",
+        ["Player 1 Marker"] = "27334a",
+        ["Player 2 Marker"] = "c6d863",
+        ["Player 3 Marker"] = "a8d948",
+        ["Player 4 Marker"] = "e00244",
 
-  ["Showdown Board"] = "437cd7",
-  ["Hunt Board"] = "51a21e",
-  ["Settlement Board"] = "226d8a",
-  ["Rules Board"] = "456dc5",
-  ["Rules Navigation Board"] = "58f2b5",
+        ["Settlement Locations"] = "0c93d6",
 
-  ["Player 1 Board"] = "9f3675",
-  ["Player 2 Board"] = "22a900",
-  ["Player 3 Board"] = "fa505f",
-  ["Player 4 Board"] = "281a3b",
+        ["Settlement Sheet"] = "7d82ec",
+        ["Population Sheet"] = "6bc296",
 
-  ["Player 1 Marker"] = "27334a",
-  ["Player 2 Marker"] = "c6d863",
-  ["Player 3 Marker"] = "a8d948",
-  ["Player 4 Marker"] = "e00244",
-
-  ["Settlement Locations"] = "0c93d6",
-
-  ["Settlement Sheet"] = "7d82ec",
-  ["Population Sheet"] = "6bc296",
-
-  ["Overlays"] = "b07b40",
+        ["Overlays"] = "b07b40",
+    },
 }
 
 ---------------------------------------------------------------------------------------------------
 
+function Guids.RegisterNamedGuids(namedGuids)
+    for name, guid in pairs(namedGuids or {}) do
+        Assert(Guids.nameGuids[name] == nil, "Named guid %s (%s) already registered to %s", name, guid, Guids.nameGuids[name])
+        Guids.nameGuids[name] = guid
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Guids.GetObject(name)
-  Assert.Str(name, "name")
+    Assert.Str(name, "name")
 
-  local guid = Guids.nameGuids[name]
-  Assert(guid, "No object with name %s", name)
+    local guid = Guids.nameGuids[name]
+    Assert(guid, "No object with name %s", name)
 
-  local obj = getObjectFromGUID(guid)
-  if not obj then
-    Assert.Fail("Couldn't find critical game component '%s' with GUID %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid)
-  end
+    local obj = getObjectFromGUID(guid)
+    if not obj then
+        Assert.Fail("Couldn't find critical game component '%s' with GUID %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid)
+    end
 
-  return obj
+    return obj
 end
 
 ---------------------------------------------------------------------------------------------------

@@ -1,0 +1,111 @@
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Decks")
+local Guids = require("Kdm/Guids")
+local UiButton = require("Kdm/UiButton")
+
+local Decks = {}
+
+local DECKS_TO_SHUFFLE = {
+    ["Fighting Arts"] = true,
+    ["Disorders"] = true,
+    ["Tactics"] = true,
+    ["Vermin"] = true,
+    ["Basic Resources"] = true,
+    ["Monster Resources"] = true,
+    ["Terrain"] = true,
+}
+
+local DECKS_UI_HEIGHT = 10.75
+
+---------------------------------------------------------------------------------------------------
+
+function Decks_ResetCoroutine()
+    local deck = Decks.resetDeck
+
+    Log.Debugf("Resetting deck %s", deck)
+
+    local script = Script.Create("Reset "..deck)
+
+    cleanupStage = Script.Stage(script, "Cleanup")
+    Script.CleanAction(cleanupStage, { from = deck, types = { deck }})
+
+    spawnStage = Script.Stage(script, "Spawn")
+    Script.TakeAction(spawnStage, {
+        name = deck,
+        type = deck,
+        to = deck,
+        rotation = Script.FACE_DOWN,
+        allowMissing = true,
+    })
+
+    if DECKS_TO_SHUFFLE[deck] then
+        shuffleStage = Script.Stage(script, "Shuffle")
+        Script.ShuffleAction(shuffleStage, { from = deck })
+    end
+
+    local _, blockingObj, locationBlocked = Script.Run(script)
+    if blockingObj != nil then
+        Log.Broadcastf("Found object %s(%s) in the way of the %s deck. Please move out of the way then try resetting the deck again.", blockingObj.getName(), blockingObj.tag, deck)
+    end
+
+    return 1
+end
+
+function Decks.ResetDeck(deck)
+    Decks.resetDeck = deck
+    startLuaCoroutine(self, "Decks_ResetDeckCoroutine")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Decks.Init()
+    local showdownBoardObj = Guids.GetObject("Showdown Board")
+
+    local x0 = -7.325
+    local z0 = -1.455
+    local dx = 0.82
+    local dz = 1.396
+
+    local deckGrid = {
+        { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
+        { "Disorders", "Severe Injuries", "Tactics" },
+        { "Weapon Specializations/Masteries", "Armor Sets", "Vermin" },
+        { "Strange Resources", "Basic Resources" },
+    }
+    for row, deckRow in ipairs(deckGrid) do
+        local z = z0 + ((row - 1) * dz)
+        for col, deck in ipairs(deckRow) do
+            local x = x0 + ((col - 1) * dx)
+
+            UiButton.Create({
+                object = showdownBoardObj,
+                name = deck.."Reset",
+                clickFunc = function() Decks.ResetDeck(deck) end,
+                position = {
+                    x = x,
+                    y = DECKS_UI_HEIGHT,
+                    z = z,
+                },
+                width = 1850.0,
+                height = 500.0,
+            })
+        end
+    end
+
+    UiButton.Create({
+        object = showdownBoardObj,
+        name = "TerrainReset",
+        position = {
+            x = -3.88,
+            y = DECKS_UI_HEIGHT,
+            z = -3.84,
+        },
+        width = 500.0,
+        height = 2800.0,
+        clickFunc = function() Decks.ResetDeck("Terrain") end,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Decks

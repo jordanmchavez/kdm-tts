@@ -1,0 +1,59 @@
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Terrain")
+local Grid = require("Kdm/Grid")
+local EventManager = require("Kdm/Util/EventManager")
+
+local Terrain = {
+    terrainData = {},
+    terrainTileSizes = {},
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Terrain.RegisterTerrainData(terrainData)
+    for terrain, data in pairs(terrainData or {}) do
+        Assert(Terrain.terrainData[terrain] == nil, "Terrain %s is already registered", terrain)
+        Terrain.terrainData[terrain] = data
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Terrain.RegisterTerrainTileSizes(terrainTileSizes)
+    for terrainTile, size in pairs(terrainTileSizes or {}) do
+        Assert(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile)
+        Terrain.terrainTileSizes[terrainTile] = size
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Terrain_OnObjectDrop(_, object)
+    if object.getGMNotes() != "Terrain Tiles" then
+        return
+    end
+
+    local size = Terrain.terrainTileSizes[object.getName()]
+    if not size then
+        Log.Debugf("TerrainTile %s (%s) has no registered size", object.getName(), object.getGUID())
+        return
+    end
+
+    Log.Debugf("TerrainTile %s (%s) dropped", object.getName(), object.getGUID())
+
+    object.setPositionSmooth(
+        Grid.Snap(object, size),
+        false,  -- collide
+        true   -- smooth
+    )
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Terrain.Init()
+    EventManager.AddHandler("onObjectDrop", Terrain_OnObjectDrop)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return Terrain

@@ -1,6 +1,6 @@
-local Assert = require("Kdm/Assert")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("Overlay")
+local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("Overlay")
 local Guids = require("Kdm/Guids")
 local Grid = require("Kdm/Grid")
 

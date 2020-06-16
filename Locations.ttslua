@@ -1,5 +1,5 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Locations")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Locations")
 local Guids = require("Kdm/Guids")
 
 -- actual size { x = 2.695496, y = 0.1, z = 4.258408 }
@@ -491,6 +491,12 @@ local Locations = {
             objectName = "Settlement Board",
         },
 
+        ["Settlement Locations"] = {
+            center = { x = -10.260717, y = 0.647072, z = -4.979607 },
+            size = LOCATIONS_SETTLEMENT_LOCATION_SIZE,
+            objectName = "Settlement Board",
+        },
+
         ["Innovation Archive"] = {
             center = { x = -3.056074, y = 0.647072, z = -0.816151 },
             size = LOCATIONS_CARD_SIZE,
@@ -525,11 +531,6 @@ local Locations = {
         ["Settlement Events"] = {
             center = { x = -13.914588, y = 10.801341, z = -6.073809 },
             size = LOCATIONS_SETTLEMENT_EVENT_SIZE,
-            objectName = "Showdown Board",
-        },
-        ["Sun Dial"] = {
-            center = { x = -10.535775, y = 10.801341, z = 0.399195 },
-            size = LOCATIONS_CARD_SIZE,
             objectName = "Showdown Board",
         },
         ["Misc 1"] = {

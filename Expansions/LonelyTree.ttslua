@@ -1,0 +1,143 @@
+return {
+    name = "Lonely Tree",
+
+    components = {
+        ["Hunt Events"] = "Object of Desire",
+        ["Abilities"] = "Lonely Tree Abilities",
+        ["Strange Resources"] = "Lonely Tree Strange Resources",
+        ["Terrain"] = "The Lonely Tree",
+        ["Terrain Tiles"] = { "The Lonely Tree", "Lonely Fruit" },
+        ["Monsters"] = "Lonely Tree",
+    },
+
+    terrain = {
+        ["The Lonely Tree"] = {
+            terrainTile = "The Lonely Tree",
+            count = 1,
+            miscObjects = { { name = "Lonely Fruit", type = "Terrain Tiles" } },
+            starting = { "Nightmare Fruit", "Monster Fruit" },
+        },
+    },
+
+    terrainTiles = {
+        ["The Lonely Tree"] = { size = 2 },
+    },
+
+    namedGuids = { ["Lonely Tree Archive"] = "0857d8" },
+
+    archiveEntries = {
+        archive = "Lonely Tree Archive",
+        entries = {
+            { "Lonely Tree Rules", "Rulebook" },
+
+            { "Lonely Tree Abilities", "Abilities" },
+            { "Lonely Tree Strange Resources", "Strange Resources" },
+
+            { "The Lonely Tree", "Terrain" },
+            { "The Lonely Tree", "Terrain Tiles" },
+            { "Lonely Fruit", "Terrain Tiles" },
+
+            { "Lonely Tree", "Monster Figurine" },
+
+            { "Object of Desire", "Hunt Events" },
+
+            { "Lonely Tree Info", "AI" },
+            { "Lonely Tree Basic Action", "AI" },
+            { "Lonely Tree Basic AI", "AI" },
+            { "Lonely Tree Advanced AI", "AI" },
+            { "Lonely Tree Legendary AI", "AI" },
+            { "Lonely Tree Special AI", "AI" },
+            { "Lonely Tree Hit Locations", "Hit Locations" },
+
+            { "Nightmare Fruit", "AI" },
+            { "Monster Fruit", "AI" },
+        },
+    },
+
+    rulebooks = {
+        {
+            name = "Lonely Tree Rules",
+            pages = {
+                ["Lonely Tree Rules"] = {
+                    keywords = { "Lonely", "Tree", "Rulebook", "Rules" },
+                    state = 1,
+                },
+                ["The Lonely Lady"] = {
+                    keywords = { "The", "Lonely", "Lady" },
+                    state = 2,
+                },
+                ["Showdown: Lonely Tree"] = {
+                    keywords = { "Showdown:", "Lonely", "Tree" },
+                    state = 6,
+                },
+            },
+        },
+    },
+
+    monsterSizes = {
+        ["Lonely Tree"] = 2,
+    },
+
+    setups = {
+        ["Lonely Tree"] = {
+            rules = { "Lonely Tree Rules", 6 },
+            resourcesDeck = false,
+            position = "(11, 8)",
+            playerPositions = { "(10, 13)", "(11, 14)", "(12, 14)", "(13, 14)" },
+            playerRotations = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            fixedTerrain = {
+                {
+                    terrain = "2 Tall Grass",
+                    positions = { "(4.5, 1.5)", "(17.5, 1.5)", "(4.5, 14.5)", "(17.5, 14.5)" },
+                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                },
+            },
+            miscObjects = { { name = "Lonely Fruit", type = "Terrain Tiles" } },
+            levels = {
+                {
+                    name = "Level 1",
+                    level = 1,
+                    showdown = {
+                        starting = {
+                            special = { "Bear Fruit", "Impenetrable Trunk" },
+                        },
+                        basic = 6,
+                        advanced = 3,
+                        legendary = 1,
+                        toughness = 10,
+                        damage = -1,
+                    },
+                },
+                {
+                    name = "Level 2",
+                    level = 2,
+                    showdown = {
+                        starting = {
+                            special = { "Bear Fruit", "Impenetrable Trunk", "Moving Ground" },
+                        },
+                        basic = 8,
+                        advanced = 5,
+                        legendary = 1,
+                        toughness = 13,
+                    },
+                },
+                {
+                    name = "Level 3",
+                    level = 3,
+                    showdown = {
+                        starting = {
+                            special = { "Bear Fruit", "Impenetrable Trunk", "Moving Ground" },
+                        },
+                        basic = 8,
+                        advanced = 5,
+                        legendary = 2,
+                        life = 20,
+                        toughness = 17,
+                        speed = 1,
+                        damage = 1,
+                    },
+                },
+            },
+        },
+    },
+}

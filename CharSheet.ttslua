@@ -1,11 +1,11 @@
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("CharSheet")
-local Util = require("Kdm/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("CharSheet")
+local Util = require("Kdm/Util/Util")
 local UiCounter = require("Kdm/UiCounter")
 local UiCheckbox = require("Kdm/UiCheckbox")
 local UiButton = require("Kdm/UiButton")
 local UiText = require("Kdm/UiText")
-local EventManager = require("Kdm/EventManager")
+local EventManager = require("Kdm/Util/EventManager")
 
 ---------------------------------------------------------------------------------------------------
 

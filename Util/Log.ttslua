@@ -1,4 +1,4 @@
-local Util = require("Kdm/Util")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -6,17 +6,17 @@ local Log = {}
 
 Log.debugPackages = {
     -- ["G"] = true,
-    -- ["Rules"] = true,
+    ["Rules"] = true,
     -- ["Ui"] =    true,
-    -- ["ShowdownBoard"] = true,
+    -- ["Showdown"] = true,
     -- ["Latch"] = true,
-     ["Script"] = true,
-    -- ["Expansions"] = true,
-     ["Setup"] = true,
+     --["Script"] = true,
+     ["Expansion"] = true,
+     --["Setup"] = true,
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
     -- ["Overlay"] = true,
-    ["Settlement"] = true,
+    --["Settlement"] = true,
     -- ["PopulationSheet"] = true,
     -- ["EventManager"] = true,
     -- ["DropZone"] = true,

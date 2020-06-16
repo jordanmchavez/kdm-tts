@@ -1,7 +1,0 @@
-<Defaults>
-  <Button rectAlignment="UpperLeft" />
-  <Text rectAlignment="UpperLeft" />
-  <Panel rectAlignment="UpperLeft" />
-  <VerticalScrollView rectAlignment="UpperLeft" />
-  <InputField rectAlignment="UpperLeft" />
-</Defaults>

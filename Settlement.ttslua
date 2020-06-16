@@ -1,14 +1,13 @@
-local Util = require("Kdm/Util")
-local Assert = require("Kdm/Assert")
-local Log = require("Kdm/Log").ForPackage("Settlement")
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Settlement")
 local Rules = require("Kdm/Rules")
+local Ui = require("Kdm/XmlUi")
 
 ---------------------------------------------------------------------------------------------------
 
 local SETTLEMENT_MAX_TIMELINE_YEARS = 30
 local RIGHT_MOUSE_BUTTON = "-2"
-local INVISIBLE_BUTTON_COLORS = "#00000000|#22222244|#22222244|#00000000"
-local IMAGE_BUTTON_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
 
 local Settlement = {
     survivalLimit = 1,
@@ -33,6 +32,55 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Settlement.AddTimelineEvent(params)
+    local year, event, name = params.year, params.event, params.name
+    Log.Debugf("Adding %s to timeline year %d, event %d", name, year, event)
+
+    local buttonId = "Settlement_TimelineYear"..year.."Event"..event.."Button"
+    self.UI.show(buttonId)
+    self.UI.setAttributes(buttonId, {
+        image = params.isShowdown and "TimelineShowdown" or "TimelineEvent",
+        colors = Ui.IMAGE_BUTTON_COLORS
+    })
+
+    local textId = "Settlement_TimelineYear"..year.."Event"..event.."Text"
+    self.UI.setAttribute(textId, "text", name)
+    self.UI.show(textId)
+
+    Settlement.timeline[year].events[event] = { name = name, rulebook = params.rulebook, state = params.state, isShowdown = params.isShowdown }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Settlement.RemoveTimelineEvent(year, event)
+    Log.Debugf("Removing timeline year %d, event %d", year, event)
+
+    local buttonId = "Settlement_TimelineYear"..year.."Event"..event.."Button"
+    self.UI.setAttributes(buttonId, {
+        image = nil,
+        colors = Ui.INVISIBLE_BUTTON_COLORS,
+    })
+
+    local textId = "Settlement_TimelineYear"..year.."Event"..event.."Text"
+    self.UI.hide(textId)
+    self.UI.setAttribute(textId, "text", nil)
+
+    Settlement.timeline[year].events[event] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Settlement.ClearTimeline()
+    for year, yearData in pairs(Settlement.timeline) do
+        for event, eventData in pairs(yearData.events) do
+            Settlement.RemoveTimelineEvent(year, event)
+        end
+        yearData.events = {}
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Settlement.Save()
     return {
         name = Settlement.name,
@@ -51,58 +99,16 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local DARK_BROWN = "#3e341c"
-local MID_BROWN = "#756b50"
-local LIGHT_BROWN = "#b3a793"
-
----------------------------------------------------------------------------------------------------
-
-local function Settlement_CloseSettlementPanel()
-    self.UI.hide("Settlement_MainPanel")
-    Settlement.panelOpen = false
-end
-
-local function Settlement_OpenSettlementPanel()
+function Settlement.OpenSettlementPanel()
     self.UI.show("Settlement_MainPanel")
     Settlement.panelOpen = true
 end
 
----------------------------------------------------------------------------------------------------
-
-function Settlement.AddTimelineEvent(params)
-    local year, event, name = params.year, params.event, params.name
-    Log.Debugf("Adding %s to timeline year %d, event %d", name, year, event)
-
-    local buttonId = "Settlement_TimelineYear"..year.."Event"..event.."Button"
-    self.UI.show(buttonId)
-    self.UI.setAttributes(buttonId, {
-        image = params.isShowdown and "TimelineShowdown" or "TimelineEvent",
-        colors = IMAGE_BUTTON_COLORS
-    })
-
-    local textId = "Settlement_TimelineYear"..year.."Event"..event.."Text"
-    self.UI.setAttribute(textId, "text", name)
-    self.UI.show(textId)
-
-    Settlement.timeline[year].events[event] = { name = name, rulebook = params.rulebook, state = params.state, isShowdown = params.isShowdown }
+function Settlement.CloseSettlementPanel()
+    self.UI.hide("Settlement_MainPanel")
+    Settlement.panelOpen = false
 end
 
-function Settlement.RemoveTimelineEvent(year, event)
-    Log.Debugf("Removing timeline year %d, event %d", year, event)
-
-    local buttonId = "Settlement_TimelineYear"..year.."Event"..event.."Button"
-    --self.UI.hide(buttonId)
-    self.UI.setAttributes(buttonId, {
-        image = nil,
-        colors = INVISIBLE_BUTTON_COLORS,
-    })
-
-    local textId = "Settlement_TimelineYear"..year.."Event"..event.."Text"
-    self.UI.hide(textId)
-    self.UI.setAttribute(textId, "text", nil)
-
-    Settlement.timeline[year].events[event] = nil
-end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -114,7 +120,7 @@ local function Settlement_AddTimelineEventPanel_SetSearchResults(results)
         local id = "Settlement_AddTimelineEventPanel_SearchResultButton"..i
         self.UI.setAttributes(id, {
             text = result.name,
-            textColor = LIGHT_BROWN,
+            textColor = UI.LIGHT_BROWN,
             active = true,
         })
     end
@@ -132,22 +138,22 @@ local function Settlement_AddTimelineEventPanel_CheckShowdown(checked)
         Settlement.addTimelineEventPanel.isShowdown = true
         self.UI.setAttributes("Settlement_AddTimelineEventPanel_EventCheckbox", {
             image = nil,
-            colors = INVISIBLE_BUTTON_COLORS,
+            colors = Ui.INVISIBLE_BUTTON_COLORS,
         })
         self.UI.setAttributes("Settlement_AddTimelineEventPanel_ShowdownCheckbox", {
             image = "CheckboxFilled",
-            colors = IMAGE_BUTTON_COLORS,
+            colors = Ui.IMAGE_BUTTON_COLORS,
         })
     else
         Log.Debugf("Selecting event")
         Settlement.addTimelineEventPanel.isShowdown = nil
         self.UI.setAttributes("Settlement_AddTimelineEventPanel_EventCheckbox", {
             image = "CheckboxFilled",
-            colors = IMAGE_BUTTON_COLORS,
+            colors = Ui.IMAGE_BUTTON_COLORS,
         })
         self.UI.setAttributes("Settlement_AddTimelineEventPanel_ShowdownCheckbox", {
             image = nil,
-            colors = INVISIBLE_BUTTON_COLORS,
+            colors = Ui.INVISIBLE_BUTTON_COLORS,
         })
     end
 end
@@ -185,9 +191,9 @@ end
 
 function Settlement_SettlementButton_OnClick()
     if Settlement.panelOpen then
-        Settlement_CloseSettlementPanel()
+        Settlement.CloseSettlementPanel()
     else
-        Settlement_OpenSettlementPanel()
+        Settlement.OpenSettlementPanel()
     end
 end
 
@@ -219,7 +225,7 @@ function Settlement_ArrivalBonusesInputField_OnValueChanged(_, value)
 end
 
 function Settlement_CloseSettlementButton_OnClick()
-    Settlement_CloseSettlementPanel()
+    Settlement.CloseSettlementPanel()
 end
 
 local function Settlement_Checkbox_OnClick(id, object, field)
@@ -228,14 +234,14 @@ local function Settlement_Checkbox_OnClick(id, object, field)
         object[field] = nil
         self.UI.setAttributes(id, {
             image = nil,
-            colors = INVISIBLE_BUTTON_COLORS,
+            colors = Ui.INVISIBLE_BUTTON_COLORS,
         })
     else
         Log.Debugf("Checking %s", field)
         object[field] = true
         self.UI.setAttributes(id, {
             image = "CheckboxFilled",
-            colors = IMAGE_BUTTON_COLORS,
+            colors = Ui.IMAGE_BUTTON_COLORS,
         })
     end
 end
@@ -247,7 +253,7 @@ function Settlement_FiveInnovationsMilestoneCheckbox_OnClick() Settlement_Checkb
 
 local function Settlement_SpawnRules(name)
     local rulebook, state = Rules.GetRulebookAndState(name)
-    Settlement_CloseSettlementPanel()
+    Settlement.CloseSettlementPanel()
     Rules.SpawnRules(rulebook, state)
 end
 
@@ -301,14 +307,14 @@ function Settlement_TimelineEventButton_OnClick(_, mouseButton, id)
 
     if eventData.rulebook then
         Log.Debugf("Event button for year %d, event# %d clicked: %s (%s, %d)", year, event, eventData.name, eventData.rulebook, eventData.state)
-        Settlement_CloseSettlementPanel()
+        Settlement.CloseSettlementPanel()
         Rules.SpawnRules(eventData.rulebook, eventData.state)
         return
     end
 
     if eventData.isShowdown then
         Log.Debugf("Showdown button for year %d, event# %d", year, event)
-        Settlement_CloseSettlementPanel()
+        Settlement.CloseSettlementPanel()
         G_OpenSetupPanel()
         G_SelectTab("ShowdownTab")
         return
@@ -365,7 +371,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.Init(saveState)
+function Settlement.Init(saveState, ui)
     Log.Debugf("Creating settlement sheet")
 
     saveState = saveState or {}
@@ -389,190 +395,40 @@ function Settlement.Init(saveState)
     Settlement.fiveInnovationsMilestone = saveState.fiveInnovationsMilestone
     Settlement.notes = saveState.notes
 
-    local function Panel(parent, params)
-        local elem = {
-            tag = "Panel",
-            attributes = {
-                id = params.id,
-                rectAlignment = params.rectAlignment or "MiddleCenter",
-                width = params.width,
-                height = params.height,
-                color = "#00000000",
-                active = params.active,
-            },
-            children = {},
-        }
-        if parent then
-            table.insert(parent.children, elem)
-        end
-        return elem
-    end
+    local mainPanel = Ui.Panel(ui, { id = "Settlement_MainPanel", width = 1600, height = 900, active = false })
+    Ui.Image(mainPanel, { image = "Settlement", width = 1600, height = 900 })
+    Ui.DarkInput(mainPanel, { x = 198, y = 851, width = 520, height = 35, text = Settlement.name, fontSize = 24, onValueChanged = "Settlement_NameInputField_OnValueChanged" })
+    Ui.DarkText(mainPanel, { id = "Settlement_SurvivalLimitText", x = 902, y = 830, width = 50, height = 50, text = Settlement.survivalLimit, alignment = "MiddleCenter", fontSize = 36 })
+    Ui.InvisibleButton(mainPanel, { x = 952, y = 855,  width = 25, height = 25, onClick = "Settlement_SurvivalLimitPlusButton_OnClick" })
+    Ui.InvisibleButton(mainPanel, { x = 952, y = 830,  width = 25, height = 25, onClick = "Settlement_SurvivalLimitMinusButton_OnClick" })
+    Ui.DarkInput(mainPanel, { x = 1129, y = 865, width = 300, height = 25, text = Settlement.departingBonuses, onValueChanged = "Settlement_DepartingBonusesInputField_OnValueChanged" })
+    Ui.DarkInput(mainPanel, { x = 1129, y = 830, width = 300, height = 25, text = Settlement.arrivalBonuses, onValueChanged = "Settlement_ArrivalBonusesInputField_OnValueChanged" })
+    Ui.InvisibleButton(mainPanel, { x = 1556, y = 856,  width = 30, height = 30, onClick = "Settlement_CloseSettlementButton_OnClick" })
 
-    local function Image(parent, params)
-        local elem = {
-            tag = "Image",
-            attributes = {
-                image = params.image,
-                rectAlignment = params.rectAlignment or "MiddleCenter",
-                width = params.width,
-                height = params.height,
-            },
-        }
-        table.insert(parent.children, elem)
-        return elem
-    end
+    Ui.Checkbox(mainPanel, { id = "Settlement_FirstBirthMilestoneCheckbox",        x = 1301, y = 703, width = 20, height = 20, checked = Settlement.firstBirthMilestone,        onClick = "Settlement_FirstBirthMilestoneCheckbox_OnClick" })
+    Ui.Checkbox(mainPanel, { id = "Settlement_FirstDeathMilestoneCheckbox",        x = 1301, y = 663, width = 20, height = 20, checked = Settlement.firstDeathMilestone,        onClick = "Settlement_FirstDeathMilestoneCheckbox_OnClick" })
+    Ui.Checkbox(mainPanel, { id = "Settlement_FifteenPopulationMilestoneCheckbox", x = 1301, y = 623, width = 20, height = 20, checked = Settlement.fifteenPopulationMilestone, onClick = "Settlement_FifteenPopulationMilestoneCheckbox_OnClick" })
+    Ui.Checkbox(mainPanel, { id = "Settlement_FiveInnovationsMilestoneCheckbox",   x = 1301, y = 583, width = 20, height = 20, checked = Settlement.fiveInnovationsMilestone,   onClick = "Settlement_FiveInnovationsMilestoneCheckbox_OnClick" })
 
-    local function DarkInput(parent, params)
-        local elem = {
-            tag = "InputField",
-            attributes = {
-                id = params.id,
-                rectAlignment = params.rectAlignment or "LowerLeft",
-                offsetXY = params.x.." "..params.y,
-                width = params.width,
-                height = params.height,
-                colors = "#00000000|#22222244|#00000000|#00000000",
-                placeholder = params.placeholder or " " ,
-                text = params.text,
-                fontSize = params.fontSize or 16,
-                textColor = params.textColor or DARK_BROWN,
-                lineType = params.lineType,
-                onValueChanged = params.onValueChanged,
-                selectionColor = "#44444488",
-                textAlignment = params.textAlignment or "MiddleLeft",
-                textOffset = "0 0 0 0",
-            }
-        }
-        table.insert(parent.children, elem)
-        return elem
-    end
-    local function LightInput(parent, params)
-        params.textColor = LIGHT_BROWN
-        return DarkInput(parent, params)
-    end
-
-    local function DarkText(parent, params)
-        local elem = {
-            tag = "Text",
-            attributes = {
-                id = params.id,
-                rectAlignment = "LowerLeft",
-                offsetXY = params.x.." "..params.y,
-                width = params.width,
-                height = params.height,
-                text = params.text,
-                color = params.color or DARK_BROWN,
-                alignment = params.alignment or "MiddleLeft",
-                fontSize = params.fontSize or 36,
-                textOffset = "0 0 0 0",
-                active = params.active,
-            },
-        }
-        table.insert(parent.children, elem)
-        return elem
-    end
-
-    local function LightText(parent, params)
-        params.color = params.color or LIGHT_BROWN
-        return DarkText(parent, params)
-    end
-
-    local function Button(parent, params)
-        local elem = {
-            tag = "Button",
-            attributes = {
-                id = params.id,
-                rectAlignment = "LowerLeft",
-                offsetXY = params.x.." "..params.y,
-                width = params.width,
-                height = params.height,
-                text = params.text,
-                colors = INVISIBLE_BUTTON_COLORS,
-                textColor = params.textColor or LIGHT_BROWN,
-                fontSize = params.fontSize or 12,
-                image = params.image,
-                textAlignment = "MiddleLeft",
-                onClick = params.onClick,
-                active = params.active
-            },
-        }
-        table.insert(parent.children, elem)
-        return elem
-    end
-
-    local function Checkbox(parent, params)
-        local elem = {
-            tag = "Button",
-            attributes = {
-                id = params.id,
-                rectAlignment = "LowerLeft",
-                offsetXY = params.x.." "..params.y,
-                width = params.width,
-                height = params.height,
-                colors = INVISIBLE_BUTTON_COLORS,
-                onClick = params.onClick,
-                active = params.active
-            },
-        }
-        if params.checked then
-            elem.attributes.image = "CheckboxFilled"
-            elem.attributes.colors = IMAGE_BUTTON_COLORS
-        end
-        table.insert(parent.children, elem)
-        return elem
-    end
-
-    local function VerticalScroll(parent, params)
-        local elem = {
-            tag = "VerticalScrollView",
-            attributes = {
-                rectAlignment = "LowerLeft",
-                offsetXY = params.x.." "..params.y,
-                width = params.width,
-                height = params.height,
-                color = "#00000000",
-            },
-            children = {},
-        }
-        table.insert(parent.children, elem)
-        return elem
-    end
-
-    local mainPanel = Panel(nil, { id = "Settlement_MainPanel", width = 1600, height = 900, active = false, })
-    Image(mainPanel, { image = "Settlement", width = 1600, height = 900})
-    DarkInput(mainPanel, { x = 198, y = 851, width = 520, height = 35, text = Settlement.name, fontSize = 24, onValueChanged = "Settlement_NameInputField_OnValueChanged" })
-    DarkText(mainPanel, { id = "Settlement_SurvivalLimitText", x = 902, y = 830, width = 50, height = 50, text = Settlement.survivalLimit, alignment = "MiddleCenter", fontSize = 36 })
-    Button(mainPanel, { x = 952, y = 855,  width = 25, height = 25, onClick = "Settlement_SurvivalLimitPlusButton_OnClick" })
-    Button(mainPanel, { x = 952, y = 830,  width = 25, height = 25, onClick = "Settlement_SurvivalLimitMinusButton_OnClick" })
-    DarkInput(mainPanel, { x = 1129, y = 865, width = 300, height = 25, text = Settlement.departingBonuses, onValueChanged = "Settlement_DepartingBonusesInputField_OnValueChanged" })
-    DarkInput(mainPanel, { x = 1129, y = 830, width = 300, height = 25, text = Settlement.arrivalBonuses, onValueChanged = "Settlement_ArrivalBonusesInputField_OnValueChanged" })
-    Button(mainPanel, { x = 1556, y = 856,  width = 30, height = 30, onClick = "Settlement_CloseSettlementButton_OnClick" })
-
-    Checkbox(mainPanel, { id = "Settlement_FirstBirthMilestoneCheckbox",        x = 1301, y = 703, width = 20, height = 20, checked = Settlement.firstBirthMilestone,        onClick = "Settlement_FirstBirthMilestoneCheckbox_OnClick" })
-    Checkbox(mainPanel, { id = "Settlement_FirstDeathMilestoneCheckbox",        x = 1301, y = 663, width = 20, height = 20, checked = Settlement.firstDeathMilestone,        onClick = "Settlement_FirstDeathMilestoneCheckbox_OnClick" })
-    Checkbox(mainPanel, { id = "Settlement_FifteenPopulationMilestoneCheckbox", x = 1301, y = 623, width = 20, height = 20, checked = Settlement.fifteenPopulationMilestone, onClick = "Settlement_FifteenPopulationMilestoneCheckbox_OnClick" })
-    Checkbox(mainPanel, { id = "Settlement_FiveInnovationsMilestoneCheckbox",   x = 1301, y = 583, width = 20, height = 20, checked = Settlement.fiveInnovationsMilestone,   onClick = "Settlement_FiveInnovationsMilestoneCheckbox_OnClick" })
-
-    Button(mainPanel, { x = 1417, y = 698, width = 145, height = 30, onClick = "Settlement_PrincipleNewLifeButton_OnClick" })
-    Button(mainPanel, { x = 1417, y = 658, width = 145, height = 30, onClick = "Settlement_PrincipleDeathButton_OnClick" })
-    Button(mainPanel, { x = 1417, y = 618, width = 145, height = 30, onClick = "Settlement_PrincipleSocietyButton_OnClick" })
-    Button(mainPanel, { x = 1417, y = 578, width = 145, height = 30, onClick = "Settlement_HoodedKnightButton_OnClick" })
+    Ui.InvisibleButton(mainPanel, { x = 1417, y = 698, width = 145, height = 30, onClick = "Settlement_PrincipleNewLifeButton_OnClick" })
+    Ui.InvisibleButton(mainPanel, { x = 1417, y = 658, width = 145, height = 30, onClick = "Settlement_PrincipleDeathButton_OnClick" })
+    Ui.InvisibleButton(mainPanel, { x = 1417, y = 618, width = 145, height = 30, onClick = "Settlement_PrincipleSocietyButton_OnClick" })
+    Ui.InvisibleButton(mainPanel, { x = 1417, y = 578, width = 145, height = 30, onClick = "Settlement_HoodedKnightButton_OnClick" })
 
     local dy = -27
     for i = 1, 5 do
-        DarkInput(mainPanel, { id="Settlement_Quarries"..i.."InputField", x = 1301, y = 477 + ((i - 1) * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 14, onValueChanged = "Settlement_QuarriesInputField_OnValueChanged" })
+        Ui.DarkInput(mainPanel, { id="Settlement_Quarries"..i.."InputField", x = 1301, y = 477 + ((i - 1) * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 14, onValueChanged = "Settlement_QuarriesInputField_OnValueChanged" })
     end
     for i = 6, 10 do
-        DarkInput(mainPanel, { id="Settlement_Quarries"..i.."InputField", x = 1437, y = 477 + ((i - 6) * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 14, onValueChanged = "Settlement_QuarriesInputField_OnValueChanged" })
+        Ui.DarkInput(mainPanel, { id="Settlement_Quarries"..i.."InputField", x = 1437, y = 477 + ((i - 6) * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 14, onValueChanged = "Settlement_QuarriesInputField_OnValueChanged" })
     end
-
-    DarkInput(mainPanel, { x = 1301, y = 38, width = 261, height = 237, lineType = "MultiLineNewLine", text = Settlement.notes, textAlignment = "UpperLeft", onValueChanged = "Settlement_NotesInputField_OnValueChanged" })
+    Ui.DarkInput(mainPanel, { x = 1301, y = 38, width = 261, height = 237, lineType = "MultiLineNewLine", text = Settlement.notes, textAlignment = "UpperLeft", onValueChanged = "Settlement_NotesInputField_OnValueChanged" })
 
     -----------------------------------------------------------------------------------------------
 
-    local scroll = VerticalScroll(mainPanel, { x = 23, y = 23, width = 1242, height = 760 - 6 })
-    local timelinePanel = Panel(scroll, { width = 1242, height = 1563 })
-    Image(timelinePanel, { image = "Timeline30", width = 1242, height = 1563 })
+    local scroll = Ui.VerticalScroll(mainPanel, { x = 23, y = 23, width = 1242, height = 760 - 6 })
+    local timelinePanel = Ui.Panel(scroll, { width = 1242, height = 1563 })
+    Ui.Image(timelinePanel, { image = "Timeline30", width = 1242, height = 1563 })
 
     local x1 = 78
     local width = 172
@@ -584,16 +440,16 @@ function Settlement.Init(saveState)
         local yearData = Settlement.timeline[year]
         local y = 1528 + ((year - 1) * dy)
         local idPrefix = "Settlement_TimelineYear"..year
-        Checkbox(timelinePanel, { id = idPrefix.."Checkbox", x = 10, y = y, width = 20, height = 20, value = yearData.checked, onClick = "Settlement_TimelineYearCheckbox_OnClick("..year..")" })
+        Ui.Checkbox(timelinePanel, { id = idPrefix.."Checkbox", x = 10, y = y, width = 20, height = 20, value = yearData.checked, onClick = "Settlement_TimelineYearCheckbox_OnClick("..year..")" })
 
         local y = 1523 + ((year - 1) * dy)
         for event = 1, 6 do
             local x = x1 + ((event - 1) * dx)
-            local eventButton = Button(timelinePanel, { id = idPrefix.."Event"..event.."Button", x = x, y = y, width = width, height = 30, onClick = "Settlement_TimelineEventButton_OnClick" })
-            local eventText = LightText(timelinePanel, { id = idPrefix.."Event"..event.."Text", x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, active = false })
+            local eventButton = Ui.InvisibleButton(timelinePanel, { id = idPrefix.."Event"..event.."Button", x = x, y = y, width = width, height = 30, onClick = "Settlement_TimelineEventButton_OnClick" })
+            local eventText = Ui.LightText(timelinePanel, { id = idPrefix.."Event"..event.."Text", x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, active = false })
             local eventData = yearData.events[event]
             if eventData then
-                eventButton.attributes.colors = IMAGE_BUTTON_COLORS
+                eventButton.attributes.colors = Ui.IMAGE_BUTTON_COLORS
                 eventButton.attributes.image = eventData.isShowdown and "TimelineShowdown" or "TimelineEvent"
                 eventText.attributes.text = eventData.name
                 eventText.attributes.active = true
@@ -603,22 +459,20 @@ function Settlement.Init(saveState)
 
     -----------------------------------------------------------------------------------------------
 
-    local addTimelineEventPanel = Panel(mainPanel, { id = "Settlement_AddTimelineEventPanel", width = 326, height = 466, active = false })
-    Image(addTimelineEventPanel, { image = "AddTimelineEvent", width = 326, height = 466 })
+    local addTimelineEventPanel = Ui.Panel(mainPanel, { id = "Settlement_AddTimelineEventPanel", width = 326, height = 466, active = false })
+    Ui.Image(addTimelineEventPanel, { image = "AddTimelineEvent", width = 326, height = 466 })
     local idPrefix = "Settlement_AddTimelineEventPanel_"
-    Button(addTimelineEventPanel, { id = idPrefix.."CloseButton", x = 288, y = 428, width = 30, height = 30, onClick = idPrefix.."CloseButton_OnClick" })
-    LightInput(addTimelineEventPanel, { id = idPrefix.."SearchInputField", x = 13+3, y = 390, width = 300-6, height = 30, placeholder = "search events...", onValueChanged = idPrefix.."SearchInputField_OnValueChanged" })
+    Ui.InvisibleButton(addTimelineEventPanel, { id = idPrefix.."CloseButton", x = 288, y = 428, width = 30, height = 30, onClick = idPrefix.."CloseButton_OnClick" })
+    Ui.LightInput(addTimelineEventPanel, { id = idPrefix.."SearchInputField", x = 13+3, y = 390, width = 300-6, height = 30, placeholder = "search events...", onValueChanged = idPrefix.."SearchInputField_OnValueChanged" })
     for i = 1, 5 do
         local y = (230 + 150) - (i * 30)
-        Button(addTimelineEventPanel, { id = idPrefix.."SearchResultButton"..i, x = 13, y = y, width = 300, height = 30, fontSize = 16, active = false, onClick = idPrefix.."SearchResultButton_OnClick("..i..")" })
+        Ui.Button(addTimelineEventPanel, { id = idPrefix.."SearchResultButton"..i, x = 13, y = y, width = 300, height = 30, fontSize = 16, active = false, onClick = idPrefix.."SearchResultButton_OnClick("..i..")" })
     end
-    LightInput(addTimelineEventPanel, { id = idPrefix.."CustomNameInputField", x = 13+3, y = 103, width = 300-6, height = 30, placeholder = "enter custom event...", onValueChanged = idPrefix.."CustomNameInputField_OnValueChanged" })
-    Checkbox(addTimelineEventPanel, { id = idPrefix.."EventCheckbox", x = 13, y = 73, width = 20, height = 20, checked = true, onClick = idPrefix.."EventCheckBox_OnClick" })
-    Checkbox(addTimelineEventPanel, { id = idPrefix.."ShowdownCheckbox", x = 100, y = 73, width = 20, height = 20, onClick = idPrefix.."ShowdownCheckbox_OnClick" })
-    Button(addTimelineEventPanel, { id = idPrefix.."EventButton", x = 40, y = 13, width = 100, height = 30, onClick = idPrefix.."AddButton_OnClick" })
-    Button(addTimelineEventPanel, { id = idPrefix.."CancelButton", x = 186, y = 13, width = 100, height = 30, onClick = idPrefix.."CancelButton_OnClick" })
-
-    return mainPanel
+    Ui.LightInput(addTimelineEventPanel, { id = idPrefix.."CustomNameInputField", x = 13+3, y = 103, width = 300-6, height = 30, placeholder = "enter custom event...", onValueChanged = idPrefix.."CustomNameInputField_OnValueChanged" })
+    Ui.Checkbox(addTimelineEventPanel, { id = idPrefix.."EventCheckbox", x = 13, y = 73, width = 20, height = 20, checked = true, onClick = idPrefix.."EventCheckBox_OnClick" })
+    Ui.Checkbox(addTimelineEventPanel, { id = idPrefix.."ShowdownCheckbox", x = 100, y = 73, width = 20, height = 20, onClick = idPrefix.."ShowdownCheckbox_OnClick" })
+    Ui.InvisibleButton(addTimelineEventPanel, { id = idPrefix.."EventButton", x = 40, y = 13, width = 100, height = 30, onClick = idPrefix.."AddButton_OnClick" })
+    Ui.InvisibleButton(addTimelineEventPanel, { id = idPrefix.."CancelButton", x = 186, y = 13, width = 100, height = 30, onClick = idPrefix.."CancelButton_OnClick" })
 end
 
 ---------------------------------------------------------------------------------------------------
