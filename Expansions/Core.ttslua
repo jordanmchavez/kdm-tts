@@ -113,8 +113,8 @@ return {
         ["Debris"]           = { x = 1, y = 1 },
         ["Giant Stone Face"] = { x = 2, y = 3 },
         ["Nightmare Tree"]   = { x = 3, y = 3 },
-        ["Ore Vein"]         = { x = 1, y = 2 },
-        ["Stone Column"]     = { x = 1, y = 3 },
+        ["Ore Vein"]         = { x = 1, y = 1 },
+        ["Stone Column"]     = { x = 1, y = 2 },
         ["Survivor Corpse"]  = { x = 1, y = 1 },
         ["Tall Grass"]       = { x = 2, y = 2 },
         ["Toppled Pillar"]   = { x = 1, y = 4 },
@@ -138,20 +138,20 @@ return {
     },
 
     armorStats = {
-        ["Oxidized Beacon Shield"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Oxidized Beacon Shield"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
 
-        ["Beacon Shield"]     = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Beacon Shield"]     = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
         ["Lantern Helm"]      = { head = 5, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Lantern Gauntlets"] = { head = 0, arms = 5, body = 0, waist = 0, legs = 0 },
         ["Lantern Cuirass"]   = { head = 0, arms = 0, body = 5, waist = 0, legs = 0 },
         ["Lantern Mail"]      = { head = 0, arms = 0, body = 0, waist = 5, legs = 0 },
         ["Lantern Greaves"]   = { head = 0, arms = 0, body = 0, waist = 0, legs = 5 },
 
-        ["Scrap Shield"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Scrap Shield"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
 
         ["Skull Helm"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
 
-        ["White Lion Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["White Lion Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Lion Headdress"]        = { head = 1, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Helm"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Gauntlet"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
@@ -160,15 +160,15 @@ return {
         ["White Lion Skirt"]      = { head = 0, arms = 0, body = 0, waist = 2, legs = 0 },
         ["White Lion Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
 
-        ["Green Armor"]  = { head = 5, arms = 5, body = 5, waist = 5, legs = 5 },
-        ["Fetorsaurus"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Green Armor"]  = { head = 5, arms = 5, body = 5, waist = 5, legs = 5, modifier = true },
+        ["Fetorsaurus"]  = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
         ["Green Helm"]   = { head = 5, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Green Gloves"] = { head = 0, arms = 5, body = 0, waist = 0, legs = 0 },
         ["Green Plate"]  = { head = 0, arms = 0, body = 5, waist = 0, legs = 0 },
         ["Green Faulds"] = { head = 0, arms = 0, body = 0, waist = 5, legs = 0 },
         ["Green Boots"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 5 },
 
-        ["Leather Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Leather Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Leather Shield"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
         ["Leather Mask"]    = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Leather Bracers"] = { head = 0, arms = 3, body = 0, waist = 0, legs = 0 },
@@ -183,7 +183,7 @@ return {
         ["Phoenix Mask"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
 
-        ["Phoenix Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Phoenix Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Phoenix Helm"]     = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Phoenix Gauntlet"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
         ["Phoenix Plackart"] = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
@@ -200,7 +200,7 @@ return {
         ["Speaker Mask"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Tabard"] = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
         ["White Dragon Gauntlets"] = { head = 0, arms = 12, body = 0, waist = 0, legs = 0 },
-        ["Vagabond Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Vagabond Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
 
         ["Forsaker Mask"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
 
@@ -210,7 +210,7 @@ return {
         ["Regal Faulds"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
         ["Regal Greaves"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
 
-        ["Rawhide Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Rawhide Armor"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Rawhide Headband"] = { head = 1, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Rawhide Gloves"]   = { head = 0, arms = 1, body = 0, waist = 0, legs = 0 },
         ["Rawhide Vest"]     = { head = 0, arms = 0, body = 1, waist = 0, legs = 0 },
@@ -219,15 +219,14 @@ return {
 
         ["Cloth"] = { head = 0, arms = 0, body = 0, waist = 1, legs = 0 },
 
-        ["Screaming Armor"]       = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Screaming Armor"]       = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
         ["Screaming Horns"]       = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Screaming Horns (CE)"]  = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Screaming Bracers"]     = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
         ["Screaming Coat"]        = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
         ["Screaming Skirt"]       = { head = 0, arms = 0, body = 0, waist = 3, legs = 0 },
         ["Screaming Leg Warmers"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
 
-        ["Crystal Skin"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
+        ["Crystal Skin"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, modifier = true },
     },
 
     weaponStats = {
@@ -772,15 +771,15 @@ return {
     },
 
     monsterSizes = {
-        ["Butcher"]            = 2,
-        ["Gold Smoke Knight"]  = 2,
-        ["King's Man"]         = 2,
-        ["Phoenix"]            = 3,
-        ["Screaming Antelope"] = 2,
-        ["The Hand"]           = 2,
-        ["Watcher"]            = 2,
-        ["White Gigalion"]     = 3,
-        ["White Lion"]         = 2,
+        ["Butcher"]            = { x = 2, y = 2 },
+        ["Gold Smoke Knight"]  = { x = 2, y = 2 },
+        ["King's Man"]         = { x = 2, y = 2 },
+        ["Phoenix"]            = { x = 2, y = 2 },
+        ["Screaming Antelope"] = { x = 2, y = 2 },
+        ["The Hand"]           = { x = 2, y = 2 },
+        ["Watcher"]            = { x = 2, y = 2 },
+        ["White Gigalion"]     = { x = 3, y = 3 },
+        ["White Lion"]         = { x = 2, y = 2 },
     },
 
     setups = {
@@ -899,6 +898,7 @@ return {
                         },
                         basic = 10,
                         advanced = 2,
+                        miscHitLocations = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         topHitLocationCards = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         movement = 5,
                         toughness = 12,
@@ -915,6 +915,7 @@ return {
                         basic = 11,
                         advanced = 4,
                         legendary = 1,
+                        miscHitLocations = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         topHitLocationCards = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         movement = 6,
                         toughness = 15,
@@ -934,6 +935,7 @@ return {
                         basic = 12,
                         advanced = 6,
                         legendary = 1,
+                        miscHitLocations = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         topHitLocationCards = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         movement = 6,
                         toughness = 18,
@@ -1019,6 +1021,7 @@ return {
                     level = 5,
                     monsterHuntPosition = 11,
                     showdown = {
+                        rules = { "Core Rules", 71 },
                         survivorStatus = { "Dreaded Decade", "Dreaded Decade", "Dreaded Decade", "Dreaded Decade" },
                         starting = {
                             legendary = { "Top of the Food Chain" },
@@ -1127,6 +1130,7 @@ return {
                     level = 4,
                     monsterHuntPosition = 10,
                     showdown = {
+                        rules = { "Core Rules", 71 },
                         customBasic = { "Bite", "Bite", "Stomp & Snort" },
                         customAdvanced = { "Crush and Devour", "Great Kick", "Ravenous" },
                         starting = {
@@ -1134,7 +1138,9 @@ return {
                             special = { "Trample", "Diabolical", "Hypermetabolism"    },
                             misc = { "Indomitable", "Berserker", "King's Aura" },
                         },
+                        miscHitLocations = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         removeHitLocations = { "Furry Throat" },
+                        topHitLocationCards = { "Battle Pressure", "Battle Pressure", "Battle Pressure" },
                         life = 20,
                         movement = 9,
                         toughness = 18,
@@ -1142,7 +1148,7 @@ return {
                         damage = 5,
                         accuracy = 1,
                         luck = 1,
-                        randomTerrain = 4,
+                        randomTerrain = 4
                     },
                 },
             },
@@ -1379,6 +1385,7 @@ return {
                     level = 4,
                     monsterHuntPosition = 11,
                     showdown = {
+                        rules = { "Core Rules", 71 },
                         basic = 10,
                         advanced = 5,
                         legendary = 1,
@@ -1397,6 +1404,7 @@ return {
                     level = 4,
                     monsterHuntPosition = 11,
                     showdown = {
+                        rules = { "Core Rules", 71 },
                         customBasic = { "Combo Claw", "Vicious Claw", "Power Swat" },
                         customAdvanced = { "Terrifying Roar", "Bloody Claw" },
                         customLegendary = { "Vanish" },

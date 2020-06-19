@@ -1,8 +1,9 @@
 local Util = require("Kdm/Util/Util")
 local Assert = require("Kdm/Util/Assert")
 local Log = require("Kdm/Util/Log").ForPackage("PopulationSheet")
+local Guids = require("Kdm/Guids")
 local UiCounter = require("Kdm/UiCounter")
-local UiCheckbox = require("Kdm/UiCheckbox")
+local UiCheckBox = require("Kdm/UiCheckBox")
 local UiText = require("Kdm/UiText")
 
 ---------------------------------------------------------------------------------------------------
@@ -32,8 +33,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function PopulationSheet.Init(populationSheetObj, saveState)
+function PopulationSheet.Init(saveState)
     Log.Debugf("Creating population sheet UI")
+
+    local populationSheetObj = Guids.GetObject("Population Sheet")
 
     saveState = saveState or {}
 
@@ -119,7 +122,7 @@ function PopulationSheet.Init(populationSheetObj, saveState)
             end,
         })
 
-        UiCheckbox.Create({
+        UiCheckBox.Create({
             object = populationSheetObj,
             name = "Survivor"..i.."Dead",
             value = PopulationSheet.survivors[i].dead,
@@ -131,7 +134,7 @@ function PopulationSheet.Init(populationSheetObj, saveState)
                 local checked = not PopulationSheet.survivors[i].dead
                 Log.Debugf("Checking survivor %d dead: %s", i, tostring(checked))
                 PopulationSheet.survivors[i].dead = checked
-                UiCheckbox.Set(name, checked)
+                UiCheckBox.Set(name, checked)
             end
         })
     end

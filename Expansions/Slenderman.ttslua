@@ -21,7 +21,7 @@ return {
 
     armorStats = {
         ["Gloom Bracelets"] = { head = 0, arms = 6, body = 0, waist = 0, legs = 0 },
-        ["Gloom Mehndi"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Gloom Mehndi"]    = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
     },
 
     weaponStats = {
@@ -95,7 +95,7 @@ return {
     },
 
     monsterSizes = {
-        ["Slenderman"] = 2,
+        ["Slenderman"] = { x = 2, y = 2 },
     },
 
     setups = {

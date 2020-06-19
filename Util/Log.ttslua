@@ -2,21 +2,20 @@ local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local Log = {}
+local Log = {
+    --debugEnabled = true,
+    --debugEnableAll = true,
+}
 
 Log.debugPackages = {
-    -- ["G"] = true,
-    --["Rules"] = true,
-    -- ["Ui"] =    true,
+    ["G"] = true,
+    ["Rules"] = true,
     -- ["Showdown"] = true,
-    -- ["Latch"] = true,
-    --["Archive"] = true,
     ["Action"] = true,
-    ["Setup"] = true,
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
     -- ["Overlay"] = true,
-    --["Settlement"] = true,
+    ["Settlement"] = true,
     -- ["PopulationSheet"] = true,
     -- ["EventManager"] = true,
     -- ["DropZone"] = true,
@@ -26,14 +25,20 @@ Log.debugPackages = {
     -- ["PlayerFigurine"] = true,
     -- ["Monster"] = true,
     -- ["TerrainTile"] = true,
-    -- ["BattleUi"] = true,
+    --["BattleReference"] = true,
     -- ["Locations"] = true,
+    --["XmlUi"] = true,
+    ["Showdown"] = true,
+    ["Container"] = true,
+    ["Archive"] = true,
+    ["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
 
 function Log.Printf(package, fmt, ...)
     fmt = fmt or ""
+    local msg = Util.SafeFormat(fmt or "", ...)
     log(Util.SafeFormat("[%s] "..fmt or "", package, ...), nil, "print")
     printToAll(Util.SafeFormat("[66aaff]"..fmt, ...))
 end
@@ -41,7 +46,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Log.Debugf(package, fmt, ...)
-    if Log.debugPackages[package] then
+    if Log.debugEnabled and (Log.debugEnableAll or Log.debugPackages[package]) then
         fmt = fmt or ""
         local s = Util.SafeFormat("[%s] "..fmt, package, ...)
         log(s, nil, "debug")

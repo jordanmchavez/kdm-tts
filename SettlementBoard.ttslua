@@ -1,9 +1,12 @@
-local Util = require("Kdm/Util/Util")
 local Assert = require("Kdm/Util/Assert")
+local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("SettlementBoard")
+local Guids = require("Kdm/Guids")
 local UiButton = require("Kdm/UiButton")
-local Script = require("Kdm/Script")
 local DropZone = require("Kdm/Util/DropZone")
+local Locations = require("Kdm/Locations")
+local Action = require("Kdm/Action")
+local Archive = require("Kdm/Archive")
 local Locations = require("Kdm/Locations")
 
 ---------------------------------------------------------------------------------------------------
@@ -12,12 +15,10 @@ local SettlementBoard = {
     settlementLocationGear = {},
 }
 
-SETTLEMENT_BOARD_UI_HEIGHT = 0.59
-
 ---------------------------------------------------------------------------------------------------
 
-function SettlementBoard.RegisterSettlementLocationGear(settlementLocationGear)
-    for settlementLocation, gear in pairs(settlementLocationGear or {}) do
+function SettlementBoard.RegisterExpansion(expansion)
+    for settlementLocation, gear in pairs(expansion.settlementLocationGear or {}) do
         Assert(SettlementBoard.settlementLocationGear[settlementLocation] == nil, "Settlement location %s already registered", settlementLocation)
         SettlementBoard.settlementLocationGear[settlementLocation] = gear
     end
@@ -32,11 +33,6 @@ function SettlementBoard.ResetSlocGear(col, row)
     local gearLocation = string.format("Gear_%d_%d", col, row)
     local slocLocation = string.format("SettlementLocation_%d_%d", col, row)
 
-    local gear = SettlementBoard.settlementLocationGear[sloc.getName()]
-    if not gear then
-        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
-    end
-
     local sloc = nil
     local hits = Locations.RayCast(slocLocation)
     for _, hit in ipairs(hits) do
@@ -46,74 +42,42 @@ function SettlementBoard.ResetSlocGear(col, row)
             Log.Debugf("Found candidadate settlement location %s (%s)", sloc.getName(), sloc.getGUID())
             break
         end
-        Log.Debugf("Ignoring hit object %s (%s/%s)", obj.getName(), obj.getGUID(), obj.tag)
     end
 
     if sloc == nil then
         return Log.Broadcastf("No settlement location in this slot to reset gear for.")
     end
 
-    SettlementBoard.resetGearName = gear
-    SettlementBoard.resetGearLocation = gearLocation
-    startLuaCoroutine(self, "SettlementBoard_ResetGearCoroutine")
+    local gear = SettlementBoard.settlementLocationGear[sloc.getName()]
+    if not gear then
+        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
+    end
+
+    SettlementBoard.ResetGear(gear, gearLocation)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SettlementBoard.ResetSpecialGear(name)
-    SettlementBoard.resetGearName = name
-    SettlementBoard.resetGearLocation = name
-    startLuaCoroutine(self, "SettlementBoard_ResetGearCoroutine")
-end
-
-function SettlementBoard_ResetGearCoroutine()
-    local name, location = SettlementBoard.resetGearName, SettlementBoard.resetGearLocation
+function SettlementBoard.ResetGear(name, location)
     Assert.Str(name, "name")
     Assert.Str(location, "location")
 
     Log.Debugf("Resetting gear %s at %s", name, location)
 
-    local script = Script.Create("Reset "..name)
-    local cleanupStage = Script.Stage(script, "Cleanup")
-    Script.CleanAction(cleanupStage, {
-        from = location,
-        types = { "Gear" },
-        rayCast = true,
-        ignoreBlocking = false,
-    })
-
-    local spawnStage = Script.Stage(script, "Spawn")
-    Script.TakeAction(spawnStage, {
-        name = name,
-        type = "Gear",
-        to = location,
-        rotation = { 0, 180, 180 },
-    })
-
-    local _, blockingObj = Script.Run(script)
-    if blockingObj then
-        Log.Broadcastf("Found an object %s(%s) blocking the gear slot. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag)
+    local blocking = Action.RayClean({ location = location, types = { "Gear" } })
+    if #blocking > 0 then
+        Log.Broadcastf("Something is blocking the gear slot. Please move the highlighted objects out of the way and try again.")
+        Util.HighlightAll(blocking)
+        return
     end
 
-    return 1
-end
-
----------------------------------------------------------------------------------------------------
-
-function SettlementBoard_CleanGearCoroutine()
-    local location = SettlementBoard.cleanGearLocation
-    SettlementBoard.cleanGearLocation = nil
-
-    local script = Script.Create("Reset")
-    local cleanupStage = Script.Stage(script, "Cleanup")
-    Script.CleanAction(cleanupStage, {
-        from = location,
-        types = { "Gear" },
-        ignoreBlocking = true,
+    Archive.Take({
+        name = name,
+        type = "Gear",
+        location = location,
+        rotation = Locations.FACE_DOWN,
     })
-    Script.Run(script)
-
-    return 1
+    Archive.CleanupBags()
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -131,9 +95,7 @@ local function SettlementBoard_OnDrop(colRow, object)
     local col, row = colRow.col, colRow.row
     Log.Debugf("Settlement location %s (%s) was dropped on settlement location (%d, %d) for gear", object.getName(), object.getGUID(), col, row, gear)
 
-    SettlementBoard.resetGearName = gear
-    SettlementBoard.resetGearLocation = string.format("Gear_%d_%d", col, row)
-    startLuaCoroutine(self, "SettlementBoard_ResetGearCoroutine")
+    SettlementBoard.ResetGear(gear, string.format("Gear_%d_%d", col, row))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -150,13 +112,16 @@ local function SettlementBoard_OnPickUp(colRow, object)
     local col, row = colRow.col, colRow.row
     Log.Debugf("Settlement location %s (%s) removed from settlement location (%d, %d)", object.getName(), object.getGUID(), col, row)
 
-    SettlementBoard.cleanGearLocation = string.format("Gear_%d_%d", col, row)
-    startLuaCoroutine(self, "SettlementBoard_CleanGearCoroutine")
+    Action.RayClean({ location = string.format("Gear_%d_%d", col, row), types = { "Gear" } })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SettlementBoard.Init(settlementBoardObj)
+function SettlementBoard.Init()
+    settlementBoardObj = Guids.GetObject("Settlement Board")
+
+    uiHeight = 0.59
+
     local x0 = -5.66
     local z0 = -7.6
     local dx = 1.463
@@ -169,7 +134,7 @@ function SettlementBoard.Init(settlementBoardObj)
             UiButton.Create({
                 object = settlementBoardObj,
                 name = string.format("ResetSettlementLocationGear_%d_%d", col, row),
-                position = { x, SETTLEMENT_BOARD_UI_HEIGHT, z },
+                position = { x, uiHeight, z },
                 width = 550,
                 height = 1600,
                 clickFunc = function() SettlementBoard.ResetSlocGear(col, row) end,
@@ -186,10 +151,10 @@ function SettlementBoard.Init(settlementBoardObj)
         UiButton.Create({
             object = settlementBoardObj,
             name = string.format("Reset %s", name),
-            position = { x0, SETTLEMENT_BOARD_UI_HEIGHT, z0 + (i - 1) * dz },
+            position = { x0, uiHeight, z0 + (i - 1) * dz },
             width = 550,
             height = 1600,
-            clickFunc = function() SettlementBoard.ResetSpecialGear(name) end,
+            clickFunc = function() SettlementBoard.ResetGear(name, name) end,
         })
     end
 

@@ -2,21 +2,24 @@ local Util = require("Kdm/Util/Util")
 local Assert = require("Kdm/Util/Assert")
 local Log = require("Kdm/Util/Log").ForPackage("G")
 local Guids = require("Kdm/Guids")
+local Locations = require("Kdm/Locations")
 local Archive = require("Kdm/Archive")
-local Latch = require("Kdm/Util/Latch")
-local Setup = require("Kdm/Setup")
 local Rules = require("Kdm/Rules")
+local Showdown = require("Kdm/Showdown")
 local DropZone = require("Kdm/Util/DropZone")
 local CharSheet = require("Kdm/CharSheet")
 local PlayerBoard = require("Kdm/PlayerBoard")
-local Showdown = require("Kdm/Showdown")
+local Hunt = require("Kdm/Hunt")
 local SettlementBoard = require("Kdm/SettlementBoard")
 local RulesNav = require("Kdm/RulesNav")
 local Terrain = require("Kdm/Terrain")
-local Decks = require("Kdm/Decks")
+local DeckBoard = require("Kdm/DeckBoard")
 local PopulationSheet = require("Kdm/PopulationSheet")
 local Settlement = require("Kdm/Settlement")
-local BattleUi = require("Kdm/BattleUi")
+local BattleReference = require("Kdm/BattleReference")
+local Armor = require("Kdm/Armor")
+local Weapons = require("Kdm/Weapons")
+local Setup = require("Kdm/Setup")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -78,30 +81,57 @@ function onLoad(saveJson)
 
     local saveState = JSON.decode(saveJson) or {}
 
-    local ui = { children = self.UI.getXmlTable() }
+    local ui = { id = "UI", children = self.UI.getXmlTable() }
 
     Log.Init()
-    Latch.Init()
-    DropZone.Init()
-    CharSheet.Init()
-    PlayerBoard.Init(saveState.PlayerBoard)
-    Showdown.Init(saveState.Showdown)
-    SettlementBoard.Init(Guids.GetObject("Settlement Board"))
-    Rules.Init(ui)
-    RulesNav.Init(Guids.GetObject("Rules Navigation Board"))
-    Terrain.Init()
-    Decks.Init()
-    PopulationSheet.Init(Guids.GetObject("Population Sheet"), saveState.PopulationSheet)
-    Settlement.Init(saveState.Settlement, ui)
-    BattleUi.Init(ui)
 
     for _, expansion in ipairs({ Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }) do
+        Log.Debugf("Registering expansion %s", expansion.name)
         Setup.RegisterExpansion(expansion)
+        Locations.RegisterExpansion(expansion)
+        Terrain.RegisterExpansion(expansion)
+        SettlementBoard.RegisterExpansion(expansion)
+        Armor.RegisterExpansion(expansion)
+        Weapons.RegisterExpansion(expansion)
+        Guids.RegisterExpansion(expansion)
+        Archive.RegisterExpansion(expansion)
+        Rules.RegisterExpansion(expansion)
+        Hunt.RegisterExpansion(expansion)
+        Showdown.RegisterExpansion(expansion)
     end
 
-    Setup.Init(saveState.Setup, ui)
+    local modules = {
+        { DropZone, "DropZone" },
+        { CharSheet, "CharSheet" },
+        { PlayerBoard, "PlayerBoard" },
+        { Rules, "Rules" },
+        { Terrain, "Terrain" },
+        { DeckBoard, "DeckBoard" },
+        { SettlementBoard, "SettlementBoard" },
+        { RulesNav, "RulesNav" },
+        { PopulationSheet, "PopulationSheet" },
+        { Settlement, "Settlement" },
+        { Hunt, "Hunt" },
+        { Showdown, "Showdown" },
+        { BattleReference, "BattleReference" },
+        { Setup, "Setup" },
+    }
 
-    self.UI.setXmlTable(ui.children)
+    for _, module in ipairs(modules) do
+        Log.Debugf("Initializing %s", module[2])
+        module[1].Init(saveState[module[2]], ui)
+    end
+
+    if #ui.children > 0 then
+        self.UI.setXmlTable(ui.children)
+    end
+
+    for _, module in ipairs(modules) do
+        if module[1].PostInit then
+            Log.Debugf("Post-Initializing %s", module[2])
+            module[1].PostInit()
+        end
+    end
 end
 
 ---------------------------------------------------------------------------------------------------

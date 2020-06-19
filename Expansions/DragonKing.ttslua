@@ -88,15 +88,15 @@ return {
     },
 
     armorStats = {
-        ["Dragon Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Blast Shield"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Dragon Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["Blast Shield"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Dragonskull Helm"] = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Dragon Gloves"]    = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
         ["Dragon Mantle"]    = { head = 0, arms = 0, body = 4, waist = 0, legs = 0 },
         ["Dragon Belt"]      = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
         ["Dragon Boots"]     = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
-        ["Dragon Vestments"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Hazmat Shield"]    = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Dragon Vestments"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["Hazmat Shield"]    = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
     },
 
     weaponStats = {
@@ -230,8 +230,8 @@ return {
     },
 
     monsterSizes = {
-        ["Dragon King"] = 4,
-        ["The Tyrant"] = 2,
+        ["Dragon King"] = { x = 4, y = 4 },
+        ["The Tyrant"] = { x = 2, y = 2 },
     },
 
     setups = {
@@ -345,10 +345,10 @@ return {
             specialTerrain = {
                 {
                     terrain = "Gate",
+                    miscObject = { name = "Gate", type = "Terrain Tiles" },
                 },
             },
             randomTerrain = 1,
-            miscObjects = { { name = "Gate", type = "Terrain Tiles" } },
             levels = {
                 {
                     name = "Level 1",

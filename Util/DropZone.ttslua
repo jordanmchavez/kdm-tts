@@ -108,8 +108,6 @@ local function DropZone_OnObjectDestroy(object) DropZone_PickUp(object, "destroy
 ---------------------------------------------------------------------------------------------------
 
 function DropZone.Init()
-    Log.Debugf("Initializing DropZone")
-
     dropZone_spatialIndex = SpatialIndex.Create(1)
 
     EventManager.AddHandler("onObjectDrop", DropZone_OnObjectDrop)

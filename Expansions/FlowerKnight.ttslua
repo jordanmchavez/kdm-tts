@@ -111,7 +111,7 @@ return {
     },
 
     monsterSizes = {
-        ["Flower Knight"] = 2,
+        ["Flower Knight"] = { x = 2, y = 2 },
     },
 
     setups = {

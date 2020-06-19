@@ -3,7 +3,8 @@ local Log = require("Kdm/Util/Log").ForPackage("Rules")
 local Util = require("Kdm/Util/Util")
 local CircularArray = require("Kdm/Util/CircularArray")
 local Trie = require("Kdm/Util/Trie")
-local Script = require("Kdm/Script")
+local Archive = require("Kdm/Archive")
+local Action = require("Kdm/Action")
 local Locations = require("Kdm/Locations")
 local Ui = require("Kdm/XmlUi")
 
@@ -17,9 +18,8 @@ Rules = {
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.RegisterRulebooks(rulebooks)
-    Assert.TabOrNil(rulebooks, "rulebooks")
-    for rulebookIndex, rulebook in ipairs(rulebooks or {}) do
+function Rules.RegisterExpansion(expansion)
+    for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
         local rulebookName = rulebook.name
         Assert.Str(rulebookName, "rulebook.name")
 
@@ -105,42 +105,25 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Rules.SpawnRules(rules, state, dontRecordHistory)
-    Rules.spawnRulebookCoroutineParams = { rules, state, dontRecordHistory }
-    startLuaCoroutine(self, "Rules_SpawnRulesCoroutine")
-end
-
-function Rules_SpawnRulesCoroutine()
-    local rules, state, dontRecordHistory = table.unpack(Rules.spawnRulebookCoroutineParams)
     Assert.Str(rules, "rules")
     Assert.Num(state, "state")
     Assert.BoolOrNil(dontRecordHistory, "dontRecordHistory")
 
-    local script = Script.Create("Show Rulebook")
-    local cleanStage = Script.Stage(script, "Clean")
-    Script.CleanAction(cleanStage, {
-        from = "Rules Board",
-        types = { "Rulebook" },
-        ignoreBlocking = false,
-    })
-    local spawnStage = Script.Stage(script, "Spawn")
-    Script.TakeAction(spawnStage, {
-        name = rules,
-        type = "Rulebook",
-        to = "Rules Board",
-        spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil,
-    })
+    Log.Debugf("Spawning rules %s[%d]", rules, state)
 
-    local _, blockingObj = Script.Run(script)
-    if blockingObj != nil then
-        Log.Broadcastf("Found an object %s(%s) blocking the rules board. Please move it out of the way and try again.", blockingObj.getName(), blockingObj.tag)
-        return 1
+    local blocking = Action.BoxClean({ location = "Rules Board", types = { "Rulebook" } })
+    if #blocking > 0 then
+        Log.Broadcastf("Something is blocking the rules board. Please move the highlighted objects out of the way and try again.")
+        Util.HighlightAll(blocking)
+        return
     end
+
+    Archive.Take({ name = rules, type = "Rulebook", location = "Rules Board", spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil })
+    Archive.CleanupBags()
 
     if not dontRecordHistory then
-        CircularArray.Push(Rules.history, { rules, state})
+        CircularArray.Push(Rules.history, { rules, state })
     end
-
-    return 1
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -215,61 +198,37 @@ function Rules.NextPage() Rules.ChangePage(1) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules_SearchInput_OnValueChanged(_, value)
-    Rules_SetSearchResults(Rules.Find(value))
-end
-
----------------------------------------------------------------------------------------------------
-
-function Rules_CancelSearchButton_OnClick()
-    Rules_SetSearchResults({})
-    self.UI.setAttribute("Rules_SearchInput", "text", nil)
-end
-
----------------------------------------------------------------------------------------------------
-
-function Rules_SearchResult_Click(rulebook, state)
-    Rules_SetSearchResults({})
-    self.UI.setAttribute("Rules_SearchInput", "text", nil)
-    Rules.SpawnRules(rulebook, state)
-end
-
----------------------------------------------------------------------------------------------------
-
-function Rules_SetSearchResults(results)
+function Rules.SetSearchResults(results)
     if #results == 0 then
-        self.UI.hide("Rules_SearchResultsPanel")
+        Rules.searchResultsPanel:Hide()
         return
     end
 
-    self.UI.show("Rules_SearchResultsPanel")
+    Rules.searchResultsPanel:Show()
+    Rules.searchResultsPanel:SetHeight(10 + (#results * 30))
 
     for i, result in ipairs(results) do
-        local buttonId = "Rules_SearchResult"..i.."Button"
-        self.UI.show(buttonId)
-        self.setVar(buttonId.."_OnClick", function () Rules_SearchResult_Click(result.rulebook, result.state) end)
-        self.UI.setAttributes(buttonId, {
-            onClick = buttonId.."_OnClick",
-            text = result.name,
-            textColor = "#dddddd",
-        })
+        local button = Rules.searchResultButtons[i]
+        button:Show()
+        button:SetOnClick(function()
+            Rules.searchInput:SetText(nil)
+            Rules.SetSearchResults({})
+            Rules.SpawnRules(result.rulebook, result.state)
+        end)
+        button:SetText(result.name)
     end
 
-    self.UI.setAttribute("Rules_SearchResultsPanel", "height", 10 + (#results * 30))
-
     for i = #results + 1, 5 do
-        local buttonId = "Rules_SearchResult"..i.."Button"
-        self.UI.hide(buttonId)
-        self.UI.setAttributes(buttonId, {
-            onClick = nil,
-            text = nil,
-        })
+        local button = Rules.searchResultButtons[i]
+        button:Hide()
+        button:SetOnClick(nil)
+        button:SetText(nil)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Init(ui)
+function Rules.Init(saveState, ui)
     local rules = Rules.GetCurrentRules()
     if rules != nil then
         local currentState = rules.getStateId()
@@ -287,11 +246,19 @@ function Rules.Init(ui)
         CircularArray.Push(Rules.history, { rulebookName, currentState})
     end
 
-    Ui.Input(ui, { id = "Rules_SearchInput", rectAlignment = "UpperLeft", x = 80, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = "Rules_SearchInput_OnValueChanged" })
-    Ui.Button(ui, { id = "Rules_CancelSearchButton", rectAlignment = "UpperLeft", x = 335, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = "Rules_CancelSearchButton_OnClick" })
-    local searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResultsPanel", rectAlignment = "UpperLeft", x = 80, y = -90, width = 300, height = 160, color = "#00000088", active = false })
+    local xStart = 80+110
+    Rules.searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
+        Rules.SetSearchResults(Rules.Find(value))
+    end })
+    Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
+        Rules.SetSearchResults({})
+        Rules.searchInput:SetText(nil)
+    end })
+    Rules.searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = -90, width = 300, height = 160, color = "#00000088", active = false })
+
+    Rules.searchResultButtons = {}
     for i = 1, 5 do
-        Ui.Button(searchResultsPanel, { id = "Rules_SearchResult"..i.."Button", rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_BUTTON_COLORS, textColor = "#dddddd" })
+        Rules.searchResultButtons[i] = Ui.Button(Rules.searchResultsPanel, { id = "Result"..i, rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_BUTTON_COLORS, textColor = "#dddddd" })
     end
 end
 

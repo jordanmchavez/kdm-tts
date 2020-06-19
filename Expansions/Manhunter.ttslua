@@ -89,7 +89,7 @@ return {
     },
 
     monsterSizes = {
-        ["Manhunter"] = 2,
+        ["Manhunter"] = { x = 2, y = 2 },
     },
 
     setups = {

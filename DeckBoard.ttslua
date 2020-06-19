@@ -1,11 +1,16 @@
 local Assert = require("Kdm/Util/Assert")
-local Log = require("Kdm/Util/Log").ForPackage("Decks")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("DeckBoard")
 local Guids = require("Kdm/Guids")
+local Archive = require("Kdm/Archive")
+local Locations = require("Kdm/Locations")
 local UiButton = require("Kdm/UiButton")
+local Action = require("Kdm/Action")
+local Setup = require("Kdm/Setup")
 
-local Decks = {}
+local DeckBoard = {}
 
-local DECKS_TO_SHUFFLE = {
+DeckBoard.NEEDS_SHUFFLE = {
     ["Fighting Arts"] = true,
     ["Disorders"] = true,
     ["Tactics"] = true,
@@ -15,56 +20,42 @@ local DECKS_TO_SHUFFLE = {
     ["Terrain"] = true,
 }
 
-local DECKS_UI_HEIGHT = 10.75
-
 ---------------------------------------------------------------------------------------------------
 
-function Decks_ResetCoroutine()
-    local deck = Decks.resetDeck
-
+function DeckBoard.ResetDeck(deck)
     Log.Debugf("Resetting deck %s", deck)
 
-    local script = Script.Create("Reset "..deck)
-
-    cleanupStage = Script.Stage(script, "Cleanup")
-    Script.CleanAction(cleanupStage, { from = deck, types = { deck }})
-
-    spawnStage = Script.Stage(script, "Spawn")
-    Script.TakeAction(spawnStage, {
-        name = deck,
-        type = deck,
-        to = deck,
-        rotation = Script.FACE_DOWN,
-        allowMissing = true,
-    })
-
-    if DECKS_TO_SHUFFLE[deck] then
-        shuffleStage = Script.Stage(script, "Shuffle")
-        Script.ShuffleAction(shuffleStage, { from = deck })
+    local blocking = Action.BoxClean({ location = deck, types = { deck } })
+    if #blocking > 0 then
+        Log.Broadcastf("Something is blocking the deck. Please move the highlighted objects out of the way and try again.")
+        Util.HighlightAll(blocking)
+        return
     end
 
-    local _, blockingObj, locationBlocked = Script.Run(script)
-    if blockingObj != nil then
-        Log.Broadcastf("Found object %s(%s) in the way of the %s deck. Please move out of the way then try resetting the deck again.", blockingObj.getName(), blockingObj.tag, deck)
+    if not Setup.HasDeck(deck) then
+        Log.Broadcastf("There are no %s cards for the current expansions.", deck)
+        return
     end
 
-    return 1
-end
+    local deckObject = Archive.Take({ name = deck, type = deck, location = deck, rotation = Locations.FACE_DOWN })
+    if DeckBoard.NEEDS_SHUFFLE[deck] then
+        deckObject.shuffle()
+    end
 
-function Decks.ResetDeck(deck)
-    Decks.resetDeck = deck
-    startLuaCoroutine(self, "Decks_ResetDeckCoroutine")
+    Archive.CleanupBags()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Decks.Init()
+function DeckBoard.Init()
     local showdownBoardObj = Guids.GetObject("Showdown Board")
 
     local x0 = -7.325
     local z0 = -1.455
     local dx = 0.82
     local dz = 1.396
+
+    local uiHeight = 10.75
 
     local deckGrid = {
         { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
@@ -80,10 +71,10 @@ function Decks.Init()
             UiButton.Create({
                 object = showdownBoardObj,
                 name = deck.."Reset",
-                clickFunc = function() Decks.ResetDeck(deck) end,
+                clickFunc = function() DeckBoard.ResetDeck(deck) end,
                 position = {
                     x = x,
-                    y = DECKS_UI_HEIGHT,
+                    y = uiHeight,
                     z = z,
                 },
                 width = 1850.0,
@@ -97,15 +88,15 @@ function Decks.Init()
         name = "TerrainReset",
         position = {
             x = -3.88,
-            y = DECKS_UI_HEIGHT,
+            y = uiHeight,
             z = -3.84,
         },
         width = 500.0,
         height = 2800.0,
-        clickFunc = function() Decks.ResetDeck("Terrain") end,
+        clickFunc = function() DeckBoard.ResetDeck("Terrain") end,
     })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Decks
+return DeckBoard

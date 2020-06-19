@@ -3,13 +3,12 @@ local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Action")
 local Archive = require("Kdm/Archive")
 local Locations = require("Kdm/Locations")
+local Container = require("Kdm/Container")
 
 local Action = {}
 
 local OBJ_CLEAN_IGNORE_TAGS = { "Board", "Table" }
 
-Action.FACE_UP = { 0, 180, 0 }
-Action.FACE_DOWN = { 0, 180, 180 }
 
 ---------------------------------------------------------------------------------------------------
 
@@ -24,7 +23,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.Clean(params, castFunc)
+local function Action_Clean(params, castFunc)
     location, tags, types, debug = params.location, params.tags, params.types, params.debug
     Log.Debugf("Cleaning %s", location)
 
@@ -46,84 +45,8 @@ function Action.Clean(params, castFunc)
     return blocking
 end
 
-function Action.BoxClean(params) Action.Clean(params, Locations.BoxCast) end
-function Action.RayClean(params) Action.Clean(params, Locations.RayCast) end
-
----------------------------------------------------------------------------------------------------
-
-function Action.FindInContainer(name, type, container)
-    for _, entry in ipairs(container.getObjects()) do
-        if entry.name == name and entry.gm_notes == type then
-            return entry.guid
-        end
-    end
-    Assert.Fail("%s/%s not found in container %s (%s)", name, type, container.getName(), container.getGUID())
-end
-
----------------------------------------------------------------------------------------------------
-
-function Action.TakeFromArchive(params)
-    local name, type, location, facing = params.name, params.type, params.location, params.facing
-    local yOffset = params.yOffset or 0
-    Log.Debugf("Taking %s/%s from archive to %s +%f", name, type, location, yOffset)
-
-    local container = Archive.GetBag(name, type)
-    local guid = Action.FindInContainer(name, type, container)
-    local pos = Locations.WorldCenter(location)
-    pos.y = pos.y + yOffset
-    Log.Debugf("to: %f, %f, %f", pos.x, pos.y, pos.z)
-    local object = container.takeObject({
-        guid = guid,
-        position = pos,
-        rotation = facing,
-        smooth = false,
-    })
-
-    return object
-end
-
----------------------------------------------------------------------------------------------------
-
-function Action.TakeFromContainer(params)
-    local container, name, type, location, facing = params.container, params.name, params.type, params.location, params.facing
-    local yOffset = params.yOffset or 0
-    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name, type, container.getName(), container.getGUID(), location, yOffset)
-
-    local guid = Action.FindInContainer(name, type, container)
-    local pos = Locations.WorldCenter(location)
-    pos.y = pos.y + yOffset
-    local object = container.takeObject({
-        guid = guid,
-        position = pos,
-        rotation = facing,
-        smooth = false,
-    })
-
-    return object
-end
-
----------------------------------------------------------------------------------------------------
-
-function Action.DeleteFromContainer(container, names)
-    if #names == 0 then
-        return
-    end
-
-    local index = Util.Index(container.getObjects(), "name")
-    for _, name in ipairs(names) do
-        Assert(index[name], "%s not found in %s (%s)", name, container.getName(), container.getGUID())
-        local guid = index[name].guid
-        local object = container.takeObject({
-            guid = guid,
-            position = { x = -150, y = -100, z = 150 },
-            smooth = false,
-        })
-        Assert(object, "Couldn't take %s (%s) container %s (%s)", name, guid, container.getName(), container.getGUID())
-        object.destruct()
-        Log.Debugf("Deleted %s (%s) from container %s (%s)", name, guid, container.getName(), container.getGUID())
-        index[name] = nil
-    end
-end
+function Action.BoxClean(params) return Action_Clean(params, Locations.BoxCast) end
+function Action.RayClean(params) return Action_Clean(params, Locations.RayCast) end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -148,68 +71,60 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.TakeObjectFromSource(source, position, rotation)
-    if source.source == "Archive" then
-        local name, type = source.name, source.type
+function Action.CreateDeck(params)
+    local sources = params.sources
+    local location = params.location
+    local rotation = params.rotation or Locations.FACE_UP
 
-        Log.Debugf("Taking %s/%s from archive to (%f, %f, %f)", name, type, position.x, position.y, position.z)
-
-        local bag = Archive.GetBag(name, type)
-        local guid = Action.FindInContainer(name, type, bag)
-        local object = bag.takeObject({
-            guid = guid,
-            position = position,
-            rotation = rotation,
-            smooth = false,
-        })
-        Assert(object, "Couldn't take %s/%s (%s) from %s (%s)", name, type, guid, bag.getName(), bag.getGUID())
-
-        return object
-
-    elseif source.source == "Container" then
-        local container, name, type = source.container, source.name, source.type
-
-        Log.Debugf("Taking %s/%s from container %s (%s) to (%f, %f, %f)", name, type, container.getName(), container.getGUID(), position.x, position.y, position.z)
-
-        local guid = Action.FindInContainer(name, type, container)
-        local object = container.takeObject({
-            guid = guid,
-            position = position,
-            rotation = rotation,
-            smooth = false,
-        })
-        Assert(object, "Couldn't take %s/%s (%s) from %s (%s)", name, type, guid, container.getName(), container.getGUID())
-
-        return object
-
-    else
-        Assert.Fail("Unrecognized source: %s", Util.TabStr(source))
+    local objects = {}
+    for i, source in ipairs(sources) do
+        local takeParams = { name = source.name, type = source.type, location = location, height = (i - 1) * 0.5, rotation = rotation }
+        if source.source == "Archive" then
+            table.insert(objects, Archive.Take(takeParams))
+        elseif source.source == "Container" then
+            table.insert(objects, source.container:Take(takeParams))
+        else
+            Assert.Fail("Unrecognized source: %s", source)
+        end
     end
+
+    local deckObject
+    if #objects >= 1 then
+        deckObject = group(objects)[1]
+        Assert(deckObject)
+    else
+        Log.Debugf("CreateDeck only asked for one object %s (%s), so not grouping", objects[1].getName(), objects[1].getGUID())
+        deckObject = objects[1]
+    end
+
+    deckObject.setName(params.name)
+    deckObject.setGMNotes(params.type)
+    deckObject.setPositionSmooth(Locations.WorldCenter(location), false, true)
+    deckObject.setRotation(rotation)
+
+    Log.Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location)
+
+    return Container(deckObject)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.CreateDeck(params)
-    local pos = Locations.WorldCenter(params.location)
+function Action.Clone(params)
+    local object, location, rotation = params.object, params.location, params.rotation
+    local height = params.height or Locations.DEFAULT_HEIGHT
+    local position = Locations.WorldCenter(params.location)
+    position.y = position.y + height
 
-    local objects = {}
-    for i, source in ipairs(params.sources) do
-        table.insert(objects, Action.TakeObjectFromSource(
-            source,
-            { x = pos.x, y = pos.y + (i - 1) * 0.5, z = pos.z },
-            params.facing
-        ))
+    Log.Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location)
+
+    local clonedObject = object.clone({ position =  position })
+    if rotation then
+        clonedObject.setRotation(rotation)
     end
 
-    local deck = group(objects)[1]
-    Assert(deck)
-    deck.setName(params.name)
-    deck.setGMNotes(params.type)
-
-    Log.Debugf("Created deck %s (%s) at %s", deck.getName(), deck.getGUID(), params.location)
-
-    return deck
+    return clonedObject
 end
+
 
 ---------------------------------------------------------------------------------------------------
 

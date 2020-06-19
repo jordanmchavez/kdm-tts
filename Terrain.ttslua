@@ -10,20 +10,25 @@ local Terrain = {
 
 ---------------------------------------------------------------------------------------------------
 
-function Terrain.RegisterTerrainData(terrainData)
-    for terrain, data in pairs(terrainData or {}) do
+function Terrain.RegisterExpansion(expansion)
+    for terrain, data in pairs(expansion.terrain or {}) do
         Assert(Terrain.terrainData[terrain] == nil, "Terrain %s is already registered", terrain)
         Terrain.terrainData[terrain] = data
+    end
+
+    for terrainTile, size in pairs(expansion.terrainTileSizes or {}) do
+        Assert(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile)
+        Terrain.terrainTileSizes[terrainTile] = size
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Terrain.RegisterTerrainTileSizes(terrainTileSizes)
-    for terrainTile, size in pairs(terrainTileSizes or {}) do
-        Assert(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile)
-        Terrain.terrainTileSizes[terrainTile] = size
-    end
+function Terrain.GetData(terrain)
+    Assert.Str(terrain)
+    local data = Terrain.terrainData[terrain]
+    Assert(data, "No data for terrain %s", terrain)
+    return data
 end
 
 ---------------------------------------------------------------------------------------------------

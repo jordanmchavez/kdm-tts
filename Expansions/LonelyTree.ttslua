@@ -15,7 +15,7 @@ return {
         ["The Lonely Tree"] = {
             terrainTile = "The Lonely Tree",
             count = 1,
-            miscObjects = { { name = "Lonely Fruit", type = "Terrain Tiles" } },
+            miscObject = { name = "Lonely Fruit", type = "Terrain Tiles" },
             starting = { "Nightmare Fruit", "Monster Fruit" },
         },
     },
@@ -76,7 +76,7 @@ return {
     },
 
     monsterSizes = {
-        ["Lonely Tree"] = 2,
+        ["Lonely Tree"] = { x = 2, y = 2 },
     },
 
     setups = {
@@ -93,7 +93,7 @@ return {
                     rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
                 },
             },
-            miscObjects = { { name = "Lonely Fruit", type = "Terrain Tiles" } },
+            miscObject = { name = "Lonely Fruit", type = "Terrain Tiles" },
             levels = {
                 {
                     name = "Level 1",

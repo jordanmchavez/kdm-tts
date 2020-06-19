@@ -25,7 +25,7 @@ return {
 
     terrainTileSizes = {
         ["Lion Statue"] = 2,
-        ["Sinkhole"] = 2,
+        ["Sinkhole"] = 3,
     },
 
     armorStats = {
@@ -104,7 +104,7 @@ return {
     },
 
     monsterSizes = {
-        ["Lion God"] = 3,
+        ["Lion God"] = { x = 3, y = 3 },
     },
 
     setups = {

@@ -49,7 +49,9 @@ return {
     },
 
     armorStats = {
-        ["White Lion Armor (CE)"]    = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
+        ["Scrap Shield (CE)"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+
+        ["White Lion Armor (CE)"]    = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
         ["Lion Headdress (CE)"]      = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Helm (CE)"]     = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["White Lion Gauntlet (CE)"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
@@ -66,6 +68,8 @@ return {
         ["Phoenix Gauntlet (CE)"] = { head = 0, arms = 4, body = 0, waist = 0, legs = 0 },
         ["Phoenix Faulds (CE)"]   = { head = 0, arms = 0, body = 0, waist = 4, legs = 0 },
         ["Phoenix Greaves (CE)"]  = { head = 0, arms = 0, body = 0, waist = 0, legs = 4 },
+
+        ["Screaming Horns (CE)"]  = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
 
         ["Forsaker Mask (CE)"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
 

@@ -7,8 +7,8 @@ local Armor = {
 
 ---------------------------------------------------------------------------------------------------
 
-function Armor.RegisterArmorStats(armorStats)
-    for armor, stats in pairs(armorStats or {}) do
+function Armor.RegisterExpansion(expansion)
+    for armor, stats in pairs(expansion.armorStats or {}) do
         Assert(Armor.armorStats[armor] == nil, "Armor %s is already registered", armor)
         Armor.armorStats[armor] = stats
     end

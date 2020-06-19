@@ -1,16 +1,17 @@
 local Assert = require("Kdm/Util/Assert")
-local Log = require("Kdm/Util/Log").ForPackage("BattleUi")
+local Log = require("Kdm/Util/Log").ForPackage("BattleReference")
 local Util = require("Kdm/Util/Util")
 local Guids = require("Kdm/Guids")
 local EventManager = require("Kdm/Util/EventManager")
 local PlayerBoard = require("Kdm/PlayerBoard")
 local Showdown = require("Kdm/Showdown")
 local CharSheet = require("Kdm/CharSheet")
+local Ui = require("Kdm/XmlUi")
 
 ---------------------------------------------------------------------------------------------------
 
-local BattleUi = {
-    panelShown = true
+local BattleReference = {
+    panelShown = false
 }
 
 local BATTLE_UI_RELEVANT_ATTRIBUTES = {
@@ -23,7 +24,7 @@ local BATTLE_UI_RELEVANT_ATTRIBUTES = {
     luck = true,
 }
 
-local BATTLE_UI_PANEL_ID = "BattleUiPanel"
+local BATTLE_UI_PANEL_ID = "BattleReferencePanel"
 
 local BATTLE_UI_PADDING = 5
 local BATTLE_UI_WEAPON_WIDTH = 150
@@ -53,14 +54,22 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_BuildUi(ui)
+function BattleReference_BuildUi(ui)
     local mainPanelChildren = {}
+
+    Ui.ImageButton(ui, { id = "Swords", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "SwordsButton", onClick = function()
+        if BattleReference.panelShown then
+            BattleReference.Hide()
+        else
+            BattleReference.Show()
+        end
+    end })
 
     local panelY = 0
     for playerNumber = 1, 4 do
         local playerBoard = PlayerBoard.GetPlayerBoard(playerNumber)
 
-        local playerId = "BattleUi_Player"..playerNumber
+        local playerId = "BattleReference_Player"..playerNumber
         local playerPanelElements = {}
 
         local x = BATTLE_UI_PADDING
@@ -69,7 +78,7 @@ function BattleUi_BuildUi(ui)
         table.insert(playerPanelElements, {
             tag = "Text",
             attributes = {
-                id=playerId.."NameText",
+                id = playerId.."NameText",
                 rectAlignment = "UpperLeft",
                 offsetXY = x.." "..y,
                 width = BATTLE_UI_WEAPON_WIDTH,
@@ -124,7 +133,7 @@ function BattleUi_BuildUi(ui)
     table.insert(mainPanelChildren, {
         tag = "Button",
         attributes = {
-            id = "BattleUi_CloseBattleReferenceButton",
+            id = "BattleReference_CloseBattleReferenceButton",
             rectAlignment = "UpperLeft",
             offsetXY="0 30",
             width = "30",
@@ -133,11 +142,11 @@ function BattleUi_BuildUi(ui)
             colors = "#000000ee|#222222ee|#111111ee|#00000000",
             fontSize = "16",
             textColor = "#ffffff",
-            onClick = "BattleUi_CloseBattleReferenceButton_OnClick",
+            onClick = "BattleReference_CloseBattleReferenceButton_OnClick",
         }
     })
 
-    table.insert(ui, {
+    table.insert(ui.children, {
         tag = "Panel",
         attributes = {
             id = BATTLE_UI_PANEL_ID,
@@ -148,7 +157,7 @@ function BattleUi_BuildUi(ui)
             color = "#00000000",
             allowDragging = true,
             returnToOriginalPositionWhenReleased = false,
-            --active = false,
+            active = false,
         },
         children = mainPanelChildren,
     })
@@ -156,12 +165,12 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_Update()
+function BattleReference_Update()
     local panelY = 0
     for playerNumber = 1, 4 do
         local playerBoard = PlayerBoard.GetPlayerBoard(playerNumber)
         local playerNumber = playerBoard.playerNumber
-        local playerId = "BattleUi_Player"..playerNumber
+        local playerId = "BattleReference_Player"..playerNumber
 
         local charSheet = PlayerBoard.GetCharSheet(playerBoard)
         if not charSheet then
@@ -248,102 +257,94 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_ShowReference()
+function BattleReference.Show()
+    Log.Debugf("Showing battle reference")
     self.UI.show(BATTLE_UI_PANEL_ID)
-    BattleUi.panelShown = true
+    BattleReference.panelShown = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_HideReference()
+function BattleReference.Hide()
+    Log.Debugf("Hiding battle reference")
     self.UI.hide(BATTLE_UI_PANEL_ID)
-    BattleUi.panelShown = false
+    BattleReference.panelShown = false
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_BattleReferenceButton_OnClick()
-    if BattleUi.panelShown then
-        BattleUi_HideReference()
-    else
-        BattleUi_ShowReference()
-    end
+function BattleReference_CloseBattleReferenceButton_OnClick()
+    BattleReference.Hide()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi_CloseBattleReferenceButton_OnClick()
-    BattleUi_HideReference()
+local function BattleReference_OnShowdownStart()
+    BattleReference.Show()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnShowdownStart()
-    BattleUi_ShowReference()
+local function BattleReference_OnShowdownCleanup()
+    BattleReference.Hide()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnShowdownCleanup()
-    BattleUi_HideReference()
+local function BattleReference_OnPlayerBoardLinkCharSheet(playerBoard, charSheet)
+    BattleReference_Update()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnPlayerBoardLinkCharSheet(playerBoard, charSheet)
-    BattleUi_Update()
+local function BattleReference_OnPlayerBoardUnlinkCharSheet(playerBoard)
+    BattleReference_Update()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnPlayerBoardUnlinkCharSheet(playerBoard)
-    BattleUi_Update()
-end
-
----------------------------------------------------------------------------------------------------
-
-local function BattleUi_OnMonsterChangeAttribute(attribute, value)
+local function BattleReference_OnMonsterChangeAttribute(attribute, value)
     if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
-        BattleUi_Update()
+        BattleReference_Update()
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnCharSheetChangeAttribute(charSheet, attribute, value)
+local function BattleReference_OnCharSheetChangeAttribute(charSheet, attribute, value)
     if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
-        BattleUi_Update()
+        BattleReference_Update()
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnPlayerBoardLinkWeapon(playerBoard, weaponObj, weaponStats)
-    BattleUi_Update()
+local function BattleReference_OnPlayerBoardLinkWeapon(playerBoard, weaponObj, weaponStats)
+    BattleReference_Update()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleUi_OnPlayerBoardUnlinkWeapon(playerBoard, weaponObj)
-    BattleUi_Update()
+local function BattleReference_OnPlayerBoardUnlinkWeapon(playerBoard, weaponObj)
+    BattleReference_Update()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi.Init(ui)
-    EventManager.AddHandler("onShowdownStart", BattleUi_OnShowdownStart)
-    EventManager.AddHandler("onShowdownCleanup", BattleUi_OnShowdownCleanup)
-    EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleUi_OnPlayerBoardLinkCharSheet)
-    EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", BattleUi_OnPlayerBoardUnlinkCharSheet)
-    EventManager.AddHandler("onMonsterChangeAttribute", BattleUi_OnMonsterChangeAttribute)
-    EventManager.AddHandler("onCharSheetChangeAttribute", BattleUi_OnCharSheetChangeAttribute)
-    EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleUi_OnPlayerBoardLinkWeapon)
-    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleUi_OnPlayerBoardUnlinkWeapon)
+function BattleReference.Init(saveState, ui)
+    EventManager.AddHandler("onShowdownStart", BattleReference_OnShowdownStart)
+    EventManager.AddHandler("onShowdownCleanup", BattleReference_OnShowdownCleanup)
+    EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleReference_OnPlayerBoardLinkCharSheet)
+    EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", BattleReference_OnPlayerBoardUnlinkCharSheet)
+    EventManager.AddHandler("onMonsterChangeAttribute", BattleReference_OnMonsterChangeAttribute)
+    EventManager.AddHandler("onCharSheetChangeAttribute", BattleReference_OnCharSheetChangeAttribute)
+    EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleReference_OnPlayerBoardLinkWeapon)
+    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleReference_OnPlayerBoardUnlinkWeapon)
 
-    BattleUi_BuildUi(ui)
-    Wait.frames(BattleUi_Update, 5)   -- really only need 1, but 5 to be safe
+    BattleReference_BuildUi(ui)
+    Wait.frames(BattleReference_Update, 5)   -- really only need 1, but 5 to be safe
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return BattleUi
+return BattleReference

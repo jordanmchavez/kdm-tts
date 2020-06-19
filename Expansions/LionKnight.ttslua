@@ -28,9 +28,9 @@ return {
     },
 
     armorStats = {
-        ["Brawler Armor"]    = { head = 4, arms = 4, body = 4, waist = 4, legs = 4 },
-        ["Dancer Armor"]     = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Warlord Armor"]    = { head = 5, arms = 5, body = 5, waist = 5, legs = 5 },
+        ["Brawler Armor"]    = { head = 4, arms = 4, body = 4, waist = 4, legs = 4, hybrid = true },
+        ["Dancer Armor"]     = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, hybrid = true },
+        ["Warlord Armor"]    = { head = 5, arms = 5, body = 5, waist = 5, legs = 5, hybrid = true },
         ["Hideous Disguise"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
     },
 
@@ -113,7 +113,7 @@ return {
     },
 
     monsterSizes = {
-        ["Lion Knight"] = 2,
+        ["Lion Knight"] = { x = 2, y = 2 },
     },
 
     setups = {

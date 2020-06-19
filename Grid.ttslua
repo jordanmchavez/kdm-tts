@@ -39,43 +39,44 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Grid.SnapColRow(lpos, size)
+function Grid.SnapColRow(lpos, width, height)
     local col, row = Grid.ColRow(lpos)
 
-    local snapCol, snapRow
-    if size % 2 == 0 then
-        -- even size, snap to grid intersections (0.5, 1.5, 2.5, ...)
-        snapCol = math.floor(col) + 0.5
-        snapRow = math.floor(row) + 0.5
-    else
-        -- odd size, snap to grid cell centers (1.0, 2.0, 3.0, ...)
-        snapCol = math.floor(col + 0.5)
-        snapRow = math.floor(row + 0.5)
-    end
+    -- even size, snap to grid intersections (0.5, 1.5, 2.5, ...)
+    -- odd size, snap to grid cell centers (1.0, 2.0, 3.0, ...)
+
+    local snapCol = (width % 2 == 0) and math.floor(col) + 0.5 or math.floor(col + 0.5)
+    local snapRow = (height % 2 == 0) and math.floor(row) + 0.5 or math.floor(row + 0.5)
 
     return snapCol, snapRow
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Grid.Snap(obj, size)
-    Assert.Obj(obj, "obj")
-    Assert.Num(size, "size")
+function Grid.Snap(object, size)
+    local width, height = size.x, size.y
+
+    local y = object.getRotation().y
+    -- sideways
+    if (y > 45 and y < 135) or (y > 225 and y < 315) then
+        width, height = height, width
+    end
 
     local showdownBoard = Guids.GetObject("Showdown Board")
 
-    local wpos = obj.getPosition()
+    local wpos = object.getPosition()
     local lpos = showdownBoard.positionToLocal(wpos)
 
-    local snapCol, snapRow = Grid.SnapColRow(lpos, size)
+    local snapCol, snapRow = Grid.SnapColRow(lpos, width, height)
 
     local epsilon = 0.001
-    local radius = size / 2
+    local wradius = width / 2
+    local hradius = height / 2
     if
-        (snapCol - radius) < -0.5 - epsilon or
-        (snapCol + radius) >= Grid.MAX_COLS + epsilon or
-        (snapRow - radius) < -0.5 - epsilon or
-        (snapRow + radius) >= Grid.MAX_ROWS + epsilon then
+        (snapCol - wradius) < -0.5 - epsilon or
+        (snapCol + wradius) >= Grid.MAX_COLS + epsilon or
+        (snapRow - hradius) < -0.5 - epsilon or
+        (snapRow + hradius) >= Grid.MAX_ROWS + epsilon then
         return wpos
     end
 

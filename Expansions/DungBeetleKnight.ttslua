@@ -21,6 +21,10 @@ return {
         { year = 8, event = "Rumbling in the Dark" },
     },
 
+    terrain = {
+        ["Resin Dung Ball"] = { terrainTile = "Resin Dung Ball", count = 1 },
+    },
+
     terrainTileSizes = {
         ["Resin Dung Ball"] = 2,
     },
@@ -30,13 +34,13 @@ return {
     },
 
     armorStats = {
-        ["Rolling Armor"]           = { head = 2, arms = 2, body = 2, waist = 2, legs = 2 },
-        ["Calcified Greaves"]       = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Calcified Shoulder Pads"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3 },
-        ["Century Greaves"]         = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Century Shoulder Pads"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["DBK Errant Badge"]        = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
-        ["Scarab Circlet"]          = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Rolling Armor"]           = { head = 2, arms = 2, body = 2, waist = 2, legs = 2, modifier = true },
+        ["Calcified Greaves"]       = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, modifier = true },
+        ["Calcified Shoulder Pads"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, modifier = true },
+        ["Century Greaves"]         = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["Century Shoulder Pads"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["DBK Errant Badge"]        = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["Scarab Circlet"]          = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Trash Crown"]             = { head = 4, arms = 0, body = 0, waist = 0, legs = 0 },
     },
 
@@ -126,7 +130,7 @@ return {
     },
 
     monsterSizes = {
-        ["Dung Beetle Knight"] = 2,
+        ["Dung Beetle Knight"] = { x = 2, y = 2 },
     },
 
     setups = {

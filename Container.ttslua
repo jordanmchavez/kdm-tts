@@ -1,0 +1,204 @@
+local Util = require("Kdm/Util/Util")
+local Assert = require("Kdm/Util/Assert")
+local Log = require("Kdm/Util/Log").ForPackage("Container")
+local Locations = require("Kdm/Locations")
+
+local Container = {}
+
+Container.CONTAINER_TAGS = {
+    ["Deck"] = true,
+    ["Bag"] = true,
+    ["Infinite"] = true,
+}
+
+local ContainerClass = {}
+ContainerClass.__index = ContainerClass
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Take(container, params)
+    Assert.Tab(container)
+    Assert(container.object != nil, "Container is empty or was destroyed")  -- != nil is important for deleted TTS object comparison
+
+    local name, type, location, spawnFunc = params.name, params.type, params.location, params.spawnFunc
+    local rotation = params.rotation or Locations.DEFAULT_ROTATION
+    local height = params.height or Locations.DEFAULT_HEIGHT
+    local position = Locations.WorldCenter(location)
+    position.y = position.y + height
+
+    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), location, height)
+
+    if not Container.CONTAINER_TAGS[container.object.tag] then
+        local lastObject = container.object
+        if name then
+            Assert(lastObject.getName() == name and lastObject.getGMNotes() == type, "Couldn't take %s/%s from container; last remaining object is %s/%s", name, type, lastObject.getName(), lastObject.getGMNotes())
+        end
+
+        lastObject.setPositionSmooth(position, false, true)
+        lastObject.setRotation(rotation)
+        Log.Debugf("Took last object %s (%s)", lastObject.getName(), lastObject.getGUID())
+
+        container.object = nil
+        return lastObject
+    end
+
+    local guid = nil
+    if name then
+        for _, entry in ipairs(container.object.getObjects()) do
+            if entry.name == name and entry.gm_notes == type then
+                guid = entry.guid
+                break
+            end
+        end
+        Assert(guid, "%s/%s not found in container %s (%s)", name, type, container.object.getName(), container.object.getGUID())
+    end
+
+    local object = container.object.takeObject({
+        guid = guid,
+        position = position,
+        rotation = rotation,
+        smooth = false,
+    })
+    Assert(object, "Couldn't take %s/%s from container %s (%s)", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID())
+    Log.Debugf("Took %s (%s) from container %s (%s)", object.getName(), object.getGUID(), container.object.getName(), container.object.getGUID())
+
+    if container.object.remainder then
+        container.object = container.object.remainder
+        Log.Debugf("Container has only one object remaining, switching to %s (%s)", container.object.getName(), container.object.getGUID())
+    end
+
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Shuffle(container)
+    if Container.CONTAINER_TAGS[container.object.tag] then
+        container.object.Shuffle()
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Delete(container, names)
+    if #names == 0 then
+        return
+    end
+
+    Log.Debugf("Deleting %s from %s (%s)", names, container.object.getName(), container.object.getGUID())
+
+    if not Container.CONTAINER_TAGS[container.object.tag] then
+        Assert(#names == 1)
+        local name = names[1]
+
+        local lastObject = container.object
+        Assert(lastObject.getName() == name, "Couldn't delete %s from container; last remaining object is %s", name, lastObject.getName())
+
+        Log.Debugf("Deleted last object %s (%s)", lastObject.getName(), lastObject.getGUID())
+        lastObject.destruct()
+        container.object = nil
+    end
+
+    local index = Util.MultiIndex(container.object.getObjects(), "name")
+
+    for _, name in ipairs(names) do
+        Assert(index[name] and #index[name] >= 1, "%s not found in %s (%s)", name, container.object.getName(), container.object.getGUID())
+        local entry = table.remove(index[name])
+        container.object.takeObject({
+            guid = entry.guid,
+            position = { x = -150, y = -100, z = 150 },
+            smooth = false,
+        }).destruct()
+        Log.Debugf("Deleted %s (%s) from container %s (%s)", name, guid, container.object.getName(), container.object.getGUID())
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.OrderDeck(container, top, bottom)
+    Assert(container.object.tag == "Deck")
+
+    Log.Debugf("Reordering %s (%s) with top=%s and bottom=%s", container.object.getName(), container.object.getGUID(), top, bottom)
+
+    local data = container.object.getData()
+    local oldSequence = data.ContainedObjects
+
+    local index = {}
+    for i, elem in ipairs(oldSequence) do
+        if not index[elem.Nickname] then
+            index[elem.Nickname] = { i }
+        else
+            table.insert(index[elem.Nickname], i)
+        end
+    end
+
+    local newSequence = {}
+    for _, card in ipairs(top or {}) do
+        local t = index[card]
+        Assert(t and #t > 0, "Deck %s (%s) doesn't have card %s", container.object.getName(), container.object.getGUID(), card)
+        local i = t[#t]
+        table.insert(newSequence, oldSequence[i])
+        oldSequence[i] = "-"
+        table.remove(t)
+    end
+
+    local newBottom = {}
+    for _, card in ipairs(bottom or {}) do
+        local t = index[card]
+        Assert(t and #t > 0, "Deck %s (%s) doesn't have card %s", container.object.getName(), container.object.getGUID(), card)
+        local i = t[#t]
+        table.insert(newBottom, oldSequence[i])
+        oldSequence[i] = "-"
+        table.remove(t)
+    end
+
+    for _, elem in ipairs(oldSequence) do
+        if elem != "-" then
+            table.insert(newSequence, elem)
+        end
+    end
+
+    for i = #newBottom, 1, -1 do
+        table.insert(newSequence, newBottom[i])
+    end
+
+    data.DeckIDs = {}
+    for _, elem in ipairs(newSequence) do
+        table.insert(data.DeckIDs, elem.CardID)
+    end
+    data.ContainedObjects = newSequence
+
+    container.object.destruct()
+    local newObject = spawnObjectData({ data = data })
+    Log.Debugf("Reordered and respawned deck %s (%s)", newObject.getName(), newObject.getGUID())
+    container.object = newObject
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Destruct(container)
+    if container.object then
+        Log.Debugf("Destroying container %s (%s)", container.object.getName(), container.object.getGUID())
+        container.object.destruct()
+        container.object = nil
+    else
+        Log.Debugf("Cannot destroy container: already empty/destroyed")
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+setmetatable(Container, { __call = function(self, object)
+    Assert.Obj(object)
+
+    local container  = {
+        object = object
+    }
+    setmetatable(container, ContainerClass)
+
+    return container
+end })
+
+---------------------------------------------------------------------------------------------------
+
+return Container

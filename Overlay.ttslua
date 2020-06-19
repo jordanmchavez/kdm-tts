@@ -51,8 +51,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Overlay_Dud() end
-
 function Overlay.Create(position, baseSize, radius, color)
     Assert.Vec(position, "position")
     Assert.Num(baseSize, "baseSize")

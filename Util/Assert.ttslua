@@ -12,18 +12,13 @@ end })
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.True(condition, fmt, ...)
-    if not condition then
-        Assert.Fail(fmt, ...)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
 function Assert.Fail(fmt, ...)
-    local msg = Util.SafeFormat("ASSERT FAILED "..(fmt or ""), ...)
-    log(msg, nil, "error")
-    error(msg, 2)
+    local msg = Util.SafeFormat(fmt or "", ...)
+    log("ASSERT FAILED: "..msg, nil, "error")
+    if debug then
+        log(debug.traceback(), nil, "error")
+    end
+    error(msg)
 end
 
 ---------------------------------------------------------------------------------------------------

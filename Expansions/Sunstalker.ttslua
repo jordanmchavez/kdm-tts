@@ -89,7 +89,7 @@ return {
     },
 
     armorStats = {
-        ["Cycloid Scale Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Cycloid Scale Armor"]   = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Cycloid Scale Hood"]    = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Cycloid Scale Sleeves"] = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
         ["Cycloid Scale Jacket"]  = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
@@ -115,7 +115,7 @@ return {
         ["Sun Dial"] = {
             center = { x = -10.535775, y = 10.801341, z = 0.399195 },
             size = { x = 2, y = 2, z = 4 },
-            objectName = "Showdown Board",
+            board = "Showdown Board",
         },
     },
 
@@ -233,7 +233,7 @@ return {
     },
 
     monsterSizes = {
-        ["Sunstalker"] = 4,
+        ["Sunstalker"] = { x = 4, y = 4 },
     },
 
     setups = {
@@ -251,7 +251,7 @@ return {
                     rotation = { 0, 180, 0 },
                 },
             },
-            miscObjects = { { name = "Shades", type = "AI" } },
+            miscObject = { name = "Shades", type = "AI" },
             fixedTerrain = {
                 {
                     terrain = "3 Stone Columns",

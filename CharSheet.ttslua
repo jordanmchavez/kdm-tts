@@ -2,7 +2,7 @@ local Assert = require("Kdm/Util/Assert")
 local Log = require("Kdm/Util/Log").ForPackage("CharSheet")
 local Util = require("Kdm/Util/Util")
 local UiCounter = require("Kdm/UiCounter")
-local UiCheckbox = require("Kdm/UiCheckbox")
+local UiCheckBox = require("Kdm/UiCheckBox")
 local UiButton = require("Kdm/UiButton")
 local UiText = require("Kdm/UiText")
 local EventManager = require("Kdm/Util/EventManager")
@@ -123,14 +123,14 @@ end
 
 local function CharSheet_SetGender(charSheet, name, value)
     local other = (value == "male") and "female" or "male"
-    UiCheckbox.Set(charSheet[value.."UiCheckbox"], true)
-    UiCheckbox.Set(charSheet[other.."UiCheckbox"], false)
+    UiCheckBox.Set(charSheet[value.."UiCheckBox"], true)
+    UiCheckBox.Set(charSheet[other.."UiCheckBox"], false)
     charSheet.gender = value
 end
 
-local function CharSheet_SetCheckbox(charSheet, name, value)
+local function CharSheet_SetCheckBox(charSheet, name, value)
     charSheet[name] = value
-    UiCheckbox.Set(charSheet[name.."UiCheckbox"], value)
+    UiCheckBox.Set(charSheet[name.."UiCheckBox"], value)
 end
 
 local function CharSheet_SetCounter(charSheet, name, value)
@@ -145,7 +145,7 @@ local function CharSheet_SetCounterWithModifiers(charSheet, name, value)
     UiCounter.Set(charSheet[name.."UiCounter"], value + temp + perm)
 end
 
-local function CharSheet_SetCheckboxSequence(charSheet, name, value)
+local function CharSheet_SetCheckBoxSequence(charSheet, name, value)
     local oldValue = charSheet[name] or 0
 
     if value <= oldValue then
@@ -154,10 +154,10 @@ local function CharSheet_SetCheckboxSequence(charSheet, name, value)
     charSheet[name] = value
 
     for i = 1, value do
-        UiCheckbox.Set(charSheet[name..i.."UiCheckbox"], true)
+        UiCheckBox.Set(charSheet[name..i.."UiCheckBox"], true)
     end
     for i = value + 1, charSheet_maxes[name] do
-        UiCheckbox.Set(charSheet[name..i.."UiCheckbox"], false)
+        UiCheckBox.Set(charSheet[name..i.."UiCheckBox"], false)
     end
 end
 
@@ -167,8 +167,8 @@ local charSheet_setters = {
 
     gender = CharSheet_SetGender,
 
-    skipNextHunt = CharSheet_SetCheckbox,
-    brainLightInjury = CharSheet_SetCheckbox,
+    skipNextHunt = CharSheet_SetCheckBox,
+    brainLightInjury = CharSheet_SetCheckBox,
 
     survival = CharSheet_SetCounter,
     insanity = CharSheet_SetCounter,
@@ -180,10 +180,10 @@ local charSheet_setters = {
     evasion = CharSheet_SetCounterWithModifiers,
     luck = CharSheet_SetCounterWithModifiers,
 
-    huntExperience = CharSheet_SetCheckboxSequence,
-    courage = CharSheet_SetCheckboxSequence,
-    understanding = CharSheet_SetCheckboxSequence,
-    weaponProficiencyRank = CharSheet_SetCheckboxSequence,
+    huntExperience = CharSheet_SetCheckBoxSequence,
+    courage = CharSheet_SetCheckBoxSequence,
+    understanding = CharSheet_SetCheckBoxSequence,
+    weaponProficiencyRank = CharSheet_SetCheckBoxSequence,
 }
 
 function CharSheet_Set(charSheet, attribute, value)
@@ -274,7 +274,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function CharSheet_CreateCheckboxes(charSheet)
+local function CharSheet_CreateCheckBoxes(charSheet)
     local object = charSheet.object
 
     local size = 230
@@ -284,13 +284,13 @@ local function CharSheet_CreateCheckboxes(charSheet)
         skipNextHunt = { x = 0.435, z = -0.824 },
     }
 
-    local changeFunc = function(uiCheckbox)
-        local name = uiCheckbox.name
+    local changeFunc = function(uiCheckBox)
+        local name = uiCheckBox.name
         CharSheet_Set(charSheet, name, not charSheet[name])
     end
 
     for name, params in pairs(checkBoxes) do
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = charSheet[name],
@@ -306,7 +306,7 @@ local function CharSheet_CreateCheckboxes(charSheet)
     }
 
     for name, params in pairs(checkBoxes) do
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = charSheet.gender == name,
@@ -324,13 +324,13 @@ local function CharSheet_CreateCheckboxes(charSheet)
     local huntExperience = CharSheet_Get(charSheet, "huntExperience")
     for i = 1, charSheet_maxes.huntExperience do
         local name = "huntExperience"..i
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = (i <= huntExperience),
             position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
             size = size,
-            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "huntExperience", i),
+            changeFunc = |uiCheckBox| CharSheet_Set(charSheet, "huntExperience", i),
         })
     end
 
@@ -340,13 +340,13 @@ local function CharSheet_CreateCheckboxes(charSheet)
     local courage = CharSheet_Get(charSheet, "courage")
     for i = 1, charSheet_maxes.courage do
         local name = "courage"..i
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = (i <= courage),
             position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
             size = size,
-            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "courage", i),
+            changeFunc = |uiCheckBox| CharSheet_Set(charSheet, "courage", i),
         })
     end
 
@@ -354,13 +354,13 @@ local function CharSheet_CreateCheckboxes(charSheet)
     local understanding = CharSheet_Get(charSheet, "understanding")
     for i = 1, charSheet_maxes.understanding do
         local name = "understanding"..i
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = (i <= understanding),
             position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
             size = size,
-            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "understanding", i),
+            changeFunc = |uiCheckBox| CharSheet_Set(charSheet, "understanding", i),
         })
     end
 
@@ -370,13 +370,13 @@ local function CharSheet_CreateCheckboxes(charSheet)
     local weaponProficiencyRank = CharSheet_Get(charSheet, "weaponProficiencyRank")
     for i = 1, charSheet_maxes.weaponProficiencyRank do
         name = "weaponProficiencyRank"..i
-        charSheet[name.."UiCheckbox"] = UiCheckbox.Create({
+        charSheet[name.."UiCheckBox"] = UiCheckBox.Create({
             object = object,
             name = name,
             value = (i <= weaponProficiencyRank),
             position = { x + ((i - 1) * dx), CHAR_SHEET_UI_Y, z },
             size = size,
-            changeFunc = |uiCheckbox| CharSheet_Set(charSheet, "weaponProficiencyRank", i),
+            changeFunc = |uiCheckBox| CharSheet_Set(charSheet, "weaponProficiencyRank", i),
         })
     end
 end
@@ -447,7 +447,7 @@ local function CharSheet_Create(object)
 
     CharSheet_CreateTexts(charSheet)
     CharSheet_CreateCounters(charSheet)
-    CharSheet_CreateCheckboxes(charSheet)
+    CharSheet_CreateCheckBoxes(charSheet)
 
     charSheet_charSheetsByObject[object] = charSheet
 

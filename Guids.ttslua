@@ -53,8 +53,8 @@ local Guids = {
 
 ---------------------------------------------------------------------------------------------------
 
-function Guids.RegisterNamedGuids(namedGuids)
-    for name, guid in pairs(namedGuids or {}) do
+function Guids.RegisterExpansion(expansion)
+    for name, guid in pairs(expansion.namedGuids or {}) do
         Assert(Guids.nameGuids[name] == nil, "Named guid %s (%s) already registered to %s", name, guid, Guids.nameGuids[name])
         Guids.nameGuids[name] = guid
     end

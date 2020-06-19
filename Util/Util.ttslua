@@ -2,27 +2,6 @@ local Util = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function Util.SafeFormat(fmt, ...)
-    fmt = fmt or ""
-
-    local args = table.pack(...)
-    for i = 1, args.n do
-        args[i] = args[i] or "<nil>"
-    end
-
-    local result
-    if not pcall(function() result = string.format(fmt, table.unpack(args)) end) then
-        result = "FORMATTING ERROR: fmt="..fmt
-        for i = 1, args.n do
-            result = result..", arg"..i.."="..tostring(args[i])
-        end
-    end
-
-    return result
-end
-
----------------------------------------------------------------------------------------------------
-
 function Util.TabStr(t)
     if type(t) != "table" then
         return tostring(t)
@@ -34,6 +13,35 @@ function Util.TabStr(t)
         table.insert(entries, tostring(k).."="..vstr)
     end
     return "{"..table.concat(entries, ",").."}"
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.SafeFormat(fmt, ...)
+    fmt = fmt or ""
+
+    local args = table.pack(...)
+    for i = 1, args.n do
+        local arg = args[i]
+        if not arg then
+            args[i] = "<nil>"
+        else
+            local t = type(arg)
+            if t == "table" then
+                args[i] = Util.TabStr(arg)
+            end
+        end
+    end
+
+    local result
+    if not pcall(function() result = string.format(fmt, table.unpack(args)) end) then
+        result = "FORMATTING ERROR: fmt="..fmt
+        for i = 1, args.n do
+            result = result..", arg"..i.."="..tostring(args[i])
+        end
+    end
+
+    return result
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -87,6 +95,21 @@ function Util.Index(array, field)
     local index = {}
     for _, elem in ipairs(array) do
         index[elem[field]] = elem
+    end
+    return index
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.MultiIndex(array, field)
+    local index = {}
+    for _, elem in ipairs(array) do
+        local k = elem[field]
+        if not index[k] then
+            index[k] = { elem }
+        else
+            table.insert(index[k], elem)
+        end
     end
     return index
 end
@@ -149,6 +172,14 @@ function Util.Highlight(object, seconds)
         size      = { size[1] * 2, size[2] * 2, size[3] * 2 },
         debug     = true,
     })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.HighlightAll(objects, seconds)
+    for _, object in ipairs(objects) do
+        Util.Highlight(object, seconds)
+    end
 end
 
 ---------------------------------------------------------------------------------------------------

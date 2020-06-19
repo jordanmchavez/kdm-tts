@@ -1,11 +1,11 @@
 local Assert = require("Kdm/Util/Assert")
 local Ui = require("Kdm/Ui")
 
-local UiCheckbox = {}
+local UiCheckBox = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function UiCheckbox.Create(params)
+function UiCheckBox.Create(params)
     Assert.Tab(params, "params")
     local object = params.object
     Assert.Obj(object, "params.object")
@@ -19,17 +19,17 @@ function UiCheckbox.Create(params)
     Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
     Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
 
-    local uiCheckbox = {
-        tag = "UiCheckbox",
+    local uiCheckBox = {
+        tag = "UiCheckBox",
         object = object,
         name = name,
     }
 
     local index = Ui.RecordButtonAndGetIndex(object)
-    local clickFunctionName = "UiCheckbox_"..object.getGUID().."_"..index.."_"..name.."_Click"
-    self.setVar(clickFunctionName, function (_, _, altClick) params.changeFunc(uiCheckbox) end)
+    local clickFunctionName = "UiCheckBox_"..object.getGUID().."_"..index.."_"..name.."_Click"
+    self.setVar(clickFunctionName, function (_, _, altClick) params.changeFunc(uiCheckBox) end)
 
-    uiCheckbox.button = {
+    uiCheckBox.button = {
         index = index,
         label = params.value and "\u{25A0}" or "",
         position = params.position,
@@ -42,22 +42,22 @@ function UiCheckbox.Create(params)
         click_function = clickFunctionName,
         function_owner = self,
     }
-    object.createButton(uiCheckbox.button)
+    object.createButton(uiCheckBox.button)
 
-    return uiCheckbox
+    return uiCheckBox
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function UiCheckbox.Set(uiCheckbox, checked)
-    Assert.Tab(uiCheckbox, "uiCheckbox")
-    Assert(uiCheckbox.tag == "UiCheckbox", "uiCheckbox arg is not a UiCheckbox")
+function UiCheckBox.Set(uiCheckBox, checked)
+    Assert.Tab(uiCheckBox, "uiCheckBox")
+    Assert(uiCheckBox.tag == "UiCheckBox", "uiCheckBox arg is not a UiCheckBox")
     Assert.BoolOrNil(checked, "checked")
 
-    uiCheckbox.button.label = checked and "\u{25A0}" or ""
-    uiCheckbox.object.editButton(uiCheckbox.button)
+    uiCheckBox.button.label = checked and "\u{25A0}" or ""
+    uiCheckBox.object.editButton(uiCheckBox.button)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return UiCheckbox
+return UiCheckBox

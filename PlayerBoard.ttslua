@@ -3,7 +3,7 @@ local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("PlayerBoard")
 local Guids = require("Kdm/Guids")
 local UiCounter = require("Kdm/UiCounter")
-local UiCheckbox = require("Kdm/UiCheckbox")
+local UiCheckBox = require("Kdm/UiCheckBox")
 local UiButton = require("Kdm/UiButton")
 local EventManager = require("Kdm/Util/EventManager")
 local DropZone = require("Kdm/Util/DropZone")
@@ -118,6 +118,8 @@ local function PlayerBoard_LinkFigurine(playerBoard, figurine)
         CharSheet.LinkFigurine(playerBoard.linkedCharSheet, figurine)
     end
     playerBoard.figurine = figurine
+
+    Log.Printf("Linked figurine to player %s", playerBoard.playerNumber)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -131,13 +133,13 @@ local function PlayerBoard_HealAndReset(playerBoard)
     for _, hitLocation in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
         if playerBoard.lightInjuries[hitLocation] then
             playerBoard.lightInjuries[hitLocation] = false
-            UiCheckbox.Set(playerBoard[hitLocation.."LightInjuryUiCheckbox"], false)
+            UiCheckBox.Set(playerBoard[hitLocation.."LightInjuryUiCheckBox"], false)
         end
     end
     for _, hitLocation in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
         if playerBoard.heavyInjuries[hitLocation] then
             playerBoard.heavyInjuries[hitLocation] = false
-            UiCheckbox.Set(playerBoard[hitLocation.."HeavyInjuryUiCheckbox"], false)
+            UiCheckBox.Set(playerBoard[hitLocation.."HeavyInjuryUiCheckBox"], false)
         end
     end
 
@@ -758,7 +760,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PlayerBoard_CreateCheckboxes(playerBoard)
+local function PlayerBoard_CreateCheckBoxes(playerBoard)
     local size = 120
 
     -- light injuries
@@ -766,7 +768,7 @@ local function PlayerBoard_CreateCheckboxes(playerBoard)
     local z = -0.848
     local dx = 0.2625
     for i, location in ipairs(PLAYER_BOARD_LIGHT_INJURY_LOCATIONS) do
-        playerBoard[location.."LightInjuryUiCheckbox"] = UiCheckbox.Create({
+        playerBoard[location.."LightInjuryUiCheckBox"] = UiCheckBox.Create({
             object = playerBoard.object,
             name = location.."LightInjury",
             value = playerBoard.lightInjuries[location],
@@ -777,10 +779,10 @@ local function PlayerBoard_CreateCheckboxes(playerBoard)
                 z = z,
             },
             size = size,
-            changeFunc = function(uiCheckbox)
+            changeFunc = function(uiCheckBox)
                 local checked = not playerBoard.lightInjuries[location]
                 playerBoard.lightInjuries[location] = checked
-                UiCheckbox.Set(uiCheckbox, checked)
+                UiCheckBox.Set(uiCheckBox, checked)
             end,
         })
     end
@@ -788,7 +790,7 @@ local function PlayerBoard_CreateCheckboxes(playerBoard)
     -- heavy injuries
     local z = -0.811
     for i, location in ipairs(PLAYER_BOARD_HEAVY_INJURY_LOCATIONS) do
-        playerBoard[location.."HeavyInjuryUiCheckbox"] = UiCheckbox.Create({
+        playerBoard[location.."HeavyInjuryUiCheckBox"] = UiCheckBox.Create({
             object = playerBoard.object,
             name = location.."HeavyInjury",
             value = playerBoard.heavyInjuries[location],
@@ -798,10 +800,10 @@ local function PlayerBoard_CreateCheckboxes(playerBoard)
                 z = z,
             },
             size = size,
-            changeFunc = function(uiCheckbox)
+            changeFunc = function(uiCheckBox)
                 local checked = not playerBoard.heavyInjuries[location]
                 playerBoard.heavyInjuries[location] = checked
-                UiCheckbox.Set(uiCheckbox, checked)
+                UiCheckBox.Set(uiCheckBox, checked)
             end,
         })
     end
@@ -885,7 +887,7 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
     end
 
     PlayerBoard_CreateCounters(playerBoard)
-    PlayerBoard_CreateCheckboxes(playerBoard)
+    PlayerBoard_CreateCheckBoxes(playerBoard)
     PlayerBoard_CreateButtons(playerBoard)
 
     return playerBoard

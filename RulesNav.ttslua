@@ -1,11 +1,14 @@
 local UiButton = require("Kdm/UiButton")
+local Guids = require("Kdm/Guids")
 local Rules = require("Kdm/Rules")
 
 ---------------------------------------------------------------------------------------------------
 
 local RulesNav = {}
 
-function RulesNav.Init(rulesNavObj)
+function RulesNav.Init()
+    local rulesNavObj = Guids.GetObject("Rules Navigation Board")
+
     local x1 = -7.229591
     local x13 = 7.226013
     local dx = (x13 - x1) / 12

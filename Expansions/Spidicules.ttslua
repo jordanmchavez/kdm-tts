@@ -25,7 +25,7 @@ return {
         ["Egg Sacs"] = {
             terrainTile = "Egg Sac",
             count = "*",
-            miscObjects = { name = "Spiderling", type = "AI" },
+            miscObject = { name = "Spiderling", type = "AI" },
         },
         ["Silk Nest"] = { terrainTile = "Silk Nest", count = 1 },
     },
@@ -40,7 +40,7 @@ return {
     },
 
     armorStats = {
-        ["Silk Armor"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1 },
+        ["Silk Armor"]  = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
         ["Silk Turban"] = { head = 3, arms = 0, body = 0, waist = 0, legs = 0 },
         ["Silk Wraps"]  = { head = 0, arms = 3, body = 0, waist = 0, legs = 0 },
         ["Silk Robes"]  = { head = 0, arms = 0, body = 3, waist = 0, legs = 0 },
@@ -137,7 +137,7 @@ return {
     },
 
     monsterSizes = {
-        ["Spidicules"] = 2,
+        ["Spidicules"] = { x = 2, y = 2 },
     },
 
     setups = {
