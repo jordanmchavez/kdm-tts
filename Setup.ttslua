@@ -29,21 +29,15 @@ local Setup = {
 ---------------------------------------------------------------------------------------------------
 
 function Setup.RegisterExpansion(expansion)
-    Log.Debugf("Registering expansion %s", expansion.name)
-
     table.insert(Setup.expansions, expansion.name)
-
     Setup.components[expansion.name] = expansion.components or {}
-
     for _, campaign in ipairs(expansion.campaigns or {}) do
         table.insert(Setup.campaigns, campaign)
         Setup.campaignRequiredExpansion[campaign.name] = expansion.name
     end
-
     Setup.removeTimelineEvent[expansion.name] = expansion.removeTimelineEvent
     Setup.replaceNemesis[expansion.name] = expansion.replaceNemesis
     Setup.timelineEvents[expansion.name] = expansion.timelineEvents
-
     Setup.archiveOverrides[expansion.name] = expansion.archiveOverrides
 end
 
@@ -60,16 +54,37 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Setup.SetupArchiveOverrides(expansions)
-    for _, expansion in ipairs(expansions) do
-        if Setup.archiveOverrides[expansion] then
-            Log.Debugf("Overriding archive entries for %s", expansion)
-            Archive.RegisterArchiveEntries(Setup.archiveOverrides[expansion], true)
+function Setup.SetupArchiveOverrides(expansionsMap)
+    for _, expansion in ipairs(Setup.expansions) do
+        local overrides = Setup.archiveOverrides[expansion]
+        if overrides then
+            if expansionsMap[expansion] then
+                Log.Debugf("Overriding archive entries for %s", expansion)
+                Archive.RegisterArchiveEntries({ archive = overrides.newArchive, entries = overrides.entries }, true)
+            else
+                Log.Debugf("Reverting archive entry overrides for %s", expansion)
+                Archive.RegisterArchiveEntries({ archive = overrides.oldArchive, entries = overrides.entries }, true)
+            end
         end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
+
+function Setup.NemesisEncounterName(monster, level)
+    if level then
+        local lvl = " Lvl "..string.sub(level, -1)
+        if monster then
+            return "Nemesis Encounter - "..monster..lvl
+        else
+            return "Nemesis Encounter -"..lvl
+        end
+    elseif monster then
+        return "Nemesis Encounter - "..monster
+    else
+        return "Nemesis Enconter"
+    end
+end
 
 function Setup.SetupTimeline(campaign, expansions)
     Settlement.Reset()
@@ -83,8 +98,8 @@ function Setup.SetupTimeline(campaign, expansions)
     for _, expansion in ipairs(expansions) do
         local removeEvent = Setup.removeTimelineEvent[expansion]
         if removeEvent then
-            Log.Debugf("Setting up removed event: [%d] %s", removeEvent.year, removeEvent.event)
-            removeEvents[removeEvent.year][removeEvent.event] = true
+            Log.Debugf("Setting up removed event: [%d] %s", removeEvent.year, removeEvent.name)
+            removeEvents[removeEvent.year][removeEvent.name] = true
         end
 
         local replaceNemesis = Setup.replaceNemesis[expansion]
@@ -95,56 +110,39 @@ function Setup.SetupTimeline(campaign, expansions)
     end
 
     local events = {}
-    for year = 1, 30 do events[year] = {} end
-    for _, eventData in ipairs(campaign.timeline) do
-        local year, event = eventData.year, eventData.event
+    Util.AppendArray(events, campaign.timeline)
+    for _, expansion in ipairs(expansions) do
+        Util.AppendArray(events, Setup.timelineEvents[expansion] or {})
+    end
 
-        if removeEvents[year][event] then
-            Log.Debugf("Skipping removed event [%d] %s", year, event)
+    for _, event in ipairs(events) do
+        local year, name, type = event.year, event.name, event.type
+
+        if removeEvents[year][name] then
+            Log.Debugf("Skipping removed event [%d] %s", year, name)
+
+        elseif event.notCampaign == campaign.name then
+            Log.Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
+
+        elseif type == "TimelineEvent" then
+            Log.Debugf("Adding timeline event [%d] %s", year, name)
+            local rulebook, state = Rules.GetRulebookAndState(name)
+            Settlement.AddTimelineEvent(year, nil, { name = name, type = "TimelineEvent", rulebook = rulebook, state = state })
+
+        elseif type == "Showdown" then
+            local monster, level = event.monster, event.level
+            if monster and replaceNemeses[monster] then
+                local monster = replaceNemeses[monster]
+                local name = Setup.NemesisEncounterName(monster, level)
+                Log.Debugf("Adding replacement showdown [%d] %s", year, name)
+                Settlement.AddTimelineEvent(year, 6, { name = name, type = "Showdown", monster = monster, level = level })
+            else
+                Log.Debugf("Adding showdown [%d] %s", year, name)
+                Settlement.AddTimelineEvent(year, 6, { name = name, type = "Showdown", monster = monster, level = level })
+            end
 
         else
-            Log.Debugf("Adding timeline event [%d] %s", year, event)
-            local rulebook, state = Rules.GetRulebookAndState(event)
-            Settlement.AddTimelineEvent({ year = year, name = event, rulebook = rulebook, state = state })
-        end
-    end
-
-    for _, expansion in ipairs(expansions) do
-        for _, eventData in ipairs(Setup.timelineEvents[expansion] or {}) do
-            local year, event = eventData.year, eventData.event
-
-            if removeEvents[year][event] then
-                Log.Debugf("Skipping removed event [%d] %s", year, event)
-
-            elseif eventData.notCampaign == campaign.name then
-                Log.Debugf("Skipping timeline event %s for campaign %s", eventData.name, campaign.name)
-
-            elseif eventData.isShowdown then
-                Log.Debugf("Adding showdown [%d] %s", year, event)
-                Settlement.AddTimelineEvent({ year = year, name = event, isShowdown = true })
-
-            else
-                Log.Debugf("Adding timeline event [%d] %s", year, event)
-                local rulebook, state = Rules.GetRulebookAndState(event)
-                Settlement.AddTimelineEvent({ year = year, name = event, rulebook = rulebook, state = state })
-            end
-        end
-    end
-
-    for nemesis, encounters in pairs(campaign.nemeses) do
-        local replace = replaceNemeses[nemesis]
-        if replace then
-            Log.Debugf("Replacing nemesis %s with %s", nemesis, replace)
-            nemesis = replace
-        end
-
-        for _, encounter in ipairs(encounters) do
-            local name = "Nemesis Encounter - "..nemesis
-            if encounter.level then
-                name = name.." Lvl "..encounter.level
-            end
-            Log.Debugf("Adding nemesis encounter [%d] %s", encounter.year, name)
-            Settlement.AddTimelineEvent({ year = encounter.year, event = 6, name = name, isShowdown = true })
+            Assert.Fail("Unknown event type %s for event %s", type, event)
         end
     end
 end
@@ -284,7 +282,7 @@ function Setup.Setup(campaign, expansionsMap)
         end
     end
 
-    Setup.SetupArchiveOverrides(expansions)
+    Setup.SetupArchiveOverrides(expansionsMap)
 
     Setup.SetupTimeline(campaign, expansions)
 
@@ -316,7 +314,7 @@ function Setup.Setup(campaign, expansionsMap)
     Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     Setup.SetupDeck({ expansions = expansions, deck = "Terrain", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events", rotation = Locations.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     local innovationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", rotation = Locations.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = campaign.removedInnovations })
     local settlementLocationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Settlement Locations", resetArchive = false, respawnDeck = false, shuffleDeck = false })
     Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear", type = "Gear", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
@@ -376,8 +374,9 @@ end
 function Setup.Init(saveState, ui)
     Setup.enabledExpansions = saveState or Setup.enabledExpansions
     for expansion, _ in pairs(Setup.enabledExpansions) do
-        if Setup.archiveOverrides[expansion] then
-            Archive.RegisterArchiveEntries(Setup.archiveOverrides[expansion], true)
+        local overrides = Setup.archiveOverrides[expansion]
+        if overrides then
+            Archive.RegisterArchiveEntries({ archive = overrides.newArchive, entries = overrides.entries }, true)
         end
     end
 

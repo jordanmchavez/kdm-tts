@@ -12,6 +12,7 @@ local Locations = require("Kdm/Locations")
 
 local Hunt = {
     setups = {},
+    setupMap = {},
     monsterExpansions = {},
     settingUp = false,
     enabledExpansions = {},
@@ -22,10 +23,22 @@ local Hunt = {
 function Hunt.RegisterExpansion(expansion)
     for monster, setup in pairs(expansion.setups or {}) do
         if setup.huntTrack then
-            if setup.huntEventsDeck == nil then setup.huntEventsDeck = monster.." Hunt Events" end
-            if setup.resourcesDeck == nil then setup.resourcesDeck = monster.." Resources" end
-            setup.monster = monster
-            table.insert(Hunt.setups, setup)
+            local levels = {}
+            for _, level in ipairs(setup.levels) do
+                if level.monsterHuntPosition then
+                    table.insert(levels, level)
+                end
+            end
+            local huntSetup = {
+                monster = monster,
+                huntTrack = setup.huntTrack,
+                huntEventsDeck = setup.huntEventsDeck or monster.." Hunt Events",
+                resourcesDeck = setup.resourcesDeck or monster.." Resources",
+                levels = levels,
+                levelMap = levelMap,
+            }
+            table.insert(Hunt.setups, huntSetup)
+            Hunt.setupMap[monster] = huntSetup
         end
     end
 
@@ -66,13 +79,16 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Hunt.Setup(monsterSetup, levelSetup)
+function Hunt.Setup(monster, level)
     if Hunt.settingUpHunt == true then
         Log.Errorf("Hunt setup currently in progress, please wait until finished before setting up another hunt. If the hunt appears to be stuck, click 'Cleanup Hunt' from the 'Cleanup' menu to reset.")
         return 1
     end
 
-    Assert(levelSetup.monsterHuntPosition, "No hunt setup for %s, %s", monsterSetup.monster, levelSetup.name)
+    local monsterSetup = Hunt.setupMap[monster]
+    Assert(monsterSetup, "No hunt setup for %s", monster)
+    local levelSetup = monsterSetup.levelMap[level]
+    Assert(levelSetup, "No hunt setup for %s, %s", monster, level)
 
     local blocking = Hunt.CleanupInternal()
     blocking = Util.ConcatArrays(blocking, Action.RayClean({ location = "Monster Resources", types = { "Monster Resources" } }))
@@ -82,7 +98,7 @@ function Hunt.Setup(monsterSetup, levelSetup)
         return
     end
 
-    Log.Printf("Setting up hunt for %s %s...", monsterSetup.monster, levelSetup.name)
+    Log.Printf("Setting up hunt for %s %s...", monster, level)
 
     Hunt.settingUpHunt = true
 
@@ -130,7 +146,7 @@ function Hunt.Setup(monsterSetup, levelSetup)
 
     Archive.CleanupBags()
 
-    Log.Broadcastf("Hunt ready. May your lanterns guide you in the darkness.")
+    Log.Printf("Hunt ready. May your lanterns guide you in the darkness.")
 
     Hunt.settingUpHunt = false
 
@@ -157,6 +173,38 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Hunt.SelectMonster(monster)
+    Log.Debugf("Selected %s", monster)
+    Hunt.ui.selectedMonster = monster
+    local setup = Hunt.setupMap[monster]
+
+    for i, level in ipairs(setup.levels) do
+        local levelButton = Hunt.ui.levelButtons[i]
+        levelButton:SetText(level.name)
+        levelButton:SetValue(level.name)
+        log(levelButton.value)
+        levelButton:Show()
+    end
+
+    for i = #setup.levels + 1, 7 do
+        local levelButton = Hunt.ui.levelButtons[i]
+        levelButton:SetText(nil)
+        levelButton:SetValue(nil)
+        levelButton:Hide()
+    end
+
+    Hunt.ui.levelButtonGroup:Select(Hunt.ui.levelButtons[1])
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Hunt.SelectLevel(level)
+    Log.Debugf("Selected %s, %s", Hunt.ui.selectedMonster, level)
+    Hunt.ui.selectedLevel = level
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Hunt.Init(saveState, ui)
     EventManager.AddHandler("onExpansionsChanged", function(enabledExpansions)
         Hunt.enabledExpansions = enabledExpansions
@@ -178,16 +226,16 @@ function Hunt.Init(saveState, ui)
 
     Ui.InvisibleButton(panel, { id = "Close", x = 627, y = 592, width = 30, height = 30, onClick = Hunt.HideUi })
 
-    local setupScroll = Ui.VerticalScroll(panel, { x = 20+3, y = 307+3, width = 306-6, height = 216-6 })
+    local monsterScroll = Ui.VerticalScroll(panel, { x = 20+3, y = 307+3, width = 306-6, height = 216-6 })
 
-    local setupPanel = Ui.Panel(setupScroll, { id = "Setup", width = 280, height = #Hunt.setups * 30 })
-    local setupButtonGroup = Ui.OptionButtonGroup(setupPanel, { id = "Setup", selectedColors = Ui.DARK_BROWN_BUTTON_COLORS, unselectedColors = Ui.INVISIBLE_BUTTON_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onSelect = Hunt.SelectSetup })
-    Hunt.ui.setupButtonGroup = setupButtonGroup
+    local monsterPanel = Ui.Panel(monsterScroll, { id = "Monster", width = 280, height = #Hunt.setups * 30 })
+    local monsterButtonGroup = Ui.OptionButtonGroup(monsterPanel, { id = "Monster", selectedColors = Ui.DARK_BROWN_BUTTON_COLORS, unselectedColors = Ui.INVISIBLE_BUTTON_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onSelect = Hunt.SelectMonster })
+    Hunt.ui.monsterButtonGroup = monsterButtonGroup
 
-    Hunt.ui.setupButtons = {}
+    Hunt.ui.monsterButtons = {}
     local y = 0
     for i, setup in ipairs(Hunt.setups) do
-        Hunt.ui.setupButtons[i] = Ui.OptionButton(setupButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 280, height = 30, text = setup.monster, value = setup })
+        Hunt.ui.monsterButtons[i] = Ui.OptionButton(monsterButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 280, height = 30, text = setup.monster, value = setup.monster })
         y = y - 30
     end
 
@@ -198,61 +246,30 @@ function Hunt.Init(saveState, ui)
     Hunt.ui.levelButtons = {}
     local y = 0
     for i = 1, 7 do
-        Hunt.ui.levelButtons[i] = Ui.OptionButton(levelButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 280, height = 30, active = false, value = i })
+        Hunt.ui.levelButtons[i] = Ui.OptionButton(levelButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 300, height = 30, active = false })
         y = y - 30
     end
 
     Ui.InvisibleButton(panel, { id = "Begin", x = 183, y = 227, width = 301, height = 60, onClick = function()
-        if not Hunt.ui.selectedSetup or not Hunt.ui.selectedLevel then
+        if not Hunt.ui.selectedMonster or not Hunt.ui.selectedLevel then
             Log.Broadcastf("Please select a monster and level")
             return
         end
 
-        local expansion = Hunt.monsterExpansions[Hunt.ui.selectedSetup.monster]
+        local expansion = Hunt.monsterExpansions[Hunt.ui.selectedMonster]
         if not Hunt.enabledExpansions[expansion] then
             return Log.Broadcastf("%s expansion required. You can add expansions in the 'Setup' menu.", expansion)
         end
 
-        Log.Debugf("Begin hunt clicked for monster %s, level %s", Hunt.ui.selectedSetup.monster, Hunt.ui.selectedLevel.name)
+        Log.Debugf("Begin hunt clicked for monster %s, level %s", Hunt.ui.selectedMonster, Hunt.ui.selectedLevel)
         Hunt.HideUi()
-        Hunt.Setup(Hunt.ui.selectedSetup, Hunt.ui.selectedLevel)
+        Hunt.Setup(Hunt.ui.selectedMonster, Hunt.ui.selectedLevel)
     end })
 
     Ui.InvisibleButton(panel, { id = "Cleanup", x = 183, y = 20, width = 301, height = 60, onClick = function()
         Log.Debugf("Cleanup hunt clicked")
         Hunt.Cleanup()
     end })
-end
-
----------------------------------------------------------------------------------------------------
-
-function Hunt.SelectSetup(setup)
-    Log.Debugf("Selected setup for monster %s", setup.monster)
-    Hunt.ui.selectedSetup = setup
-
-    local button = 1
-    for i, level in ipairs(setup.levels) do
-        if level.monsterHuntPosition then
-            Hunt.ui.levelButtons[button]:SetText(level.name)
-            Hunt.ui.levelButtons[button]:Show()
-            button = button + 1
-        end
-    end
-
-    for i = button, 7 do
-        Hunt.ui.levelButtons[i]:SetText(nil)
-        Hunt.ui.levelButtons[i]:Hide()
-    end
-
-    Hunt.ui.levelButtonGroup:Select(Hunt.ui.levelButtons[1])
-end
-
----------------------------------------------------------------------------------------------------
-
-function Hunt.SelectLevel(levelIndex)
-    local level = Hunt.ui.selectedSetup.levels[levelIndex]
-    Log.Debugf("Selected monster %s, level %s", Hunt.ui.selectedSetup.monster, level.name)
-    Hunt.ui.selectedLevel = level
 end
 
 ---------------------------------------------------------------------------------------------------

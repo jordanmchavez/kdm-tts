@@ -14,8 +14,12 @@ return {
 
     monsters = { "Gorm" },
 
+    settlementEvents = {
+        "Gorm Climate",
+    },
+
     timelineEvents = {
-        { year = 1, event = "The Approaching Storm" },
+        { year = 1, name = "The Approaching Storm", type = "TimelineEvent" },
     },
 
     settlementLocationGear = {
@@ -90,6 +94,7 @@ return {
                 ["The Approaching Storm"] = {
                     keywords = { "The", "Approaching", "Storm" },
                     state = 2,
+                    timelineEvent = true,
                 },
                 ["Fetid Grotto"] = {
                     keywords = { "Fetid", "Grotto" },
@@ -102,6 +107,7 @@ return {
                 ["Showdown: Gorm"] = {
                     keywords = { "Showdown:", "Gorm" },
                     state = 5,
+                    showdown = true,
                 },
                 ["Melting Horror"] = {
                     keywords = { "Melting", "Horror" },

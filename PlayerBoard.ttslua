@@ -28,22 +28,13 @@ local PLAYER_BOARD_ARMOR_LOCATIONS = { "head", "arms", "body", "waist", "legs" }
 local PLAYER_BOARD_HEAVY_INJURY_LOCATIONS = { "head", "arms", "body", "waist", "legs" }
 local PLAYER_BOARD_LIGHT_INJURY_LOCATIONS = { "arms", "body", "waist", "legs" }
 
-local PLAYER_BOARD_TEMPORARY_TOKEN_ATTRIBUTES = {
+local PLAYER_BOARD_TOKEN_ATTRIBUTES = {
     ["Movement Token"] = "movement",
     ["Speed Token"] = "speed",
     ["Accuracy Token"] = "accuracy",
     ["Strength Token"] = "strength",
     ["Evasion Token"] = "evasion",
     ["Luck Token"] = "luck",
-}
-
-local PLAYER_BOARD_PERMANENT_TOKEN_ATTRIBUTES = {
-    ["Permanent Movement"] = "movement",
-    ["Permanent Speed"] = "speed",
-    ["Permanent Accuracy"] = "accuracy",
-    ["Permanent Strength"] = "strength",
-    ["Permanent Evasion"] = "evasion",
-    ["Permanent Luck"] = "luck",
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -119,7 +110,7 @@ local function PlayerBoard_LinkFigurine(playerBoard, figurine)
     end
     playerBoard.figurine = figurine
 
-    Log.Printf("Linked figurine to player %s", playerBoard.playerNumber)
+    Log.Printf("Linked figurine %s to player %s", figurine.getName(), playerBoard.playerNumber)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -358,12 +349,9 @@ local function PlayerBoard_UnpackCharSheet(playerBoard)
                 })
                 packedCard[#packedCard] = nil
 
-                local locations = SpatialIndex.Get(PlayerBoard.spatialIndex, pos.x, pos.z)
-                if locations then
-                    for _, location in ipairs(locations) do
-                        Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, location)
-                        availableLocations[location] = false
-                    end
+                for _, location in ipairs(SpatialIndex.Get(PlayerBoard.spatialIndex, pos.x, pos.z)) do
+                    Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, location)
+                    availableLocations[location] = false
                 end
             end
         end
@@ -524,8 +512,8 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
         if armorStats and not playerBoard.linkedArmor[object] then
             Log.Debugf("Linking armor %s (%s) to %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
             playerBoard.linkedArmor[object] = armorStats
-            for location, amount in pairs(armorStats) do
-                PlayerBoard_AddArmor(playerBoard, location, 0, amount)
+            for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+                PlayerBoard_AddArmor(playerBoard, location, 0, armorStats[location])
             end
         end
 
@@ -539,20 +527,25 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
         return
     end
 
-    local attribute = PLAYER_BOARD_TEMPORARY_TOKEN_ATTRIBUTES[name]
+    local attribute = PLAYER_BOARD_TOKEN_ATTRIBUTES[name]
     if attribute then
-        Log.Debugf("Linking temporary token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-        playerBoard.linkedTemporaryTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
-        PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, attribute)
-        object.registerCollisions() -- hack to track flips
-        return
-    end
-
-    local attribute = PLAYER_BOARD_PERMANENT_TOKEN_ATTRIBUTES[name]
-    if attribute then
-        Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-        playerBoard.linkedPermanentTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
-        PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, attribute)
+        local isPermanent = false
+        local position = object.getPosition()
+        for _, value in ipairs(SpatialIndex.Get(PlayerBoard.spatialIndex, position.x, position.z)) do
+            if value == "Permanent Tokens" then
+                isPermanent = true
+                break
+            end
+        end
+        if isPermanent then
+            Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+            playerBoard.linkedPermanentTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
+            PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, attribute)
+        else
+            Log.Debugf("Linking temporary token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+            playerBoard.linkedTemporaryTokens[object] = { attribute = attribute, value = PlayerBoard_GetTokenValue(object) }
+            PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, attribute)
+        end
         object.registerCollisions() -- hack to track flips
         return
     end
@@ -592,12 +585,12 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
-    local armor = playerBoard.linkedArmor[object]
-    if armor then
-        Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armor.head, armor.arms, armor.body, armor.waist, armor.legs)
+    local armorStats = playerBoard.linkedArmor[object]
+    if armorStats then
+        Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
         playerBoard.linkedArmor[object] = nil
-        for location, amount in pairs(armor) do
-            PlayerBoard_AddArmor(playerBoard, location, 0, -amount)
+        for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+            PlayerBoard_AddArmor(playerBoard, location, 0, -armorStats[location])
         end
     end
 
@@ -933,17 +926,44 @@ function PlayerBoard.Init(saveState)
 
     PlayerBoard.spatialIndex = SpatialIndex.Create(1)
 
-    for i = 1, 4 do
-        local playerPrefix = "Player "..i
+    for playerNumber = 1, 4 do
+        local playerPrefix = "Player "..playerNumber
 
         local playerBoardObj = Guids.GetObject(playerPrefix.." Board")
 
-        local playerBoard = PlayerBoard_Create(i, playerBoardObj, saveState[i])
+        local playerBoard = PlayerBoard_Create(playerNumber, playerBoardObj, saveState[playerNumber])
         PlayerBoard.playerBoardsByObject[playerBoardObj] = playerBoard
-        PlayerBoard.playerBoards[i] = playerBoard
+        PlayerBoard.playerBoards[playerNumber] = playerBoard
+
+        -- the spatial index must be created *before* the drop zones
+        for i = 1, 3 do
+            local location = playerPrefix.." Disorder "..i
+            local rect = Locations.WorldRect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
+
+        for i = 1, 3 do
+            local location = playerPrefix.." Fighting Art "..i
+            local rect = Locations.WorldRect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
+
+        local location = playerPrefix.." Weapon Proficiency"
+        local rect = Locations.WorldRect(location)
+        SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+
+        for i = 1, 9 do
+            local location = playerPrefix.." Ability/Impairment "..i
+            local rect = Locations.WorldRect(location)
+            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
+        end
+
+        local location = "Player "..playerNumber.." Permanent Tokens"
+        local rect = Locations.WorldRect(location)
+        SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, "Permanent Tokens")
 
         local bounds = playerBoardObj.getBounds()
-        local dropZone = DropZone.Create({
+        DropZone.Create({
             name = playerBoardObj.getName().." DropZone",
             context = playerBoard,
             centerX = bounds.center.x,
@@ -965,28 +985,6 @@ function PlayerBoard.Init(saveState)
             height = bounds.size.z,
             dropHandler = PlayerBoard_OnObjectDroppedOnMarker,
         })
-
-        for i = 1, 3 do
-            local location = playerPrefix.." Disorder "..i
-            local rect = Locations.Rect(location)
-            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
-        end
-
-        for i = 1, 3 do
-            local location = playerPrefix.." Fighting Art "..i
-            local rect = Locations.Rect(location)
-            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
-        end
-
-        local location = playerPrefix.." Weapon Proficiency"
-        local rect = Locations.Rect(location)
-        SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
-
-        for i = 1, 9 do
-            local location = playerPrefix.." Ability/Impairment "..i
-            local rect = Locations.Rect(location)
-            SpatialIndex.Set(PlayerBoard.spatialIndex, location, rect.left, rect.top, rect.right, rect.bottom, location)
-        end
     end
 
     EventManager.AddHandler("onObjectDrop", PlayerBoard_OnObjectDrop)

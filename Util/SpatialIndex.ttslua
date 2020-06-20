@@ -29,7 +29,7 @@ function SpatialIndex.Set(spatialIndex, name, left, top, right, bottom, value)
     local leftCol, topRow = SpatialIndex_ColRow(spatialIndex, left, top)
     local rightCol, bottomRow = SpatialIndex_ColRow(spatialIndex, right, bottom)
 
-    Log.Debugf("Adding area %s (%d, %d) to (%d, %d) -> %s", name, left, top, right, bottom, value)
+    Log.Debugf("Adding area %s (%d, %d) to (%d, %d)", name, left, top, right, bottom)
     local area = {
         name = name,
         left = left,
@@ -54,22 +54,17 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function SpatialIndex.Get(spatialIndex, x, z)
-    local col, row = SpatialIndex_ColRow(spatialIndex, x, z)
-
-    local areas = spatialIndex.cellAreas[SpatialIndex_Index(col, row)]
-    if not areas then
-        return nil
-    end
-
     local results = {}
-    for _, area in ipairs(areas) do
+
+    local col, row = SpatialIndex_ColRow(spatialIndex, x, z)
+    for _, area in ipairs(spatialIndex.cellAreas[SpatialIndex_Index(col, row)] or {}) do
         if SpatialIndex_RectContains(area, x, z) then
             Log.Debugf("Area %s contains (%f, %f)", area.name, x, z)
             table.insert(results, area.value)
         end
     end
 
-    return #results > 0 and results or nil
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------

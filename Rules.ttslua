@@ -37,7 +37,13 @@ function Rules.RegisterExpansion(expansion)
             local keywords = pageData.keywords
             Assert.Tab(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName)
 
-            local entry = { rulebook = rulebookName, name = pageName, state = state }
+            local entry = {
+                rulebook = rulebookName,
+                name = pageName,
+                state = state,
+                timelineEvent = pageData.timelineEvent,
+                showdown = pageData.showdown,
+            }
 
             for keywordIndex, keyword in ipairs(keywords) do
                 Assert.Str(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex)
@@ -69,37 +75,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Find(query)
-    if query == nil or query == "" then
-        return {}
-    end
-
-    -- only accept results that match all terms
-    local matchIndex = {}
-    local i = 1
-    for term in string.gmatch(query, "%S+") do
-        local termMatches = Trie.Find(Rules.trie, term)
-        local termIndex = Util.Index(termMatches, "name")
-
-        matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
-        i = i + 1
-    end
-
-    -- sort matches
-    local sortedMatches = {}
-    for _, m in pairs(matchIndex) do
-        table.insert(sortedMatches, m)
-    end
-    table.sort(sortedMatches, function(x, y) return x.name < y.name end)
-
-    local results = {}
-    local i = 1
-    while i <= #sortedMatches and i <= 5 do
-        table.insert(results, sortedMatches[i])
-        i = i + 1
-    end
-
-    return results
+function Rules.Search(searchTerms)
+    return Trie.Search(Rules.trie, searchTerms)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -207,7 +184,8 @@ function Rules.SetSearchResults(results)
     Rules.searchResultsPanel:Show()
     Rules.searchResultsPanel:SetHeight(10 + (#results * 30))
 
-    for i, result in ipairs(results) do
+    for i = 1, Util.Min(5, #results) do
+        local result = results[i]
         local button = Rules.searchResultButtons[i]
         button:Show()
         button:SetOnClick(function()
@@ -248,7 +226,7 @@ function Rules.Init(saveState, ui)
 
     local xStart = 80+110
     Rules.searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
-        Rules.SetSearchResults(Rules.Find(value))
+        Rules.SetSearchResults(Rules.Search(value))
     end })
     Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
         Rules.SetSearchResults({})

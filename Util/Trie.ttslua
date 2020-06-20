@@ -1,4 +1,4 @@
----------------------------------------------------------------------------------------------------
+local Util = require("Kdm/Util/Util")
 
 local Trie = {}
 
@@ -16,7 +16,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
--- associates word to value, so that a subsequent Trie.Find by word (or a prefix) will include this value
+-- associates word to value, so that a subsequent Trie.Get by word (or a prefix) will include this value
 function Trie.Set(trie, word, value)
   word = string.lower(word)
   local node = trie
@@ -48,7 +48,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 -- returns all values for all words starting with the word arg
-function Trie.Find(trie, word)
+function Trie.Get(trie, word)
   word = string.lower(word)
   local node = trie
   for i = 1, #word do
@@ -86,6 +86,41 @@ function Trie.Find(trie, word)
   end
 
   return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Trie.Search(trie, searchTerms)
+    if searchTerms == nil or searchTerms == "" then
+        return {}
+    end
+
+    -- only accept results that match all terms
+    local matchIndex = {}
+    local i = 1
+    for term in string.gmatch(searchTerms, "%S+") do
+        local termMatches = Trie.Get(trie, term)
+        local termIndex = Util.Index(termMatches, "name")
+
+        matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
+        i = i + 1
+    end
+
+    -- sort matches
+    local sortedMatches = {}
+    for _, m in pairs(matchIndex) do
+        table.insert(sortedMatches, m)
+    end
+    table.sort(sortedMatches, function(x, y) return x.name < y.name end)
+
+    local results = {}
+    local i = 1
+    while i <= #sortedMatches do
+        table.insert(results, sortedMatches[i])
+        i = i + 1
+    end
+
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------

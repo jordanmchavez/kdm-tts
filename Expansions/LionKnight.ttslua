@@ -14,10 +14,10 @@ return {
     monsters = { "Lion Knight" },
 
     timelineEvents = {
-        { year = 6, event = "An Uninvited Guest" },
-        { year = 8, event = "Places, Everyone!" },
-        { year = 12, event = "Places, Everyone!" },
-        { year = 16, event = "Places, Everyone!" },
+        { year = 6, name = "An Uninvited Guest", type = "TimelineEvent" },
+        { year = 8, name = "Places, Everyone!", type = "TimelineEvent" },
+        { year = 12, name = "Places, Everyone!", type = "TimelineEvent" },
+        { year = 16, name = "Places, Everyone!", type = "TimelineEvent" },
     },
 
     terrainTileSizes = {
@@ -28,9 +28,9 @@ return {
     },
 
     armorStats = {
-        ["Brawler Armor"]    = { head = 4, arms = 4, body = 4, waist = 4, legs = 4, hybrid = true },
-        ["Dancer Armor"]     = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, hybrid = true },
-        ["Warlord Armor"]    = { head = 5, arms = 5, body = 5, waist = 5, legs = 5, hybrid = true },
+        ["Brawler Armor"]    = { head = 1, arms = 2, body = 4, waist = 0, legs = 0, hybrid = true },
+        ["Dancer Armor"]     = { head = 0, arms = 1, body = 2, waist = 0, legs = 0, hybrid = true },
+        ["Warlord Armor"]    = { head = 2, arms = 2, body = 1, waist = 0, legs = 0, hybrid = true },
         ["Hideous Disguise"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
     },
 
@@ -87,14 +87,17 @@ return {
                 ["An Uninvited Guest"] = {
                     keywords = { "An", "Uninvited", "Guest" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Places, Everyone!"] = {
                     keywords = { "Places", "Everyone!" },
                     state = 4,
+                    timelineEvent = true,
                 },
                 ["Showdown: Lion Knight"] = {
                     keywords = { "Showdown:", "Lion", "Knight" },
                     state = 5,
+                    showdown = true,
                 },
                 ["Intermission"] = {
                     keywords = { "Intermission" },

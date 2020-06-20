@@ -12,10 +12,10 @@ return {
     monsters = { "Manhunter" },
 
     timelineEvents = {
-        { year = 5, event = "The Hanged Man" },
-        { year = 10, event= "Special Showdown - Manhunter Lvl 2", isShowdown = true },
-        { year = 16, event = "Special Showdown - Manhunter Lvl 3", isShowdown = true },
-        { year = 22, event = "Special Showdown - Manhunter Lvl 4", isShowdown = true },
+        { year = 5, name = "The Hanged Man", type = "TimelineEvent" },
+        { year = 10, name = "Special Showdown - Manhunter Lvl 2", type = "Showdown", monster = "Manhunter", level = "Level 2" },
+        { year = 16, name = "Special Showdown - Manhunter Lvl 3", type = "Showdown", monster = "Manhunter", level = "Level 3" },
+        { year = 22, name = "Special Showdown - Manhunter Lvl 4", type = "Showdown", monster = "Manhunter", level = "Level 4" },
     },
 
     armorStats = {
@@ -59,14 +59,17 @@ return {
                 ["The Hanged Man"] = {
                     keywords = { "The", "Hanged", "Man" },
                     state = 2,
+                    timelineEvent = true,
                 },
                 ["Showdown: Manhunter"] = {
                     keywords = { "Showdown:", "Manhunter" },
                     state = 5,
+                    showdown = true,
                 },
                 ["Lottery"] = {
                     keywords = { "Lottery" },
                     state = 6,
+                    timelineEvent = true,
                 },
                 ["Death Pit"] = {
                     keywords = { "Death", "Pit" },

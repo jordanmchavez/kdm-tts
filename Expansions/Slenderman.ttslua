@@ -11,13 +11,24 @@ return {
         ["Rare Gear"] = "Slenderman Rare Gear",
     },
 
-    removeTimelineEvent = { year = 6, event = "Armored Strangers" },
-    replaceNemesis = { nemesis = "King's Man", replacement = "Slenderman" },
+    removeTimelineEvent = { year = 6, name = "Armored Strangers" },
+    replaceNemesis = { nemesis = "King's Man" },
     timelineEvents = {
-        { year = 6, event = "It's Already Here" },
+        { year = 6, name = "It's Already Here", type = "TimelineEvent" },
     },
 
-    monsters = { "Slenderman" },
+    monsters = {
+        "Slenderman",
+    },
+
+    nemeses = {
+        { name = "Slenderman", levels = 3 },
+    },
+
+    settlementEvents = {
+        "Slender Blight",
+        "Phantom",
+    },
 
     armorStats = {
         ["Gloom Bracelets"] = { head = 0, arms = 6, body = 0, waist = 0, legs = 0 },
@@ -73,10 +84,12 @@ return {
                 ["It's Already Here"] = {
                     keywords = { "It's", "Its", "Already", "Here" },
                     state = 2,
+                    timelineEvent = true,
                 },
                 ["Showdown: Slenderman"] = {
                     keywords = { "Showdown:", "Slenderman" },
                     state = 5,
+                    showdown = true,
                 },
                 ["A Dark Place"] = {
                     keywords = { "A", "Dark", "Place" },
@@ -89,6 +102,7 @@ return {
                 ["Forgotten Fear"] = {
                     keywords = { "Forgotten", "Fear" },
                     state = 8,
+                    timelineEvent = true,
                 },
             },
         },

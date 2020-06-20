@@ -3,7 +3,7 @@ local Util = require("Kdm/Util/Util")
 ---------------------------------------------------------------------------------------------------
 
 local Log = {
-    --debugEnabled = true,
+    debugEnabled = true,
     --debugEnableAll = true,
 }
 
@@ -11,7 +11,6 @@ Log.debugPackages = {
     ["G"] = true,
     ["Rules"] = true,
     -- ["Showdown"] = true,
-    ["Action"] = true,
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
     -- ["Overlay"] = true,
@@ -20,7 +19,6 @@ Log.debugPackages = {
     -- ["EventManager"] = true,
     -- ["DropZone"] = true,
     --["CharSheet"] = true,
-    --["PlayerBoard"] = true,
     -- ["Armor"] = true,
     -- ["PlayerFigurine"] = true,
     -- ["Monster"] = true,
@@ -28,10 +26,14 @@ Log.debugPackages = {
     --["BattleReference"] = true,
     -- ["Locations"] = true,
     --["XmlUi"] = true,
-    ["Showdown"] = true,
-    ["Container"] = true,
+    --["Container"] = true,
     ["Archive"] = true,
+    ["Action"] = true,
     ["Setup"] = true,
+    ["PlayerBoard"] = true,
+    --["SpatialIndex"] = true,
+    ["Showdown"] = true,
+    ["Hunt"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

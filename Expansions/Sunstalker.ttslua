@@ -23,30 +23,22 @@ return {
             name = "People of the Sun",
             years = 25,
             timeline = {
-                { year = 1, event = "The Pool and the Sun" },
-                { year = 2, event = "Endless Screams" },
-                { year = 4, event = "Sun Dipping" },
-                { year = 5, event = "The Great Sky Gift" },
-                { year = 7, event = "Phoenix Feather" },
-                { year = 10, event = "Birth of Color" },
-                { year = 11, event = "Principle: Conviction" },
-                { year = 12, event = "Sun Dipping" },
-                { year = 13, event = "The Great Sky Gift" },
-                { year = 19, event = "Sun Dipping" },
-                { year = 20, event = "Final Gift" },
-                { year = 25, event = "The Great Devourer" },
-            },
-            nemeses = {
-                ["Butcher"] = {
-                    { year = 22, level = 3 },
-                },
-                ["King's Man"] = {
-                    { year = 21, level = 2  },
-                    { year = 23, level = 3 },
-                },
-                ["The Hand"] = {
-                    { year = 24, level = 3 },
-                },
+                { year = 1, name = "The Pool and the Sun", type = "TimelineEvent" },
+                { year = 2, name = "Endless Screams", type = "TimelineEvent" },
+                { year = 4, name = "Sun Dipping", type = "TimelineEvent" },
+                { year = 5, name = "The Great Sky Gift", type = "TimelineEvent" },
+                { year = 7, name = "Phoenix Feather", type = "TimelineEvent" },
+                { year = 10, name = "Birth of Color", type = "TimelineEvent" },
+                { year = 11, name = "Principle: Conviction", type = "TimelineEvent" },
+                { year = 12, name = "Sun Dipping", type = "TimelineEvent" },
+                { year = 13, name = "The Great Sky Gift", type = "TimelineEvent" },
+                { year = 19, name = "Sun Dipping", type = "TimelineEvent" },
+                { year = 20, name = "Final Gift", type = "TimelineEvent" },
+                { year = 21, name = "Nemesis Encounter - King's Man Lvl 2", type = "Showdown", monster = "King's Man", level = "Level 2" },
+                { year = 22, name = "Nemesis Encounter - Butcher Lvl 3", type = "Showdown", monster = "Butcher", level = "Level 3" },
+                { year = 23, name = "Nemesis Encounter - King's Man Lvl 3", type = "Showdown", monster = "King's Man", level = "Level 3" },
+                { year = 24, name = "Nemesis Encounter - The Hand Lvl 3", type = "Showdown", monster = "The Hand", level = "Level 3" },
+                { year = 25, name = "The Great Devourer", type = "TimelineEvent" },
             },
             removedFightingArts = { "Leader" },
             removedInnovations = { "Language", "Inner Lantern - Language Consequence" },
@@ -73,7 +65,7 @@ return {
     },
 
     timelineEvents = {
-        { year = 8, event = "Promise Under the Sun", notCampaign = "People of the Sun" },
+        { year = 8, name = "Promise Under the Sun", type = "TimelineEvent", notCampaign = "People of the Sun" },
     },
 
     terrain = {
@@ -171,14 +163,17 @@ return {
                 ["Sunstalker Rules"] = {
                     keywords = { "Sunstalker", "Rulebook", "Rules" },
                     state = 1,
+                    rules = true
                 },
                 ["Promise Under the Sun"] = {
                     keywords = { "Promise", "Under", "the", "Sun" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Showdown: Sunstalker"] = {
                     keywords = { "Showdown:", "Sunstalker" },
                     state = 5,
+                    showdown = true,
                 },
                 ["Conquer Your Shadow"] = {
                     keywords = { "Conquer", "Your", "Shadow" },
@@ -187,10 +182,12 @@ return {
                 ["Sky Fishing"] = {
                     keywords = { "Sky", "Fishing" },
                     state = 7,
+                    huntEvent = true,
                 },
                 ["The Pool and the Sun"] = {
                     keywords = { "Pool", "and", "the", "Sun" },
                     state = 8,
+                    timelineEvent = true,
                 },
                 ["Intimacy (Sunstalker)"] = {
                     keywords = { "Intimacy" },
@@ -199,14 +196,17 @@ return {
                 ["The Great Sky Gift"] = {
                     keywords = { "The", "Great", "Sky", "Gift" },
                     state = 10,
+                    timelineEvent = true,
                 },
                 ["Birth of Color"] = {
                     keywords = { "Birth", "Color" },
                     state = 11,
+                    timelineEvent = true,
                 },
                 ["Final Gift"] = {
                     keywords = { "Final", "Gift" },
                     state = 12,
+                    timelineEvent = true,
                 },
                 ["Umbilical Symbiosis"] = {
                     keywords = { "Umbilical", "Symbiosis" },
@@ -215,10 +215,12 @@ return {
                 ["Edged Tonometry"] = {
                     keywords = { "Edged", "Tonometry" },
                     state = 14,
+                    timelineEvent = true,
                 },
                 ["Sun Dipping"] = {
                     keywords = { "Sun", "Dipping" },
                     state = 15,
+                    timelineEvent = true,
                 },
                 ["Warriors of the Sun"] = {
                     keywords = { "Warriors", "of", "the", "Sun" },
@@ -227,6 +229,7 @@ return {
                 ["The Great Devourer"] = {
                     keywords = { "The", "Great", "Devourer" },
                     state = 17,
+                    timelineEvent = true,
                 },
             },
         },

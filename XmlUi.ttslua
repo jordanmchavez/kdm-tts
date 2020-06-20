@@ -478,6 +478,9 @@ Ui.OptionButtonClass = {
             textColor = optionButton.group.textColor,
         })
     end,
+    SetValue = function(optionButton, value)
+        optionButton.value = value
+    end,
 }
 Ui.OptionButtonClass.__index = Ui.OptionButtonClass
 setmetatable(Ui.OptionButtonClass, { __index = Ui.BaseClass })

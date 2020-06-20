@@ -17,6 +17,9 @@ LOCATIONS_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 -- TODO: this just an estimate based on actual card sizes
 LOCATIONS_SETTLEMENT_EVENT_SIZE = { x = 4, y = 10, z = 8 }
 
+LOCATIONS_SMALL_TOKEN_SIZE = { x = 1.4, y = 10, z = 1.4 }
+LOCATIONS_BIG_TOKEN_SIZE = { x = 1.58, y = 10, z = 1.58 }
+
 LOCATIONS_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
 
 LOCATIONS_MAX_TERRAIN = 8
@@ -600,7 +603,12 @@ Locations.data = {
     -----------------------------------------------------------------------------
     -- Temporary hacks until we get art locations for these
     ["Settlement Events"] = {
-        center = { x = -13.914588, y = 10.801341, z = -6.073809 },
+        center = { x = -14.360849, y = 10.801341, z = -4.955215 },
+        size = LOCATIONS_SETTLEMENT_EVENT_SIZE,
+        board = "Showdown Board",
+    },
+    ["Drawn Settlement Events"] = {
+        center = { x = -13.125675, y = 10.801341, z = -4.955215 },
         size = LOCATIONS_SETTLEMENT_EVENT_SIZE,
         board = "Showdown Board",
     },
@@ -729,24 +737,36 @@ local cards = {
     { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
     { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
 }
-local y = 0.113605
+local playerBoardY = 0.602462
 local topLeft = { x = 1.095649, z = 0.381691 }
 local bottomRight = { x = -0.640440, z = 0.757645 }
 local dx = (bottomRight.x - topLeft.x) / 7
 local dz = (bottomRight.z - topLeft.z)
-for col = 1, 8 do
-    local x = topLeft.x + (col - 1) * dx
-    for row = 1, 2 do
-        local z = topLeft.z + (row - 1) * dz
-        for playerNumber = 1, 4 do
+for playerNumber = 1, 4 do
+    local board = "Player "..playerNumber.." Board"
+
+    for col = 1, 8 do
+        local x = topLeft.x + (col - 1) * dx
+        for row = 1, 2 do
+            local z = topLeft.z + (row - 1) * dz
             local location = string.format("Player %d %s", playerNumber, cards[row][col])
             Locations.data[location] = {
-                center = { x = x, y = y, z = z },
+                center = { x = x, y = playerBoardY, z = z },
                 size = LOCATIONS_CARD_SIZE,
-                board = "Player "..playerNumber.." Board",
+                board = board,
             }
         end
     end
+
+    local location = string.format("Player %d Permanent Tokens", playerNumber)
+    local corner1 = { x = -0.782295, y = playerBoardY + 5, z = 0.311077 }
+    local corner2 = { x = -1.214863, y = playerBoardY - 5, z = 0.877158 }
+    Locations.data[location] = {
+        center = { x = (corner1.x + corner2.x) / 2, y = playerBoardY, z = (corner1.z + corner2.z) / 2 },
+        corner1 = corner1,
+        corner2 = corner2,
+        board = board,
+    }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -856,18 +876,16 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Locations.Rect(location)
+function Locations.WorldRect(location)
     Assert.Str(location, "location")
     local locationData = Locations.data[location]
     Assert(locationData, "Unknown location: %s", location)
 
-    local object = Guids.GetObject(locationData.board)
-
-    local center = object.positionToWorld(locationData.center)
+    local board = Guids.GetObject(locationData.board)
+    local center = board.positionToWorld(locationData.center)
 
     local size = locationData.size
     if not size then
-        local board = Guids.GetObject(locationData.board)
         wc1 = board.PositionToWorld(locationData.corner1)
         wc2 = board.PositionToWorld(locationData.corner2)
         size = {

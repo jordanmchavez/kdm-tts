@@ -65,7 +65,7 @@ end
 local function DropZone_Drop(object, verb)
     local pos = object.getPosition()
     local dropZones = SpatialIndex.Get(dropZone_spatialIndex, pos.x, pos.z)
-    if not dropZones then
+    if #dropZones == 0 then
         dropZone_objectZones[object] = nil
         return
     end

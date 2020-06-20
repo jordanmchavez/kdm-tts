@@ -38,40 +38,60 @@ return {
         "White Lion",
     },
 
+    nemeses = {
+        { name = "Butcher", levels = 3 },
+        { name = "King's Man", levels = 3 },
+        { name = "The Hand", levels = 3 },
+        { name = "Watcher", levels = 1 },
+        { name = "Gold Smoke Knight", levels = 1 },
+    },
+
+    settlementEvents = {
+        "Heat Wave",
+        "Rivalry",
+        "Hunt Reenactment",
+        "Nickname",
+        "Glossolalia",
+        "Dark Dentist",
+        "Plague",
+        "Dark Trader",
+        "Skull Eater",
+        "Open Maw",
+        "Triathlon of Death",
+        "First Day",
+        "Cracks in the Ground",
+        "Weird Dream",
+        "Acid Storm",
+        "Haunted",
+        "Murder",
+        "Elder Council",
+        "Clinging Mist",
+        "Lights in the Sky",
+        "Stranger in the Dark",
+    },
+
     campaigns = {
         {
             name = "People of the Lantern",
             years = 30,
             timeline = {
-                { year = 1, event = "Returning Survivors" },
-                { year = 2, event = "Endless Screams" },
-                { year = 5, event = "Hands of Heat" },
-                { year = 6, event = "Armored Strangers" },
-                { year = 7, event = "Phoenix Feather" },
-                { year = 11, event = "Regal Visit" },
-                { year = 12, event = "Principle: Conviction" },
-                { year = 20, event = "Watched" },
-            },
-            nemeses = {
-                ["Butcher"] = {
-                    { year = 4, level = 1 },
-                    { year = 16, level = 2 },
-                    { year = 23, level = 3 },
-                },
-                ["King's Man"] = {
-                    { year = 9, level = 1 },
-                    { year = 19, level = 2 },
-                    { year = 28, level = 3 },
-                },
-                ["The Hand"] = {
-                    { year = 13, level = 1 },
-                },
-                ["Watcher"] = {
-                    { year = 25, },
-                },
-                ["Gold Smoke Knight"] = {
-                    { year = 30 },
-                },
+                { year = 1, name = "Returning Survivors", type = "TimelineEvent" },
+                { year = 2, name = "Endless Screams", type = "TimelineEvent" },
+                { year = 4, name = "Nemesis Encounter - Butcher Lvl 1", type = "Showdown", monster = "Butcher", level = "Level 1" },
+                { year = 5, name = "Hands of Heat", type = "TimelineEvent" },
+                { year = 6, name = "Armored Strangers", type = "TimelineEvent" },
+                { year = 7, name = "Phoenix Feather", type = "TimelineEvent" },
+                { year = 9, name = "Nemesis Encounter - King's Man Lvl 1", type = "Showdown", monster = "King's Man", level = "Level 1" },
+                { year = 11, name = "Regal Visit", type = "TimelineEvent" },
+                { year = 12, name = "Principle: Conviction", type = "TimelineEvent" },
+                { year = 13, name = "Nemesis Encounter - The Hand Lvl 1", type = "Showdown", monster = "The Hand", level = "Level 1" },
+                { year = 16, name = "Nemesis Encounter - Butcher Lvl 2", type = "Showdown", monster = "Butcher", level = "Level 2" },
+                { year = 19, name = "Nemesis Encounter - King's Man Lvl 2", type = "Showdown", monster = "King's Man", level = "Level 2" },
+                { year = 20, name = "Watched", type = "TimelineEvent" },
+                { year = 23, name = "Nemesis Encounter - Butcher Lvl 3", type = "Showdown", monster = "Butcher", level = "Level 3" },
+                { year = 25, name = "Nemesis Encounter - Watcher", type = "Showdown", monster = "Watcher" },
+                { year = 28, name = "Nemesis Encounter - King's Man Lvl 3", type = "Showdown", monster = "King's Man", level = "Level 3" },
+                { year = 30, name = "Nemesis Encounter - Gold Smoke Knight", type = "Showdown", monster = "Gold Smoke Knight" },
             },
             startingInnovation = "Language",
             startingInnovationDeck = {
@@ -564,6 +584,7 @@ return {
                 ["Armored Strangers"] = {
                     keywords = { "Armored", "Strangers" },
                     state = 54,
+                    timelineEvent = true,
                 },
                 ["Birth of a Savior"] = {
                     keywords = { "Birth", "Savior" },
@@ -576,6 +597,7 @@ return {
                 ["Bone Witch"] = {
                     keywords = { "Bone", "Witch" },
                     state = 57,
+                    timelineEvent = true,
                 },
                 ["Cooking"] = {
                     keywords = { "Cooking" },
@@ -588,6 +610,7 @@ return {
                 ["Endless Screams"] = {
                     keywords = { "Endless", "Screams" },
                     state = 60,
+                    timelineEvent = true,
                 },
                 ["Game Over"] = {
                     keywords = { "Game", "Over" },
@@ -596,6 +619,7 @@ return {
                 ["Hands of Heat"] = {
                     keywords = { "Hands", "of", "Heat" },
                     state = 62,
+                    timelineEvent = true,
                 },
                 ["Herb Gathering"] = {
                     keywords = { "Herb", "Gathering" },
@@ -604,6 +628,7 @@ return {
                 ["Hooded Knight"] = {
                     keywords = { "Hooded", "Knight" },
                     state = 64,
+                    timelineEvent = true,
                 },
                 ["Insight"] = {
                     keywords = { "Insight", "Understanding" },
@@ -648,30 +673,37 @@ return {
                 ["Phoenix Feather"] = {
                     keywords = { "Phoenix", "Feather" },
                     state = 75,
+                    timelineEvent = true,
                 },
                 ["Principle: Conviction"] = {
                     keywords = { "Principle", "Conviction" },
                     state = 76,
+                    timelineEvent = true,
                 },
                 ["Principle: Death"] = {
                     keywords = { "Principle", "Death" },
                     state = 77,
+                    timelineEvent = true,
                 },
                 ["Principle: New Life"] = {
                     keywords = { "Principle", "New", "Life" },
                     state = 78,
+                    timelineEvent = true,
                 },
                 ["Principle: Society"] = {
                     keywords = { "Principle", "Society" },
                     state = 79,
+                    timelineEvent = true,
                 },
                 ["Regal Visit"] = {
                     keywords = { "Regal", "Visit", "The", "Hand" },
                     state = 80,
+                    timelineEvent = true,
                 },
                 ["Returning Survivors"] = {
                     keywords = { "Returning", "Survivors" },
                     state = 81,
+                    timelineEvent = true,
                 },
                 ["Run Away"] = {
                     keywords = { "Run", "Away" },
@@ -684,26 +716,32 @@ return {
                 ["Showdown: Butcher"] = {
                     keywords = { "Showdown:", "Butcher" },
                     state = 84,
+                    showdown = true,
                 },
                 ["Showdown: The Hand"] = {
                     keywords = { "Showdown:", "The", "Hand" },
                     state = 85,
+                    showdown = true,
                 },
                 ["Showdown: King's Man"] = {
                     keywords = { "Showdown:", "King's", "Man" },
                     state = 86,
+                    showdown = true,
                 },
                 ["Showdown: Phoenix"] = {
                     keywords = { "Showdown:", "Phoenix" },
                     state = 87,
+                    showdown = true,
                 },
                 ["Showdown: Screaming Antelope"] = {
                     keywords = { "Showdown:", "Screaming", "Antelope" },
                     state = 88,
+                    showdown = true,
                 },
                 ["Showdown: White Lion"] = {
                     keywords = { "Showdown:", "White", "Lion" },
                     state = 89,
+                    showdown = true,
                 },
                 ["White Secret"] = {
                     keywords = { "White", "Secret", "Understanding" },
@@ -720,10 +758,12 @@ return {
                 ["Watched"] = {
                     keywords = { "Watched" },
                     state = 93,
+                    timelineEvent = true,
                 },
                 ["Showdown: Watcher"] = {
                     keywords = { "Showdown:", "Watcher" },
                     state = 94,
+                    showdown = true,
                 },
                 ["Blackout"] = {
                     keywords = { "Blackout" },
@@ -732,6 +772,7 @@ return {
                 ["Showdown: Gold Smoke Knight"] = {
                     keywords = { "Showdown:", "Gold", "Smoke", "Knight" },
                     state = 96,
+                    showdown = true,
                 },
                 ["Hammer and Nail"] = {
                     keywords = { "Hammer", "Nail", "Gold", "Smoke", "Knight" },
@@ -857,7 +898,7 @@ return {
             randomTerrain = 3,
             levels = {
                 {
-                    name = "Level 4",
+                    name = "Level 1",
                     level = 4,
                     showdown = {
                         basic = 9,

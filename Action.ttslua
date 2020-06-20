@@ -9,7 +9,6 @@ local Action = {}
 
 local OBJ_CLEAN_IGNORE_TAGS = { "Board", "Table" }
 
-
 ---------------------------------------------------------------------------------------------------
 
 function Action.Matches(obj, tags, types)
@@ -89,7 +88,7 @@ function Action.CreateDeck(params)
     end
 
     local deckObject
-    if #objects >= 1 then
+    if #objects > 1 then
         deckObject = group(objects)[1]
         Assert(deckObject)
     else

@@ -140,6 +140,16 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+-- appends a2 onto a1, does *not* create a new array!
+function Util.AppendArray(a1, a2)
+    local n = #a1
+    for i = 1, #a2 do
+        a1[n + i] = a2[i]
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Util.Max(v1, v2)
     return v1 > v2 and v1 or v2
 end
@@ -208,6 +218,18 @@ function Util.Unique(sortedArray, eqFunc)
         sortedArray[u] = nil
         u = u + 1
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.Filter(array, filter)
+    local results = {}
+    for _, elem in ipairs(array) do
+        if filter(elem) then
+            table.insert(results, elem)
+        end
+    end
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------

@@ -14,7 +14,7 @@ return {
     monsters = { "Flower Knight" },
 
     timelineEvents = {
-        { year = 5, event = "A Crone's Tale" },
+        { year = 5, name = "A Crone's Tale", type = "TimelineEvent" },
     },
 
     terrain = {
@@ -81,14 +81,17 @@ return {
                 ["A Crone's Tale"] = {
                     keywords = { "A", "Crone's", "Tale" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Showdown: Flower Knight"] = {
                     keywords = { "Showdown:", "Flower", "Knight" },
                     state = 6,
+                    showdown = true,
                 },
                 ["The Forest Wants What it Wants (Flower Knight)"] = {
                     keywords = { "The", "Forest", "Wants", "What", "It", "Wants" },
                     state = 7,
+                    huntEvent = true,
                 },
                 ["Breakthrough"] = {
                     keywords = { "Breakthrough" },
@@ -97,6 +100,7 @@ return {
                 ["Sense Memory"] = {
                     keywords = { "Sense", "Memory" },
                     state = 9,
+                    timelineEvent = true,
                 },
                 ["A Warm Virus"] = {
                     keywords = { "A", "Warm", "Virus" },
@@ -105,6 +109,7 @@ return {
                 ["Necrotoxic Mistletoe"] = {
                     keywords = { "Necrotoxic", "Mistletoe" },
                     state = 11,
+                    timelineEvent = true,
                 },
             },
         },

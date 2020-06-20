@@ -1,25 +1,21 @@
-* potstars/potsun support: full settlement sheet support
-* expansions now auto add to Settlement
-* campaign setup revamp: now completely resets and will properly lay out innovations/starting locs
-* revamped showdown/hunt menus
-* rewrote setup code, should be faster with no more lockups
-* rectangular terrain now snap
-* Fixed CE Zanbato starting off as broken. Also added third state for Calcified version.
-* ce scrap shield
-* fixed years saving
-* fixed multiplayer text showing
-* Misc objects should spawn in misc zone closest to terrain
+* timeline event redo
+    * settlement events with dropdown and custom
+    * real showdowns with selection with dropdown and custom
+    * new UI
 
 
-deck tooltips
-fix hybrid armor
-temp/perm token confusion
+----------------------------------------
 
+optional expansion timeline updates
+slendy shouldn't replace kingsman directly...use unspecified
+should say "right click to delete" somewhere
+
+campaign-specific milestones
 
 reimport *all* images bigger than 4k
-promo gear expansion object
 
 
+import/export
 
 sunstalker token
 showdown/settlement/timeline event ICONS for the checkBoxes when adding a custom event
@@ -30,6 +26,7 @@ hide f&t and founding stone
 swap innovations / resources on settlement board
 lifetime reroll token space
 settlement event type on timeline -> auto show event
+dependency injection
 
 
 # High Priority
@@ -200,3 +197,28 @@ Cat Gut Bow > “mayreduce” missing space
 
 battle reference title
 * figure out what to do with "forest gate" spot
+
+* real hybrid armor
+promo gear expansion object
+
+dropzone refactor
+
+dropzones/spatial indexes should support "relative to"
+    fuck that, *location* should support relative objects
+
+cache objects instead of using guids
+guids should check for deleted objects
+
+2d/rect point primitive
+location primitive
+
+location primitive should have a find/cast that takes a tag/name and finds a dude
+
+locl refs when they hit the ground by spawning them very low then locking on spawn or after a few frames
+
+"nemesis encounter" text wraps weird
+
+slenderman/potstars
+editing events? should right click just edit?
+
+25 year timeline for stars

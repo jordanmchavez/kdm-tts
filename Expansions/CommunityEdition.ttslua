@@ -2,7 +2,8 @@ return {
     name = "Community Edition",
 
     archiveOverrides = {
-        archive = "Community Edition Archive",
+        newArchive = "Community Edition Archive",
+        oldArchive = "Core Archive",
         entries = {
             { "Core Rules", "Rulebook" },
             { "Intimacy Reference", "Reference"},

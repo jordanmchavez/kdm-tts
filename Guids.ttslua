@@ -23,8 +23,9 @@ local Guids = {
         ["Basic Resources Archive"] = "57a8b5",
         ["Terrain Archive"] = "7223e1",
         ["Terrain Tiles Archive"] = "2551b1",
-        ["Hunt Events Archive"] = "5d72f3",
+        ["Settlement Events Archive"] = "916de5",
         ["Rare Gear Archive"] = "7a04ec",
+        ["Hunt Events Archive"] = "5d72f3",
 
         ["Showdown Board"] = "437cd7",
         ["Hunt Board"] = "51a21e",

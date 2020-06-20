@@ -16,32 +16,34 @@ return {
         ["Settlement Locations"] = "Dragon King Settlement Locations",
     },
 
-    monsters = { "Dragon King", "The Tyrant" },
+    monsters = {
+        "Dragon King",
+        "The Tyrant",
+    },
+
+    nemeses = {
+        { name = "The Tyrant", levels = 3 },
+    },
 
     campaigns = {
         {
             name = "People of the Stars",
             years = 25,
             timeline = {
-                { year = 1, event = "Foundlings" },
-                { year = 2, event = "Endless Screams" },
-                { year = 5, event = "Midnight's Children" },
-                { year = 7, event = "Phoenix Feather" },
-                { year = 10, event = "Unveil the Sky" },
-                { year = 12, event = "Principle: Conviction" },
-                { year = 20, event = "The Tomb" },
-                { year = 25, event = "Death of the Dragon King" },
-            },
-            nemeses = {
-                ["The Tyrant"] = {
-                    { year = 4, level = 1 },
-                    { year = 9, level = 2 },
-                    { year = 19, level = 3 },
-                },
-                ["Butcher"] = {
-                    { year = 16, level = 2 },
-                    { year = 23, level = 3 },
-                },
+                { year = 1, name = "Foundlings", type = "TimelineEvent" },
+                { year = 2, name = "Endless Screams", type = "TimelineEvent" },
+                { year = 4, name = "Nemesis Encounter - The Tyrant Lvl 1", type = "TimelineShowdown", monster = "The Tyrant", level = "Level 1" },
+                { year = 5, name = "Midnight's Children", type = "TimelineEvent" },
+                { year = 7, name = "Phoenix Feather", type = "TimelineEvent" },
+                { year = 9, name = "Nemesis Encounter - The Tyrant Lvl 2", type = "TimelineShowdown", monster = "The Tyrant", level = "Level 2" },
+                { year = 10, name = "Unveil the Sky", type = "TimelineEvent" },
+                { year = 12, name = "Principle: Conviction", type = "TimelineEvent" },
+                { year = 13, name = "Nemesis Encounter - Butcher Lvl 1", type = "TimelineShowdown", monster = "Butcher", level = "Level 2" },
+                { year = 16, name = "Nemesis Encounter - Lvl 2", type = "TimelineShowdown", level = "Level 2" },
+                { year = 19, name = "Nemesis Encounter - The Tyrant Lvl 3", type = "TimelineShowdown", monster = "The Tyrant", level = "Level 3" },
+                { year = 20, name = "The Tomb", type = "TimelineEvent" },
+                { year = 23, name = "Nemesis Encounter - Lvl 3", type = "TimelineShowdown", level = "Level 3" },
+                { year = 25, name = "Death of the Dragon King", type = "TimelineEvent" },
             },
             removedInnovations = {
                 "Language",
@@ -69,7 +71,7 @@ return {
     },
 
     timelineEvents = {
-        { year = 8, event = "Glowing Crater", notCampaign = "People of the Stars" },
+        { year = 8, name = "Glowing Crater", type = "TimelineEvent", notCampaign = "People of the Stars" },
     },
 
     terrain = {
@@ -180,10 +182,12 @@ return {
                 ["Glowing Crater"] = {
                     keywords = { "Glowing", "Crater" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Showdown: Dragon King"] = {
                     keywords = { "Showdown:", "Dragon", "King" },
                     state = 4,
+                    showdown = true,
                 },
                 ["Meltdown"] = {
                     keywords = { "Meltdown" },
@@ -192,6 +196,7 @@ return {
                 ["Foundlings"] = {
                     keywords = { "Foundlings" },
                     state = 6,
+                    timelineEvent = true,
                 },
                 ["Intimacy (Dragon King)"] = {
                     keywords = { "Intimacy" },
@@ -200,6 +205,7 @@ return {
                 ["Midnight's Children"] = {
                     keywords = { "Midnight's", "Children" },
                     state = 8,
+                    timelineEvent = true,
                 },
                 ["Awake"] = {
                     keywords = { "Awake" },
@@ -208,6 +214,7 @@ return {
                 ["Unveil the Sky"] = {
                     keywords = { "Unveil", "Sky" },
                     state = 10,
+                    timelineEvent = true,
                 },
                 ["Faces in the Sky"] = {
                     keywords = { "Faces", "Sky" },
@@ -216,14 +223,17 @@ return {
                 ["The Tomb"] = {
                     keywords = { "The ", "Tomb" },
                     state = 12,
+                    timelineEvent = true,
                 },
                 ["Showdown: The Tyrant"] = {
                     keywords = { "Showdown:", "Tyrant" },
                     state = 13,
+                    showdown = true,
                 },
                 ["Death of the Dragon King"] = {
                     keywords = { "Death", "of", "the", "Dragon", "King" },
                     state = 14,
+                    timelineEvent = true,
                 },
             },
         },

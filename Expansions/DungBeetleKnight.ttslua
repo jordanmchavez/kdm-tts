@@ -18,7 +18,7 @@ return {
     monsters = { "Dung Beetle Knight" },
 
     timelineEvents = {
-        { year = 8, event = "Rumbling in the Dark" },
+        { year = 8, name = "Rumbling in the Dark", type = "TimelineEvent"  },
     },
 
     terrain = {
@@ -104,10 +104,12 @@ return {
                 ["Rumbling in the Dark"] = {
                     keywords = { "Rumbling", "in", "the", "Dark" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Showdown: Dung Beetle Knight"] = {
                     keywords = { "Showdown:", "Dung", "Beetle", "Knight" },
                     state = 6,
+                    showdown = true,
                 },
                 ["Spelunking of Death"] = {
                     keywords = { "Spelunking", "of", "Death" },
@@ -120,10 +122,12 @@ return {
                 ["Black Harvest"] = {
                     keywords = { "Black", "Harvest" },
                     state = 9,
+                    timelineEvent = true,
                 },
                 ["Secret Meeting"] = {
                     keywords = { "Secret", "Meeting" },
                     state = 10,
+                    timelineEvent = true,
                 },
             },
         },

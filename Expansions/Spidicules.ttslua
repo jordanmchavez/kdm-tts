@@ -17,8 +17,12 @@ return {
 
     monsters = { "Spidicules" },
 
+    settlementEvents = {
+        "Silk Storm",
+    },
+
     timelineEvents = {
-        { year = 2, event = "Young Rivals" },
+        { year = 2, name = "Young Rivals", type = "TimelineEvent" },
     },
 
     terrain = {
@@ -107,14 +111,17 @@ return {
                 ["Young Rivals"] = {
                     keywords = { "Young", "Rivals" },
                     state = 3,
+                    timelineEvent = true,
                 },
                 ["Showdown: Spidicules"] = {
                     keywords = { "Showdown:", "Spidicules" },
                     state = 5,
+                    showdown = true,
                 },
                 ["The Forest Wants What it Wants (Spidicules)"] = {
                     keywords = { "The", "Forest", "Wants", "What", "it", "Wants" },
                     state = 6,
+                    huntevent = true,
                 },
                 ["Spidisisyphus"] = {
                     keywords = { "Spidisisyphus" },
@@ -131,6 +138,7 @@ return {
                 ["Taken"] = {
                     keywords = { "Taken" },
                     state = 10,
+                    timelineEvent = true,
                 },
             },
         },

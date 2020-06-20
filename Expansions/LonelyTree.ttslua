@@ -66,10 +66,12 @@ return {
                 ["The Lonely Lady"] = {
                     keywords = { "The", "Lonely", "Lady" },
                     state = 2,
+                    timelineEvent = true,
                 },
                 ["Showdown: Lonely Tree"] = {
                     keywords = { "Showdown:", "Lonely", "Tree" },
                     state = 6,
+                    showdown = true,
                 },
             },
         },

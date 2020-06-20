@@ -15,7 +15,7 @@ return {
     monsters = { "Lion God" },
 
     timelineEvents = {
-        { year = 13, event = "The Silver City" },
+        { year = 13, name = "The Silver City", type = "TimelineEvent" },
     },
 
     terrain = {
@@ -78,10 +78,12 @@ return {
                 ["The Silver City"] = {
                     keywords = { "The", "Silver", "City" },
                     state = 2,
+                    timelineEvent = true,
                 },
                 ["Showdown: Lion God"] = {
                     keywords = { "Showdown:", "Lion", "God" },
                     state = 5,
+                    showdown = true,
                 },
                 ["Necropolis"] = {
                     keywords = { "Necropolis" },
