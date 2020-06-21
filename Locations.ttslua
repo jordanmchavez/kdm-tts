@@ -15,7 +15,7 @@ LOCATIONS_GEAR_SIZE = { x = 3, y = 10, z = 3 }
 LOCATIONS_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 
 -- TODO: this just an estimate based on actual card sizes
-LOCATIONS_SETTLEMENT_EVENT_SIZE = { x = 4, y = 10, z = 8 }
+LOCATIONS_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
 
 LOCATIONS_SMALL_TOKEN_SIZE = { x = 1.4, y = 10, z = 1.4 }
 LOCATIONS_BIG_TOKEN_SIZE = { x = 1.58, y = 10, z = 1.58 }

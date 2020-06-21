@@ -22,12 +22,17 @@ Ui.IMAGE_BUTTON_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
 Ui.BaseClass = {
     Show = function(elem)
         Log.Debugf("Showing %s", elem.id)
-        self.UI.show(elem.id)
+        self.UI.setAttribute(elem.id, "active", true)
     end,
 
     Hide = function(elem)
         Log.Debugf("Hiding %s", elem.id)
-        self.UI.hide(elem.id)
+        self.UI.setAttribute(elem.id, "active", false)
+    end,
+
+    SetWidth = function(elem, width)
+        Log.Debugf("Setting %s width to %d", elem.id, width)
+        self.UI.setAttribute(elem.id, "width", width)
     end,
 
     SetHeight = function(elem, height)
@@ -86,7 +91,7 @@ setmetatable(Ui.TextClass, { __index = Ui.BaseClass })
 
 function Ui.Text(parent, params)
     Assert.Str(params.id)
-    Assert(params.color)
+    Assert(params.color, "Text color is required")
 
     local id = parent.id.."_"..params.id.."Text"
 
@@ -108,6 +113,7 @@ function Ui.Text(parent, params)
             color = params.color,
             alignment = params.alignment or "MiddleLeft",
             fontSize = params.fontSize or 36,
+            fontStyle = params.fontStyle,
             textOffset = "0 0 0 0",
             active = params.active,
         },
@@ -128,20 +134,38 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.Image(parent, params)
-    Assert.Str(params.image)
+Ui.ImageClass = {
+    SetImage = function(imageElem, image)
+        Log.Debugf("Setting image for %s to '%s'", imageElem.id, image)
+        self.UI.setAttribute(imageElem.id, "image", image)
+    end
+}
+Ui.ImageClass.__index = Ui.ImageClass
+setmetatable(Ui.ImageClass, { __index = Ui.BaseClass })
 
-    Log.Debugf("Creating Image %s", params.image)
+function Ui.Image(parent, params)
+    local id = parent.id.."_"..params.id.."Image"
+    Log.Debugf("Creating Image %s", id)
+
+    local image = {
+        id = id,
+    }
+    setmetatable(image, Ui.ImageClass)
 
     table.insert(parent.children, {
         tag = "Image",
         attributes = {
+            id = id,
             image = params.image,
             rectAlignment = params.rectAlignment or "MiddleCenter",
+            offsetXY = params.x and (params.x.." "..params.y) or nil,
             width = params.width,
             height = params.height,
+            active = params.active,
         },
     })
+
+    return image
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -285,7 +309,7 @@ function Ui.Button(parent, params)
             image = params.image,
             textAlignment = params.textAlignment or "MiddleLeft",
             onClick = onClick,
-            active = params.active
+            active = params.active,
         },
     }
     table.insert(parent.children, elem)
@@ -364,17 +388,7 @@ end
 Ui.CheckBoxClass = {
     Check = function(checkBox, checked)
         checkBox.checked = checked
-        if checked then
-            self.UI.setAttributes(checkBox.id, {
-                image = "CheckBoxFilled",
-                colors = Ui.IMAGE_BUTTON_COLORS,
-            })
-        else
-            self.UI.setAttributes(checkBox.id, {
-                image = nil,
-                colors = Ui.INVISIBLE_BUTTON_COLORS,
-            })
-        end
+        self.UI.setAttribute(checkBox.id, "image", checked and "CheckBoxFilled" or "CheckBoxEmpty")
         checkBox.onCheck(checked)
     end,
 }
@@ -385,7 +399,7 @@ function Ui.CheckBox(parent, params)
     Assert.Str(params.id)
     Assert.Func(params.onCheck)
 
-    local id = parent.id.."_"..params.id.."Button"
+    local id = parent.id.."_"..params.id.."CheckBox"
     Log.Debugf("Creating CheckBox %s", id)
 
     local checkBox = {
@@ -408,8 +422,9 @@ function Ui.CheckBox(parent, params)
             offsetXY = params.x.." "..params.y,
             width = params.width or 30,
             height = params.height or 30,
-            colors = checkBox.checked and Ui.IMAGE_BUTTON_COLORS or Ui.INVISIBLE_BUTTON_COLORS,
-            image = checkBox.checked and "CheckBoxFilled" or nil,
+            colors = Ui.IMAGE_BUTTON_COLORS,
+            image = checkBox.checked and "CheckBoxFilled" or "CheckBoxEmpty",
+            active = params.active,
             onClick = onClick,
         },
     })
@@ -527,15 +542,9 @@ Ui.OptionBoxGroupClass = {
         local selectedId = option and option.id or nil
         for _, option in ipairs(group.options) do
             if option.id != selectedId then
-                self.UI.setAttributes(option.id, {
-                    image = nil,
-                    colors = Ui.INVISIBLE_BUTTON_COLORS,
-                })
+                self.UI.setAttribute(option.id, "image", "CheckBoxEmpty")
             else
-                self.UI.setAttributes(option.id, {
-                    image = "CheckBoxFilled",
-                    colors = Ui.IMAGE_BUTTON_COLORS,
-                })
+                self.UI.setAttribute(option.id, "image", "CheckBoxFilled")
                 group.onSelect(option.value)
             end
         end
@@ -583,8 +592,8 @@ function Ui.OptionBox(group, params)
             offsetXY = params.x.." "..params.y,
             width = params.width or 30,
             height = params.height or 30,
-            colors = params.checked and Ui.IMAGE_BUTTON_COLORS or Ui.INVISIBLE_BUTTON_COLORS,
-            image = params.checked and "CheckBoxFilled" or nil,
+            colors = Ui.IMAGE_BUTTON_COLORS,
+            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
             onClick = group.onClick,
         },
     })

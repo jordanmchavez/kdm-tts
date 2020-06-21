@@ -50,7 +50,12 @@ function ContainerClass.Take(container, params)
                 break
             end
         end
-        Assert(guid, "%s/%s not found in container %s (%s)", name, type, container.object.getName(), container.object.getGUID())
+        if not guid then
+            if params.allowMissing then
+                return nil
+            end
+            Assert(guid, "%s/%s not found in container %s (%s)", name, type, container.object.getName(), container.object.getGUID())
+        end
     end
 
     local object = container.object.takeObject({

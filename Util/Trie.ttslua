@@ -90,39 +90,4 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Trie.Search(trie, searchTerms)
-    if searchTerms == nil or searchTerms == "" then
-        return {}
-    end
-
-    -- only accept results that match all terms
-    local matchIndex = {}
-    local i = 1
-    for term in string.gmatch(searchTerms, "%S+") do
-        local termMatches = Trie.Get(trie, term)
-        local termIndex = Util.Index(termMatches, "name")
-
-        matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
-        i = i + 1
-    end
-
-    -- sort matches
-    local sortedMatches = {}
-    for _, m in pairs(matchIndex) do
-        table.insert(sortedMatches, m)
-    end
-    table.sort(sortedMatches, function(x, y) return x.name < y.name end)
-
-    local results = {}
-    local i = 1
-    while i <= #sortedMatches do
-        table.insert(results, sortedMatches[i])
-        i = i + 1
-    end
-
-    return results
-end
-
----------------------------------------------------------------------------------------------------
-
 return Trie

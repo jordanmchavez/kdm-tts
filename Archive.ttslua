@@ -23,6 +23,7 @@ local Archive = {
         ["Terrain Archive"] = { { "Terrain", "Terrain" } },
         ["Terrain Tiles Archive"] = { { "Terrain Tiles", "Terrain Tiles" } },
         ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
+        ["Settlement Events Archive"] = { { "Settlement Events", "Settlement Events" } },
         ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
     },
 
@@ -42,7 +43,8 @@ local Archive = {
         ["Terrain Archive"]                          = true,
         ["Terrain Tiles Archive"]                    = true,
         ["Hunt Events Archive"]                      = true,
-        ["Rare Gear Archive"]                        = true
+        ["Settlement Events Archive"]                = true,
+        ["Rare Gear Archive"]                        = true,
     },
 
     bags = {},

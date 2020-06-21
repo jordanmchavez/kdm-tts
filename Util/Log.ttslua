@@ -9,7 +9,7 @@ local Log = {
 
 Log.debugPackages = {
     ["G"] = true,
-    ["Rules"] = true,
+    --["Rules"] = true,
     -- ["Showdown"] = true,
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
@@ -25,15 +25,15 @@ Log.debugPackages = {
     -- ["TerrainTile"] = true,
     --["BattleReference"] = true,
     -- ["Locations"] = true,
-    --["XmlUi"] = true,
     --["Container"] = true,
-    ["Archive"] = true,
-    ["Action"] = true,
-    ["Setup"] = true,
-    ["PlayerBoard"] = true,
+    --["Archive"] = true,
+    --["Action"] = true,
+    --["Setup"] = true,
+    --["PlayerBoard"] = true,
     --["SpatialIndex"] = true,
     ["Showdown"] = true,
     ["Hunt"] = true,
+--    ["XmlUi"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

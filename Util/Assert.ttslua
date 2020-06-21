@@ -1,224 +1,237 @@
 local Util = require("Kdm/Util/Util")
 
-local Assert = {}
-
 ---------------------------------------------------------------------------------------------------
 
-setmetatable(Assert, { __call = function(self, condition, fmt, ...)
+function Check(condition, fmt, ...)
     if not condition then
-        Assert.Fail(fmt, ...)
+        return false, Util.SafeFormat(fmt, ...)
     end
-end })
+    return true
+end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Fail(fmt, ...)
-    local msg = Util.SafeFormat(fmt or "", ...)
-    log("ASSERT FAILED: "..msg, nil, "error")
+function CheckFail(fmt, ...)
     if debug then
         log(debug.traceback(), nil, "error")
     end
-    error(msg)
+    return false, Util.SafeFormat(fmt, ...)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Str(value, fmt, ...)
+function CheckStr(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required string arg is nil: "..(fmt or ""), ...)
+        return false, "Required string is nil: "..Util.SafeFormat(fmt, ...)
     end
     local t = type(value)
     if t != "string" then
-        Assert.Fail("required string arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required string arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.StrOrNil(value, fmt, ...)
+function CheckStrOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "string" then
-            Assert.Fail("optional string arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional string arg has type %s: "..(fmt or ""), t, ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Num(value, fmt, ...)
+function CheckNum(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required number arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required number arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "number" then
-        Assert.Fail("required number arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required number arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.NumOrNil(value, fmt, ...)
+function CheckNumOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "number" then
-            Assert.Fail("optional number arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional number arg has type %s: "..(fmt or ""), t, ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Bool(value, fmt, ...)
+function CheckBool(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required boolean arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required boolean arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "boolean" then
-        Assert.Fail("required boolean arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required boolean arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.BoolOrNil(value, fmt, ...)
+function CheckBoolOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "boolean" then
-            Assert.Fail("optional boolean arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional boolean arg has type %s: "..(fmt or ""), t, ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Tab(value, fmt, ...)
+function CheckTab(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required table arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required table arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "table" then
-        Assert.Fail("required table arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required table arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.TabOrNil(value, fmt, ...)
+function CheckTabOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
-            Assert.Fail("optional table arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional table arg has type %s: "..(fmt or ""), t, ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Func(value, fmt, ...)
+function CheckFunc(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required function arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required function arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "function" then
-        Assert.Fail("required function arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required function arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.FuncOrNil(value, fmt, ...)
+function CheckFuncOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "function" then
-            Assert.Fail("optional function arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional function arg has type %s: "..(fmt or ""), t, ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Vec(value, fmt, ...)
+function CheckVec(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required vector arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required vector arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "table" then
-        Assert.Fail("required vector arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required vector arg has type %s: "..(fmt or ""), t, ...)
     end
     if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
-        Assert.Fail("required arg must be a vector: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required arg must be a vector: "..(fmt or ""), ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.VecOrNil(value, fmt, ...)
+function CheckVecOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
-            Assert.Fail("optional vector arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional vector arg has type %s: "..(fmt or ""), t, ...)
         end
         if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
-            Assert.Fail("optional arg must be a vector: "..(fmt or ""), ...)
+            return false, Util.SafeFormat("Optional arg must be a vector: "..(fmt or ""), ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Col(value, fmt, ...)
+function CheckCol(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required color arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required color arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "table" then
-        Assert.Fail("required color arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required color arg has type %s: "..(fmt or ""), t, ...)
     end
     if #value != 3 and #value != 4 and (value.r == nil or value.g == nil or value.b == nil) then
-        Assert.Fail("required arg must be a color: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required arg must be a color: "..(fmt or ""), ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.ColOrNil(value, fmt, ...)
+function CheckColOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
-            Assert.Fail("optional color arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional color arg has type %s: "..(fmt or ""), t, ...)
         end
         if #value != 3 and #value != 4 and (value.r == nil or value.g == nil or value.b == nil) then
-            Assert.Fail("optional arg must be a color: "..(fmt or ""), ...)
+            return false, Util.SafeFormat("Optional arg must be a color: "..(fmt or ""), ...)
         end
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Obj(value, fmt, ...)
+function CheckObj(value, fmt, ...)
     if value == nil then
-        Assert.Fail("required userdata arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required userdata arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "userdata" then
-        Assert.Fail("required userdata arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required userdata arg has type %s: "..(fmt or ""), t, ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.Tagged(value, tag, fmt, ...)
+function CheckTagged(value, tag, fmt, ...)
     if value == nil then
-        Assert.Fail("required '%s' arg is nil: "..(fmt or ""), tag, ...)
+        return false, Util.SafeFormat("Required '%s' arg is nil: "..(fmt or ""), tag, ...)
     end
     local t = type(value)
     if t != "table" then
-        Assert.Fail("required '%s' arg has type %s: "..(fmt or ""), tag, t, ...)
+        return false, Util.SafeFormat("Required '%s' arg has type %s: "..(fmt or ""), tag, t, ...)
     end
     if value.tag != tag then
-        Assert.Fail("required '%s' arg has invalid tag %s: "..(fmt or ""), tag, tostring(value.tag), ...)
+        return false, Util.SafeFormat("Required '%s' arg has invalid tag %s: "..(fmt or ""), tag, tostring(value.tag), ...)
     end
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------

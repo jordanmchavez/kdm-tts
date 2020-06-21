@@ -11,7 +11,7 @@ local Ui = require("Kdm/XmlUi")
 local Action = require("Kdm/Action")
 local Container = require("Kdm/Container")
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
 
 local Setup = {
     expansions = {},
@@ -71,21 +71,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Setup.NemesisEncounterName(monster, level)
-    if level then
-        local lvl = " Lvl "..string.sub(level, -1)
-        if monster then
-            return "Nemesis Encounter - "..monster..lvl
-        else
-            return "Nemesis Encounter -"..lvl
-        end
-    elseif monster then
-        return "Nemesis Encounter - "..monster
-    else
-        return "Nemesis Enconter"
-    end
-end
-
 function Setup.SetupTimeline(campaign, expansions)
     Settlement.Reset()
 
@@ -125,7 +110,6 @@ function Setup.SetupTimeline(campaign, expansions)
             Log.Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
 
         elseif type == "TimelineEvent" then
-            Log.Debugf("Adding timeline event [%d] %s", year, name)
             local rulebook, state = Rules.GetRulebookAndState(name)
             Settlement.AddTimelineEvent(year, nil, { name = name, type = "TimelineEvent", rulebook = rulebook, state = state })
 
@@ -133,18 +117,16 @@ function Setup.SetupTimeline(campaign, expansions)
             local monster, level = event.monster, event.level
             if monster and replaceNemeses[monster] then
                 local monster = replaceNemeses[monster]
-                local name = Setup.NemesisEncounterName(monster, level)
                 Log.Debugf("Adding replacement showdown [%d] %s", year, name)
-                Settlement.AddTimelineEvent(year, 6, { name = name, type = "Showdown", monster = monster, level = level })
-            else
-                Log.Debugf("Adding showdown [%d] %s", year, name)
-                Settlement.AddTimelineEvent(year, 6, { name = name, type = "Showdown", monster = monster, level = level })
             end
+            Settlement.AddTimelineEvent(year, 6, { type = "Showdown", monster = monster, level = level })
 
         else
             Assert.Fail("Unknown event type %s for event %s", type, event)
         end
     end
+
+    Settlement.SetMilestones(campaign.milestones)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -390,7 +372,7 @@ function Setup.Init(saveState, ui)
 
     local panel = Ui.Panel(ui, { id = "CampaignSetup", width = 885, height = 723, active = false })
     Setup.campaignSetup.panel = panel
-    Ui.Image(panel, { image = "CampaignSetup", width = 885, height = 723 })
+    Ui.Image(panel, { id = "CampaignSetup", image = "CampaignSetup", width = 885, height = 723 })
 
     Ui.InvisibleButton(panel, { id = "Close", x = 845, y = 683, width = 30, height = 30, onClick = Setup.CloseCampaignSetup})
 

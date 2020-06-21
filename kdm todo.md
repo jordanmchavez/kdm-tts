@@ -1,32 +1,36 @@
+
 * timeline event redo
     * settlement events with dropdown and custom
     * real showdowns with selection with dropdown and custom
     * new UI
+    * icons for search events
 
+* fixed broken lion god
+* slendy shouldn't replace kingsman directly...use unspecified
+* campaign-specific milestones
 
 ----------------------------------------
 
-optional expansion timeline updates
-slendy shouldn't replace kingsman directly...use unspecified
+test script
 should say "right click to delete" somewhere
-
-campaign-specific milestones
-
 reimport *all* images bigger than 4k
-
+camera view abstraction
+    hunt, showdown, rules
 
 import/export
 
+redo all decks so archive is *in front*
 sunstalker token
 showdown/settlement/timeline event ICONS for the checkBoxes when adding a custom event
 steam screenshots
 mutually exclusive menus
 hide f&t and founding stone
-* disorders/fa's/abilities on ui
+population UI
 swap innovations / resources on settlement board
 lifetime reroll token space
 settlement event type on timeline -> auto show event
 dependency injection
+redo settlement board: settlement events, tokens, settlement locations
 
 
 # High Priority
@@ -222,3 +226,7 @@ slenderman/potstars
 editing events? should right click just edit?
 
 25 year timeline for stars
+
+
+add "game over" milestones
+optional expansion timeline updates

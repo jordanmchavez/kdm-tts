@@ -212,16 +212,12 @@ end
 
 -------------------------------------------------------------------------------------------------
 
-function Showdown.Setup(monster, level)
+function Showdown.Setup(monsterSetup, levelSetup)
     if Showdown.settingUp then
         Log.Errorf("Showdown setup currently in progress, please wait until finished before setting up another hunt. If the showdown appears to be stuck, click 'Cleanup Showdown' from the 'Cleanup' menu to reset.")
         return
     end
 
-    local monsterSetup = Showdown.setupMap[monster]
-    Assert(monsterSetup, "No showdown setup for %s", monster)
-    local levelSetup = monsterSetup.levels[level]
-    Assert(levelSetup, "No level setup for %s, %s", monster, level)
     local showdownSetup = levelSetup.showdown
     Assert(showdownSetup, "No showdown setup for %s, %s", monster, level)
 
@@ -232,7 +228,7 @@ function Showdown.Setup(monster, level)
         return
     end
 
-    Log.Printf("Setting up showdown against %s %s...", monster, level)
+    Log.Printf("Setting up showdown against %s %s...", monsterSetup.monster, levelSetup.name)
 
     Showdown.settingUp = true
 
@@ -578,22 +574,23 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Showdown.SelectMonster(monster)
-    Showdown.ui.levelButtonGroup:Select(Showdown.ui.levelButtons[1])
+    local button = Showdown.ui.monsterButtons[monster]
+    Assert(button, "No showdown for %s", monster)
+    Showdown.ui.monsterButtonGroup:Select(button)
 end
 
-function Showdown.SelectMonsterInternal(monster)
-    Log.Debugf("Selected %s", monster)
-    Showdown.ui.selectedMonster = monster
-    local setup = Showdown.setupMap[monster]
+function Showdown.SelectMonsterInternal(monsterSetup)
+    Log.Debugf("Selected %s", monsterSetup.monster)
+    Showdown.ui.monsterSetup = monsterSetup
 
-    for i, level in ipairs(setup.levels) do
+    for i, level in ipairs(monsterSetup.levels) do
         local levelButton = Showdown.ui.levelButtons[i]
         levelButton:SetText(level.name)
-        levelButton:SetValue(level.name)
+        levelButton:SetValue(level)
         levelButton:Show()
     end
 
-    for i = #setup.levels + 1, 7 do
+    for i = #monsterSetup.levels + 1, 7 do
         local levelButton = Showdown.ui.levelButtons[i]
         levelButton:SetText(nil)
         levelButton:SetValue(nil)
@@ -605,8 +602,19 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Showdown.SelectLevel(level)
-    Log.Debugf("Selected %s, %s", Showdown.ui.selectedMonster, level)
-    Showdown.ui.selectedLevel = level
+    Assert(Showdown.ui.monsterSetup, "No monster selected")
+    for _, levelButton in ipairs(Showdown.ui.levelButtons) do
+        if levelButton.value.name == level then
+            Showdown.ui.levelButtonGroup:Select(levelButton)
+            return
+        end
+    end
+    Assert.Fail("Selected monster %s doesn't have level %s", Showdown.ui.monsterSetup.monster, level)
+end
+
+function Showdown.SelectLevelInternal(levelSetup)
+    Log.Debugf("Selected %s, %s", Showdown.ui.monsterSetup.monster, levelSetup.name)
+    Showdown.ui.levelSetup = levelSetup
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -674,7 +682,7 @@ function Showdown.Init(saveState, ui)
 
     local panel = Ui.Panel(ui, { id = "Showdown", width = 667, height = 632, active = false })
     Showdown.ui.panel = panel
-    Ui.Image(panel, { image = "Showdown", width = 667, height = 632 })
+    Ui.Image(panel, { id = "Showdown", image = "Showdown", width = 667, height = 632 })
 
     Ui.InvisibleButton(panel, { id = "Close", x = 627, y = 592, width = 30, height = 30, onClick = Showdown.HideUi })
 
@@ -692,7 +700,7 @@ function Showdown.Init(saveState, ui)
     end
 
     local levelPanel = Ui.Panel(panel, { id = "Level", rectAlignment = "LowerLeft", x = 341+3, y = 307+3, width = 306-6, height = 216-6 })
-    local levelButtonGroup = Ui.OptionButtonGroup(levelPanel, { id = "Level", selectedColors = Ui.DARK_BROWN_BUTTON_COLORS, unselectedColors = Ui.INVISIBLE_BUTTON_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onSelect = Showdown.SelectLevel })
+    local levelButtonGroup = Ui.OptionButtonGroup(levelPanel, { id = "Level", selectedColors = Ui.DARK_BROWN_BUTTON_COLORS, unselectedColors = Ui.INVISIBLE_BUTTON_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onSelect = Showdown.SelectLevelInternal })
     Showdown.ui.levelButtonGroup = levelButtonGroup
 
     Showdown.ui.levelButtons = {}
@@ -703,18 +711,18 @@ function Showdown.Init(saveState, ui)
     end
 
     Ui.InvisibleButton(panel, { id = "Begin", x = 183, y = 227, width = 301, height = 60, onClick = function()
-        if not Showdown.ui.selectedMonster or not Showdown.ui.selectedLevel then
+        if not Showdown.ui.monsterSetup or not Showdown.ui.levelSetup then
             return Log.Broadcastf("Please select a monster and level")
         end
 
-        local expansion = Showdown.monsterExpansions[Showdown.ui.selectedMonster]
+        local expansion = Showdown.monsterExpansions[Showdown.ui.monsterSetup.monster]
         if not Showdown.enabledExpansions[expansion] then
             return Log.Broadcastf("%s expansion required. You can add expansions in the 'Setup' menu.", expansion)
         end
 
-        Log.Debugf("Begin showdown clicked for monster %s, level %s", Showdown.ui.monster, Showdown.ui.selectedLevel)
+        Log.Debugf("Begin showdown clicked for monster %s, level %s", Showdown.ui.monsterSetup.monster, Showdown.ui.levelSetup.level)
         Showdown.HideUi()
-        Showdown.Setup(Showdown.ui.selectedMonster, Showdown.ui.selectedLevel)
+        Showdown.Setup(Showdown.ui.monsterSetup, Showdown.ui.levelSetup)
     end })
 
     Ui.InvisibleButton(panel, { id = "Cleanup", x = 183, y = 20, width = 301, height = 60, onClick = function()
