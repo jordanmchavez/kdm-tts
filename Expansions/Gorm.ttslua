@@ -19,7 +19,7 @@ return {
     },
 
     timelineEvents = {
-        { year = 1, name = "The Approaching Storm", type = "TimelineEvent" },
+        { year = 1, name = "The Approaching Storm", type = "RulebookEvent" },
     },
 
     settlementLocationGear = {

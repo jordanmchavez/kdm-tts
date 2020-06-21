@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("SpatialIndex")
 
 local SpatialIndex = {}

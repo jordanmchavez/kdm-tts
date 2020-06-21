@@ -15,7 +15,7 @@ return {
     monsters = { "Lion God" },
 
     timelineEvents = {
-        { year = 13, name = "The Silver City", type = "TimelineEvent" },
+        { year = 13, name = "The Silver City", type = "RulebookEvent" },
     },
 
     terrain = {
@@ -24,8 +24,8 @@ return {
     },
 
     terrainTileSizes = {
-        ["Lion Statue"] = 2,
-        ["Sinkhole"] = 3,
+        ["Lion Statue"] = { x = 2, y = 2 },
+        ["Sinkhole"] = { x = 3, y = 3 },
     },
 
     armorStats = {

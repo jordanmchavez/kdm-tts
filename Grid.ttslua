@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Guids = require("Kdm/Guids")
 
 ---------------------------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ Grid.rowDelta = (Grid.bottom - Grid.top) / (Grid.MAX_ROWS - 1)
 ---------------------------------------------------------------------------------------------------
 
 function Grid.ColRow(lposition)
-    Assert.Vec(lposition, "lposition")
+    assert(CheckVec(lposition, "lposition"))
 
     local col = (lposition.x - Grid.left) / Grid.colDelta
     local row = (lposition.z - Grid.top) / Grid.rowDelta
@@ -29,8 +29,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Grid.XZ(col, row)
-    Assert.Num(col, "col")
-    Assert.Num(row, "row")
+    assert(CheckNum(col, "col"))
+    assert(CheckNum(row, "row"))
 
     local x = Grid.left + (col * Grid.colDelta)
     local z = Grid.top    + (row * Grid.rowDelta)

@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Terrain")
 local Grid = require("Kdm/Grid")
 local EventManager = require("Kdm/Util/EventManager")
@@ -12,12 +12,12 @@ local Terrain = {
 
 function Terrain.RegisterExpansion(expansion)
     for terrain, data in pairs(expansion.terrain or {}) do
-        Assert(Terrain.terrainData[terrain] == nil, "Terrain %s is already registered", terrain)
+        assert(Check(Terrain.terrainData[terrain] == nil, "Terrain %s is already registered", terrain))
         Terrain.terrainData[terrain] = data
     end
 
     for terrainTile, size in pairs(expansion.terrainTileSizes or {}) do
-        Assert(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile)
+        assert(Check(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile))
         Terrain.terrainTileSizes[terrainTile] = size
     end
 end
@@ -25,9 +25,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Terrain.GetData(terrain)
-    Assert.Str(terrain)
+    assert(CheckStr(terrain))
     local data = Terrain.terrainData[terrain]
-    Assert(data, "No data for terrain %s", terrain)
+    assert(Check(data, "No data for terrain %s", terrain))
     return data
 end
 

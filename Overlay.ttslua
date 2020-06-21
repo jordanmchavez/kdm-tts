@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Overlay")
 local Guids = require("Kdm/Guids")
@@ -52,10 +52,10 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Overlay.Create(position, baseSize, radius, color)
-    Assert.Vec(position, "position")
-    Assert.Num(baseSize, "baseSize")
-    Assert.Num(radius, "radius")
-    Assert.Col(color, "color")
+    assert(CheckVec(position, "position"))
+    assert(CheckNum(baseSize, "baseSize"))
+    assert(CheckNum(radius, "radius"))
+    assert(CheckCol(color, "color"))
 
     Overlay.Destroy()
 

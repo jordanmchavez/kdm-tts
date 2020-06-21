@@ -14,7 +14,7 @@ return {
     monsters = { "Flower Knight" },
 
     timelineEvents = {
-        { year = 5, name = "A Crone's Tale", type = "TimelineEvent" },
+        { year = 5, name = "A Crone's Tale", type = "RulebookEvent" },
     },
 
     terrain = {

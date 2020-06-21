@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 
 local Weapons = {
     weaponStats = {}
@@ -8,7 +8,7 @@ local Weapons = {
 
 function Weapons.RegisterExpansion(expansion)
     for weapon, stats in pairs(expansion.weaponStats or {}) do
-        Assert(Weapons.weaponStats[weapon] == nil, "Weapon %s is already registered", weapon)
+        assert(Check(Weapons.weaponStats[weapon] == nil, "Weapon %s is already registered", weapon))
         Weapons.weaponStats[weapon] = stats
     end
 end

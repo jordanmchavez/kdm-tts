@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Archive")
 local Guids = require("Kdm/Guids")
 local Locations = require("Kdm/Locations")
@@ -79,7 +79,7 @@ function Archive.RegisterArchiveEntries(archiveEntries, allowOverrides)
             Archive.index[type] = {}
         end
         if not allowOverrides then
-            Assert(Archive.index[type][name] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive.index[type][name])
+            assert(Check(Archive.index[type][name] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive.index[type][name]))
         end
         Archive.index[type][name] = archive
     end
@@ -93,19 +93,19 @@ function Archive.FindInContainer(name, type, container)
             return entry.guid
         end
     end
-    Assert.Fail("%s/%s not found in container %s (%s)", name, type, container.getName(), container.getGUID())
+    assert(CheckFail("%s/%s not found in container %s (%s)", name, type, container.getName(), container.getGUID()))
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Archive.Take(params)
     local name, type, location, height, rotation, spawnFunc = params.name, params.type, params.location, params.height, params.rotation, params.spawnFunc
-    Assert.Str(name)
-    Assert.Str(type)
-    Assert.Str(location)
-    Assert.NumOrNil(height)
-    Assert.VecOrNil(rotation)
-    Assert.FuncOrNil(spawnFunc)
+    assert(CheckStr(name))
+    assert(CheckStr(type))
+    assert(CheckStr(location))
+    assert(CheckNumOrNil(height))
+    assert(CheckVecOrNil(rotation))
+    assert(CheckFuncOrNil(spawnFunc))
 
     rotation = rotation or Locations.DEFAULT_ROTATION
     height = height or Locations.DEFAULT_HEIGHT
@@ -114,9 +114,9 @@ function Archive.Take(params)
     position.y = position.y + height
 
     local typeIndex = Archive.index[type]
-    Assert(typeIndex, "Unknown type %s", type)
+    assert(Check(typeIndex, "Unknown type %s", type))
     local archive = typeIndex[name]
-    Assert(archive, "%s (%s) is not in the archive", name, type)
+    assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
     Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location, height)
 
@@ -140,7 +140,7 @@ function Archive.Take(params)
             position = { x = Archive.bagX, y = 15, z = Archive.bagZ },
             smooth = false,
         })
-        Assert(bag, "Couldn't take from %s", archive)
+        assert(Check(bag, "Couldn't take from %s", archive))
         Log.Debugf("Spawned archive bag %s (%s) at (%f, %f) for %s (%s)", bag.getName(), bag.getGUID(), Archive.bagX, Archive.bagZ, name, type)
 
         bag.setLock(true)
@@ -163,7 +163,7 @@ function Archive.Take(params)
         smooth = false,
         callback_function = spawnFunc,
     })
-    Assert(object, "Couldn't take %s/%s from archive bag %s (%s)", name, type, bag.getName(), bag.getGUID())
+    assert(Check(object, "Couldn't take %s/%s from archive bag %s (%s)", name, type, bag.getName(), bag.getGUID()))
 
     Log.Debugf("Spawned object %s (%s) at (%f, %f, %f)", object.getName(), object.getGUID(), position.x, position.y, position.z)
 

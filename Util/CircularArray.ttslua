@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
@@ -7,17 +7,9 @@ local CircularArray = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function Assert.CircularArray(ca)
-    if type(ca) != "table" or ca.tag != "CircularArray" then
-        Assert.Fail("Not a circular array: %s", Util.TabStr(ca))
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
 function CircularArray.Create(capacity)
-    Assert.Num(capacity, "capacity")
-    Assert(capacity > 0)
+    assert(CheckNum(capacity, "capacity"))
+    assert(Check(capacity > 0))
 
     return {
         tag = "CircularArray",
@@ -31,7 +23,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArray.Size(ca)
-    Assert.CircularArray(ca)
+    assert(CheckTagged(ca, "CircularArray"))
     if ca.head >= ca.tail then
         return (ca.head - ca.tail)
     else
@@ -42,8 +34,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArray.Top(ca)
-    Assert.CircularArray(ca)
-    Assert(ca.head != ca.tail, "Circular array is empty")
+    assert(CheckTagged(ca, "CircularArray"))
+    assert(Check(ca.head != ca.tail, "Circular array is empty"))
     if ca.head > 1 then
         return ca.array[ca.head - 1]
     else
@@ -54,7 +46,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArray.Push(ca, value)
-    Assert.CircularArray(ca)
+    assert(CheckTagged(ca, "CircularArray"))
 
     ca.array[ca.head] = value
 
@@ -75,8 +67,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArray.Pop(ca)
-    Assert.CircularArray(ca)
-    Assert(ca.head != ca.tail, "Circular array is empty")
+    assert(CheckTagged(ca, "CircularArray"))
+    assert(Check(ca.head != ca.tail, "Circular array is empty"))
 
     ca.head = ca.head - 1
     if ca.head == 0 then

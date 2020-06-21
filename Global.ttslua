@@ -1,5 +1,5 @@
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
-local Assert = require("Kdm/Util/Assert")
 local Log = require("Kdm/Util/Log").ForPackage("G")
 local Guids = require("Kdm/Guids")
 local Locations = require("Kdm/Locations")

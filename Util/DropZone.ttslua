@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("DropZone")
 local Util = require("Kdm/Util/Util")
 local EventManager = require("Kdm/Util/EventManager")
@@ -14,15 +14,15 @@ dropZone_objectZones = {}
 ---------------------------------------------------------------------------------------------------
 
 function DropZone.Create(params)
-    Assert.Tab(params, "params")
+    assert(CheckTab(params, "params"))
     local name, context, centerX, centerZ, width, height, dropHandler, pickUpHandler = params.name, params.context, params.centerX, params.centerZ, params.width, params.height, params.dropHandler, params.pickUpHandler
-    Assert.Str(name, "params.name")
-    Assert.Num(centerX, "params.centerX")
-    Assert.Num(centerZ, "params.centerZ")
-    Assert.Num(width, "params.width")
-    Assert.Num(height, "params.height")
-    Assert.Func(dropHandler, "params.dropHandler")
-    Assert.FuncOrNil(pickUpHandler, "params.pickUpHandler")
+    assert(CheckStr(name, "params.name"))
+    assert(CheckNum(centerX, "params.centerX"))
+    assert(CheckNum(centerZ, "params.centerZ"))
+    assert(CheckNum(width, "params.width"))
+    assert(CheckNum(height, "params.height"))
+    assert(CheckFunc(dropHandler, "params.dropHandler"))
+    assert(CheckFuncOrNil(pickUpHandler, "params.pickUpHandler"))
 
     local left = centerX - (width / 2)
     local top = centerZ - (height / 2)

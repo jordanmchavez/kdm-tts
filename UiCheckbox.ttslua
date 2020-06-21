@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Ui = require("Kdm/Ui")
 
 local UiCheckBox = {}
@@ -6,18 +6,18 @@ local UiCheckBox = {}
 ---------------------------------------------------------------------------------------------------
 
 function UiCheckBox.Create(params)
-    Assert.Tab(params, "params")
+    assert(CheckTab(params, "params"))
     local object = params.object
-    Assert.Obj(object, "params.object")
+    assert(CheckObj(object, "params.object"))
     local name = params.name
-    Assert.Str(name, "params.name")
-    Assert.BoolOrNil(params.value, "params.value")
-    Assert.Vec(params.position, "params.position")
-    Assert.VecOrNil(params.scale, "params.scale")
-    Assert.Num(params.size, "params.size")
-    Assert.ColOrNil(params.color, "params.color")
-    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
-    Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
+    assert(CheckStr(name, "params.name"))
+    assert(CheckBoolOrNil(params.value, "params.value"))
+    assert(CheckVec(params.position, "params.position"))
+    assert(CheckVecOrNil(params.scale, "params.scale"))
+    assert(CheckNum(params.size, "params.size"))
+    assert(CheckColOrNil(params.color, "params.color"))
+    assert(CheckColOrNil(params.backgroundColor, "params.backgroundColor"))
+    assert(CheckFuncOrNil(params.changeFunc, "params.changeFunc"))
 
     local uiCheckBox = {
         tag = "UiCheckBox",
@@ -50,9 +50,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function UiCheckBox.Set(uiCheckBox, checked)
-    Assert.Tab(uiCheckBox, "uiCheckBox")
-    Assert(uiCheckBox.tag == "UiCheckBox", "uiCheckBox arg is not a UiCheckBox")
-    Assert.BoolOrNil(checked, "checked")
+    assert(CheckTab(uiCheckBox, "uiCheckBox"))
+    assert(Check(uiCheckBox.tag == "UiCheckBox", "uiCheckBox arg is not a UiCheckBox"))
+    assert(CheckBoolOrNil(checked, "checked"))
 
     uiCheckBox.button.label = checked and "\u{25A0}" or ""
     uiCheckBox.object.editButton(uiCheckBox.button)

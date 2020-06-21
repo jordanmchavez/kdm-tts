@@ -30,20 +30,20 @@ return {
             name = "People of the Stars",
             years = 25,
             timeline = {
-                { year = 1, type = "TimelineEvent", name = "Foundlings" },
-                { year = 2, type = "TimelineEvent", name = "Endless Screams" },
-                { year = 4, type = "Showdown", monster = "The Tyrant", level = "Level 1" },
-                { year = 5, type = "TimelineEvent", name = "Midnight's Children" },
-                { year = 7, type = "TimelineEvent", name = "Phoenix Feather" },
-                { year = 9, type = "Showdown", monster = "The Tyrant", level = "Level 2" },
-                { year = 10, type = "TimelineEvent", name = "Unveil the Sky" },
-                { year = 12, type = "TimelineEvent", name = "Principle: Conviction" },
-                { year = 13, type = "Showdown", monster = "Butcher", level = "Level 2" },
-                { year = 16, type = "Showdown", level = "Level 2" },
-                { year = 19, type = "Showdown", monster = "The Tyrant", level = "Level 3" },
-                { year = 20, type = "TimelineEvent", name = "The Tomb" },
-                { year = 23, type = "Showdown", level = "Level 3" },
-                { year = 25, type = "TimelineEvent", name = "Death of the Dragon King" },
+                { year = 1, type = "RulebookEvent", name = "Foundlings" },
+                { year = 2, type = "RulebookEvent", name = "Endless Screams" },
+                { year = 4, type = "ShowdownEvent", monster = "The Tyrant", level = "Level 1" },
+                { year = 5, type = "RulebookEvent", name = "Midnight's Children" },
+                { year = 7, type = "RulebookEvent", name = "Phoenix Feather" },
+                { year = 9, type = "ShowdownEvent", monster = "The Tyrant", level = "Level 2" },
+                { year = 10, type = "RulebookEvent", name = "Unveil the Sky" },
+                { year = 12, type = "RulebookEvent", name = "Principle: Conviction" },
+                { year = 13, type = "ShowdownEvent", monster = "Butcher", level = "Level 2" },
+                { year = 16, type = "ShowdownEvent", level = "Level 2" },
+                { year = 19, type = "ShowdownEvent", monster = "The Tyrant", level = "Level 3" },
+                { year = 20, type = "RulebookEvent", name = "The Tomb" },
+                { year = 23, type = "ShowdownEvent", level = "Level 3" },
+                { year = 25, type = "RulebookEvent", name = "Death of the Dragon King" },
             },
             milestones = {
                 { name = "First Birth", event = "Principle: New Life" },
@@ -76,7 +76,7 @@ return {
     },
 
     timelineEvents = {
-        { year = 8, name = "Glowing Crater", type = "TimelineEvent", notCampaign = "People of the Stars" },
+        { year = 8, name = "Glowing Crater", type = "RulebookEvent", notCampaign = "People of the Stars" },
     },
 
     terrain = {

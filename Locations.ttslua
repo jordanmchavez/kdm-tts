@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Locations")
 local Guids = require("Kdm/Guids")
 
@@ -773,7 +773,7 @@ end
 
 function Locations.RegisterExpansion(expansion)
     for location, data in pairs(expansion.locations or {}) do
-        Assert(not Locations.data[location], "Location %s already exists", location)
+        assert(Check(not Locations.data[location], "Location %s already exists", location))
         Locations.data[location] = {
             center = data.center,
             size = data.size,
@@ -786,7 +786,7 @@ end
 
 function Locations.Center(location)
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
+    assert(Check(locationData, "Unknown location: %s", location))
 
     if locationData.center then
         return { x = locationData.center.x, y = locationData.center.y, z = locationData.center.z }
@@ -842,7 +842,7 @@ end
 
 function Locations.BoxCast(location, debug)
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
+    assert(Check(locationData, "Unknown location: %s", location))
 
     local center = Locations.WorldCenter(location)
     center.y = center.y + LOCATIONS_CAST_HEIGHT
@@ -861,7 +861,7 @@ end
 
 function Locations.RayCast(location, debug)
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
+    assert(Check(locationData, "Unknown location: %s", location))
 
     local center = Locations.WorldCenter(location)
     center.y = center.y + LOCATIONS_CAST_HEIGHT
@@ -877,9 +877,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Locations.WorldRect(location)
-    Assert.Str(location, "location")
+    assert(CheckStr(location, "location"))
     local locationData = Locations.data[location]
-    Assert(locationData, "Unknown location: %s", location)
+    assert(Check(locationData, "Unknown location: %s", location))
 
     local board = Guids.GetObject(locationData.board)
     local center = board.positionToWorld(locationData.center)

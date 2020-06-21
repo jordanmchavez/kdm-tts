@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("SettlementBoard")
 local Guids = require("Kdm/Guids")
@@ -19,7 +19,7 @@ local SettlementBoard = {
 
 function SettlementBoard.RegisterExpansion(expansion)
     for settlementLocation, gear in pairs(expansion.settlementLocationGear or {}) do
-        Assert(SettlementBoard.settlementLocationGear[settlementLocation] == nil, "Settlement location %s already registered", settlementLocation)
+        assert(Check(SettlementBoard.settlementLocationGear[settlementLocation] == nil, "Settlement location %s already registered", settlementLocation))
         SettlementBoard.settlementLocationGear[settlementLocation] = gear
     end
 end
@@ -27,8 +27,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function SettlementBoard.ResetSlocGear(col, row)
-    Assert.Num(col, "col")
-    Assert.Num(row, "row")
+    assert(CheckNum(col, "col"))
+    assert(CheckNum(row, "row"))
 
     local gearLocation = string.format("Gear_%d_%d", col, row)
     local slocLocation = string.format("SettlementLocation_%d_%d", col, row)
@@ -59,8 +59,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function SettlementBoard.ResetGear(name, location)
-    Assert.Str(name, "name")
-    Assert.Str(location, "location")
+    assert(CheckStr(name, "name"))
+    assert(CheckStr(location, "location"))
 
     Log.Debugf("Resetting gear %s at %s", name, location)
 

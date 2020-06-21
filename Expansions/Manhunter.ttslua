@@ -12,10 +12,10 @@ return {
     monsters = { "Manhunter" },
 
     timelineEvents = {
-        { year = 5, name = "The Hanged Man", type = "TimelineEvent" },
-        { year = 10, name = "Special Showdown - Manhunter Lvl 2", type = "Showdown", monster = "Manhunter", level = "Level 2" },
-        { year = 16, name = "Special Showdown - Manhunter Lvl 3", type = "Showdown", monster = "Manhunter", level = "Level 3" },
-        { year = 22, name = "Special Showdown - Manhunter Lvl 4", type = "Showdown", monster = "Manhunter", level = "Level 4" },
+        { year = 5, name = "The Hanged Man", type = "RulebookEvent" },
+        { year = 10, name = "Special Showdown - Manhunter Lvl 2", type = "ShowdownEvent", monster = "Manhunter", level = "Level 2" },
+        { year = 16, name = "Special Showdown - Manhunter Lvl 3", type = "ShowdownEvent", monster = "Manhunter", level = "Level 3" },
+        { year = 22, name = "Special Showdown - Manhunter Lvl 4", type = "ShowdownEvent", monster = "Manhunter", level = "Level 4" },
     },
 
     armorStats = {

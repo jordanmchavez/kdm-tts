@@ -1,26 +1,26 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Ui = require("Kdm/Ui")
 
 local UiText = {}
 
 function UiText.Create(params)
-    Assert.Tab(params, "params")
+    assert(CheckTab(params, "params"))
     local object = params.object
-    Assert.Obj(object, "params.object")
+    assert(CheckObj(object, "params.object"))
     local name = params.name
-    Assert.Str(name, "params.name")
-    Assert.Str(params.name, "params.name")
-    Assert.StrOrNil(params.label, "params.label")
-    Assert.StrOrNil(params.value, "params.value")
-    Assert.NumOrNil(params.alignment, "params.alignment")
-    Assert.Vec(params.position, "params.position")
-    Assert.VecOrNil(params.scale, "params.scale")
-    Assert.Num(params.width, "params.width")
-    Assert.Num(params.height, "params.height")
-    Assert.Num(params.fontSize, "params.fontSize")
-    Assert.ColOrNil(params.fontColor, "params.fontColor")
-    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
-    Assert.FuncOrNil(params.changeFunc, "params.changeFunc")
+    assert(CheckStr(name, "params.name"))
+    assert(CheckStr(params.name, "params.name"))
+    assert(CheckStrOrNil(params.label, "params.label"))
+    assert(CheckStrOrNil(params.value, "params.value"))
+    assert(CheckNumOrNil(params.alignment, "params.alignment"))
+    assert(CheckVec(params.position, "params.position"))
+    assert(CheckVecOrNil(params.scale, "params.scale"))
+    assert(CheckNum(params.width, "params.width"))
+    assert(CheckNum(params.height, "params.height"))
+    assert(CheckNum(params.fontSize, "params.fontSize"))
+    assert(CheckColOrNil(params.fontColor, "params.fontColor"))
+    assert(CheckColOrNil(params.backgroundColor, "params.backgroundColor"))
+    assert(CheckFuncOrNil(params.changeFunc, "params.changeFunc"))
 
     local uiText = {
         tag = "UiText",

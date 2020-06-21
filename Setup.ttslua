@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Setup")
 local EventManager = require("Kdm/Util/EventManager")
@@ -109,20 +109,20 @@ function Setup.SetupTimeline(campaign, expansions)
         elseif event.notCampaign == campaign.name then
             Log.Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
 
-        elseif type == "TimelineEvent" then
+        elseif type == "RulebookEvent" then
             local rulebook, state = Rules.GetRulebookAndState(name)
-            Settlement.AddTimelineEvent(year, nil, { name = name, type = "TimelineEvent", rulebook = rulebook, state = state })
+            Settlement.AddTimelineEvent(year, nil, { name = name, type = "RulebookEvent", rulebook = rulebook, state = state })
 
-        elseif type == "Showdown" then
+        elseif type == "ShowdownEvent" then
             local monster, level = event.monster, event.level
             if monster and replaceNemeses[monster] then
                 local monster = replaceNemeses[monster]
                 Log.Debugf("Adding replacement showdown [%d] %s", year, name)
             end
-            Settlement.AddTimelineEvent(year, 6, { type = "Showdown", monster = monster, level = level })
+            Settlement.AddTimelineEvent(year, 6, { type = "ShowdownEvent", monster = monster, level = level })
 
         else
-            Assert.Fail("Unknown event type %s for event %s", type, event)
+            assert(CheckFail("Unknown event type %s for event %s", type, event))
         end
     end
 

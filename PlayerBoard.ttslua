@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("PlayerBoard")
 local Guids = require("Kdm/Guids")
@@ -40,35 +40,35 @@ local PLAYER_BOARD_TOKEN_ATTRIBUTES = {
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard.GetPlayerBoard(playerNumber)
-    Assert.Num(playerNumber)
+    assert(CheckNum(playerNumber))
     return PlayerBoard.playerBoards[playerNumber]
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard.GetFigurine(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
     return playerBoard.figurine
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard.GetCharSheet(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
     return playerBoard.linkedCharSheet
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard.GetColor(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
     return Guids.GetObject("Player "..playerBoard.playerNumber.." Marker").getColorTint()
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard.GetWeapons(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
     return playerBoard.linkedWeapons
 end
 
@@ -116,7 +116,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_HealAndReset(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     Log.Debugf("Healing and resetting %s", playerBoard.object.getName())
 
@@ -167,7 +167,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_PackCharSheet(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     local playerBoardObj = playerBoard.object
     local charSheet = playerBoard.linkedCharSheet
@@ -303,7 +303,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_UnpackCharSheet(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     local playerBoardObj = playerBoard.object
     local charSheet = playerBoard.linkedCharSheet
@@ -434,7 +434,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, attribute)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     if playerBoard.linkedCharSheet == nil then
         return
@@ -453,7 +453,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, attribute)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     if playerBoard.linkedCharSheet == nil then
         return
@@ -472,7 +472,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoard_UpdateCharSheetModifiers(playerBoard)
-    Assert.Tagged(playerBoard, "PlayerBoard", "playerBoard")
+    assert(CheckTagged(playerBoard, "PlayerBoard", "playerBoard"))
 
     local charSheet = playerBoard.linkedCharSheet
     Log.Debugf("Updating all CharSheet modifiers for %s, charSheet %s", playerBoard.object.getName(), charSheet.object.getGUID())

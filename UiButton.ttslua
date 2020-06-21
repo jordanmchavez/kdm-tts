@@ -1,20 +1,20 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Ui = require("Kdm/Ui")
 
 local UiButton = {}
 
 function UiButton.Create(params)
-    Assert.Tab(params, "params")
+    assert(CheckTab(params, "params"))
     local object = params.object
-    Assert.Obj(object, "params.object")
+    assert(CheckObj(object, "params.object"))
     local name = params.name
-    Assert.Str(name, "params.name")
-    Assert.Vec(params.position, "params.position")
-    Assert.VecOrNil(params.scale, "params.scale")
-    Assert.Num(params.width, "params.width")
-    Assert.Num(params.height, "params.height")
-    Assert.ColOrNil(params.backgroundColor, "params.backgroundColor")
-    Assert.Func(params.clickFunc, "params.clickFunc")
+    assert(CheckStr(name, "params.name"))
+    assert(CheckVec(params.position, "params.position"))
+    assert(CheckVecOrNil(params.scale, "params.scale"))
+    assert(CheckNum(params.width, "params.width"))
+    assert(CheckNum(params.height, "params.height"))
+    assert(CheckColOrNil(params.backgroundColor, "params.backgroundColor"))
+    assert(CheckFunc(params.clickFunc, "params.clickFunc"))
 
     local uiButton = {
         tag = "UiButton",

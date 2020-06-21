@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("CharSheet")
 local Util = require("Kdm/Util/Util")
 local UiCounter = require("Kdm/UiCounter")
@@ -25,7 +25,7 @@ local charSheet_charSheetsByObject = {}
 ---------------------------------------------------------------------------------------------------
 
 local function CharSheet_Save(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
 
     local saveState = {
         name = charSheet.name,
@@ -457,14 +457,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetForObject(object)
-    Assert.Obj(object)
+    assert(CheckObj(object))
     return charSheet_charSheetsByObject[object]
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.LinkFigurine(charSheet, figurine)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
 
     Log.Debugf("Linking figurine %s (%s) to CharSheet %s", figurine.getName(), figurine.getGUID(), charSheet.object.getGUID())
 
@@ -479,7 +479,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.UnlinkFigurine(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
 
     if charSheet.figurine then
         Log.Debugf("Unlinking figurine %s (%s) to CharSheet %s", charSheet.figurine.getName(), charSheet.figurine.getGUID(), charSheet.object.getGUID())
@@ -491,7 +491,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetName(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return charSheet.name
 end
 
@@ -499,56 +499,56 @@ end
 
 -- returns "Unnamed Survivor" if no name
 function CharSheet.GetNameOrUnnamed(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return (charSheet.name and charSheet.name != "") and charSheet.name or "Unnamed Survivor"
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetMovement(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "movement")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetSpeed(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "speed")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetAccuracy(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "accuracy")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetStrength(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "strength")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetEvasion(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "evasion")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetLuck(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return CharSheet_Get(charSheet, "luck")
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.HealAndReset(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
 
     for _, attribute in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
         CharSheet.SetTemporaryModifier(charSheet, attribute, 0)
@@ -560,9 +560,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.SetTemporaryModifier(charSheet, attribute, modifier)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
-    Assert.Str(attribute, "attribute")
-    Assert.Num(modifier, "modifier")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
+    assert(CheckStr(attribute, "attribute"))
+    assert(CheckNum(modifier, "modifier"))
 
     Log.Debugf("Setting temporary modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
 
@@ -578,9 +578,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.SetPermanentModifier(charSheet, attribute, modifier)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
-    Assert.Str(attribute, "attribute")
-    Assert.Num(modifier, "modifier")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
+    assert(CheckStr(attribute, "attribute"))
+    assert(CheckNum(modifier, "modifier"))
 
     Log.Debugf("Setting permanent modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
 
@@ -596,9 +596,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.SetModifiers(charSheet, temporaryModifiers, permanentModifiers)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
-    Assert.Tab(temporaryModifiers, "temporaryModifiers")
-    Assert.Tab(permanentModifiers, "permanentModifiers")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
+    assert(CheckTab(temporaryModifiers, "temporaryModifiers"))
+    assert(CheckTab(permanentModifiers, "permanentModifiers"))
 
     for _, attribute in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
         local oldValue = CharSheet_Get(charSheet, attribute)
@@ -615,14 +615,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.GetPackedData(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     return charSheet.packedBag, charSheet.packedCards
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.SetPackedData(charSheet, packedBag, packedCards)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     charSheet.packedBag = packedBag
     charSheet.packedCards = packedCards
     CharSheet_Save(charSheet)
@@ -631,7 +631,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheet.ClearPackedData(charSheet)
-    Assert.Tagged(charSheet, "CharSheet", "charSheet")
+    assert(CheckTagged(charSheet, "CharSheet", "charSheet"))
     charSheet.packedBag = nil
     charSheet.packedCards = nil
     CharSheet_Save(charSheet)

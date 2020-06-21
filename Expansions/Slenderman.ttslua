@@ -14,7 +14,7 @@ return {
     removeTimelineEvent = { year = 6, name = "Armored Strangers" },
     replaceNemesis = { nemesis = "King's Man", replacement = "" },
     timelineEvents = {
-        { year = 6, name = "It's Already Here", type = "TimelineEvent" },
+        { year = 6, name = "It's Already Here", type = "RulebookEvent" },
     },
 
     monsters = {

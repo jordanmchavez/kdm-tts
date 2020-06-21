@@ -8,9 +8,12 @@
 * fixed broken lion god
 * slendy shouldn't replace kingsman directly...use unspecified
 * campaign-specific milestones
+* People of the Sun Embolden token
+showdown/settlement/timeline event ICONS for the checkBoxes when adding a custom event
 
 ----------------------------------------
 
+location abstraction
 test script
 should say "right click to delete" somewhere
 reimport *all* images bigger than 4k
@@ -20,8 +23,6 @@ camera view abstraction
 import/export
 
 redo all decks so archive is *in front*
-sunstalker token
-showdown/settlement/timeline event ICONS for the checkBoxes when adding a custom event
 steam screenshots
 mutually exclusive menus
 hide f&t and founding stone
@@ -46,11 +47,9 @@ redo settlement board: settlement events, tokens, settlement locations
 * "lay out cards"
 * Tutorial
 * Monster board auto-token support
-* Tooltip states for token/flipped
 * append (CE) to rest of CE cards
 
 # Medium Priority (will do, but not next release)
-* Blurred events
 * Reimport CE cards
 * Rescan gear
 * Missing Oxidized Ring Whip
@@ -230,3 +229,10 @@ editing events? should right click just edit?
 
 add "game over" milestones
 optional expansion timeline updates
+
+
+faq:
+    3d terrain
+    custom cards
+    delete an event
+    packing

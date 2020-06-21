@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Showdown")
 local Guids = require("Kdm/Guids")
@@ -46,12 +46,12 @@ function Showdown.RegisterExpansion(expansion)
     end
 
     for monster, size in pairs(expansion.monsterSizes or {}) do
-        Assert(Showdown.monsterSizes[monster] == nil, "Monster size %s already registered (%s)", monster, Showdown.monsterSizes[monster])
+        assert(Check(Showdown.monsterSizes[monster] == nil, "Monster size %s already registered (%s)", monster, Showdown.monsterSizes[monster]))
         Showdown.monsterSizes[monster] = { x = size.x, y = size.y }
     end
 
     for _, monster in ipairs(expansion.monsters or {}) do
-        Assert(Showdown.monsterExpansions[monster] == nil, "Monster %s already registered to %s", monster, Showdown.monsterExpansions[monster])
+        assert(Check(Showdown.monsterExpansions[monster] == nil, "Monster %s already registered to %s", monster, Showdown.monsterExpansions[monster]))
         Showdown.monsterExpansions[monster] = expansion.name
     end
 end
@@ -89,10 +89,10 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Showdown.SetAttribute(attribute, value)
-    Assert.Str(attribute)
-    Assert.Num(value)
+    assert(CheckStr(attribute))
+    assert(CheckNum(value))
 
-    Assert(Showdown[attribute] != nil, "No such attribute: %s", attribute)
+    assert(Check(Showdown[attribute] != nil, "No such attribute: %s", attribute))
 
     Log.Debugf("Setting monster attribute %s to %d", attribute, value)
 
@@ -219,7 +219,7 @@ function Showdown.Setup(monsterSetup, levelSetup)
     end
 
     local showdownSetup = levelSetup.showdown
-    Assert(showdownSetup, "No showdown setup for %s, %s", monster, level)
+    assert(Check(showdownSetup, "No showdown setup for %s, %s", monster, level))
 
     local blocking = Showdown_CleanupInternal()
     if #blocking > 0 then
@@ -575,7 +575,7 @@ end
 
 function Showdown.SelectMonster(monster)
     local button = Showdown.ui.monsterButtons[monster]
-    Assert(button, "No showdown for %s", monster)
+    assert(Check(button, "No showdown for %s", monster))
     Showdown.ui.monsterButtonGroup:Select(button)
 end
 
@@ -602,14 +602,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Showdown.SelectLevel(level)
-    Assert(Showdown.ui.monsterSetup, "No monster selected")
+    assert(Check(Showdown.ui.monsterSetup, "No monster selected"))
     for _, levelButton in ipairs(Showdown.ui.levelButtons) do
         if levelButton.value.name == level then
             Showdown.ui.levelButtonGroup:Select(levelButton)
             return
         end
     end
-    Assert.Fail("Selected monster %s doesn't have level %s", Showdown.ui.monsterSetup.monster, level)
+    assert(CheckFail("Selected monster %s doesn't have level %s", Showdown.ui.monsterSetup.monster, level))
 end
 
 function Showdown.SelectLevelInternal(levelSetup)

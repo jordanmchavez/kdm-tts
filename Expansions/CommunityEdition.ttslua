@@ -84,7 +84,7 @@ return {
     weaponStats = {
         ["Dragon Slayer (CE)"] = { speed = 1, accuracy = 6, strength = 9, slow = true, sharp = true, devastating = 1, earlyIron = true },
         ["Dragon Slayer (Broken)"] = { speed = 2, accuracy = 6, strength = 0, earlyIron = true },
-        ["Lanter Dagger (CE)"] = { speed = 2, accuracy = 7, strength = 2, sharp = true, paired = true, earlyIron = true },
+        ["Lantern Dagger (CE)"] = { speed = 2, accuracy = 7, strength = 2, sharp = true, paired = true, earlyIron = true },
         ["Lantern Glaive (CE)"] = { speed = 2, accuracy = 6, strength = 4, sharp = true, earlyIron = true },
         ["Lantern Sword (CE)"] = { speed = 3, accuracy = 5, strength = 3, sharp = true, earlyIron = true },
         ["Ring Whip (CE)"] = { speed = 2, accuracy = 5, strength = 3, sharp = true, earlyIron = true },

@@ -22,7 +22,7 @@ return {
     },
 
     timelineEvents = {
-        { year = 2, name = "Young Rivals", type = "TimelineEvent" },
+        { year = 2, name = "Young Rivals", type = "RulebookEvent" },
     },
 
     terrain = {
@@ -35,8 +35,8 @@ return {
     },
 
     terrainTileSizes = {
-        ["Egg Sac"] = 1,
-        ["Silk Nest"] = 2,
+        ["Egg Sac"] = { x = 1, y = 1 },
+        ["Silk Nest"] = { x = 2, y = 2 },
     },
 
     settlementLocationGear = {

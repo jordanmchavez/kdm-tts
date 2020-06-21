@@ -1,5 +1,5 @@
 local Util = require("Kdm/Util/Util")
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Hunt")
 local EventManager = require("Kdm/Util/EventManager")
 local Ui = require("Kdm/XmlUi")
@@ -45,7 +45,7 @@ function Hunt.RegisterExpansion(expansion)
     end
 
     for _, monster in ipairs(expansion.monsters or {}) do
-        Assert(Hunt.monsterExpansions[monster] == nil, "Monster %s already registered to %s", monster, Hunt.monsterExpansions[monster])
+        assert(Check(Hunt.monsterExpansions[monster] == nil, "Monster %s already registered to %s", monster, Hunt.monsterExpansions[monster]))
         Hunt.monsterExpansions[monster] = expansion.name
     end
 end
@@ -122,7 +122,7 @@ function Hunt.Setup(monsterSetup, levelSetup)
         elseif c == 'F' then
             Archive.Take({ name = "The Forest Gate", type = "Special Hunt Events", location = "Hunt Track "..i })
         else
-            Assert.Fail("Unrecognized setup element %s at position %d in hunt setup %s %s", c, i, monsterSetup.monster, levelSetup.name)
+            assert(CheckFail("Unrecognized setup element %s at position %d in hunt setup %s %s", c, i, monsterSetup.monster, levelSetup.name))
         end
     end
 
@@ -172,7 +172,7 @@ end
 
 function Hunt.SelectMonster(monster)
     local button = Hunt.ui.monsterButtons[monster]
-    Assert(button, "No hunt for %s", monster)
+    assert(Check(button, "No hunt for %s", monster))
     Hunt.ui.monsterButtonGroup:Select(button)
 end
 
@@ -200,14 +200,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Hunt.SelectLevel(level)
-    Assert(Hunt.ui.monsterSetup, "No monster selected")
+    assert(Check(Hunt.ui.monsterSetup, "No monster selected"))
     for _, levelButton in ipairs(Hunt.ui.levelButtons) do
         if levelButton.value == level then
             Hunt.ui.levelButtonGroup:Select(levelButtons)
             return
         end
     end
-    Assert.Fail("Selected monster %s doesn't have level %s", Hunt.ui.monsterSetup.monster, level)
+    assert(CheckFail("Selected monster %s doesn't have level %s", Hunt.ui.monsterSetup.monster, level))
 end
 
 function Hunt.SelectLevelInternal(levelSetup)

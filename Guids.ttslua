@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ local Guids = {
 
 function Guids.RegisterExpansion(expansion)
     for name, guid in pairs(expansion.namedGuids or {}) do
-        Assert(Guids.nameGuids[name] == nil, "Named guid %s (%s) already registered to %s", name, guid, Guids.nameGuids[name])
+        assert(Check(Guids.nameGuids[name] == nil, "Named guid %s (%s) already registered to %s", name, guid, Guids.nameGuids[name]))
         Guids.nameGuids[name] = guid
     end
 end
@@ -64,14 +64,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Guids.GetObject(name)
-    Assert.Str(name, "name")
+    assert(CheckStr(name, "name"))
 
     local guid = Guids.nameGuids[name]
-    Assert(guid, "No object with name %s", name)
+    assert(Check(guid, "No object with name %s", name))
 
     local obj = getObjectFromGUID(guid)
     if not obj then
-        Assert.Fail("Couldn't find critical game component '%s' with GUID %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid)
+        assert(CheckFail("Couldn't find critical game component '%s' with GUID %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
     end
 
     return obj

@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Action")
 local Archive = require("Kdm/Archive")
@@ -83,14 +83,14 @@ function Action.CreateDeck(params)
         elseif source.source == "Container" then
             table.insert(objects, source.container:Take(takeParams))
         else
-            Assert.Fail("Unrecognized source: %s", source)
+            assert(CheckFail("Unrecognized source: %s", source))
         end
     end
 
     local deckObject
     if #objects > 1 then
         deckObject = group(objects)[1]
-        Assert(deckObject)
+        assert(Check(deckObject))
     else
         Log.Debugf("CreateDeck only asked for one object %s (%s), so not grouping", objects[1].getName(), objects[1].getGUID())
         deckObject = objects[1]

@@ -18,7 +18,7 @@ return {
     monsters = { "Dung Beetle Knight" },
 
     timelineEvents = {
-        { year = 8, name = "Rumbling in the Dark", type = "TimelineEvent"  },
+        { year = 8, name = "Rumbling in the Dark", type = "RulebookEvent"  },
     },
 
     terrain = {
@@ -26,7 +26,7 @@ return {
     },
 
     terrainTileSizes = {
-        ["Resin Dung Ball"] = 2,
+        ["Resin Dung Ball"] = { x = 2, y = 2 },
     },
 
     settlementLocationGear = {

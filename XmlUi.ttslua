@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("XmlUi")
 
 local Ui = {}
@@ -45,7 +45,7 @@ Ui.BaseClass.__index = Ui.BaseClass
 ---------------------------------------------------------------------------------------------------
 
 function Ui.Panel(parent, params)
-    Assert.Str(params.id)
+    assert(CheckStr(params.id))
 
     local id = parent.id.."_"..params.id.."Panel"
     Log.Debugf("Creating Panel %s", id)
@@ -90,8 +90,8 @@ Ui.TextClass.__index = Ui.TextClass
 setmetatable(Ui.TextClass, { __index = Ui.BaseClass })
 
 function Ui.Text(parent, params)
-    Assert.Str(params.id)
-    Assert(params.color, "Text color is required")
+    assert(CheckStr(params.id))
+    assert(Check(params.color, "Text color is required"))
 
     local id = parent.id.."_"..params.id.."Text"
 
@@ -184,8 +184,8 @@ Ui.InputClass.__index = Ui.InputClass
 setmetatable(Ui.InputClass, { __index = Ui.BaseClass })
 
 function Ui.Input(parent, params)
-    Assert.Str(params.id)
-    Assert.Func(params.onValueChanged)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onValueChanged))
 
     local id = parent.id.."_"..params.id.."Input"
 
@@ -276,8 +276,8 @@ Ui.ButtonClass.__index = Ui.ButtonClass
 setmetatable(Ui.ButtonClass, { __index = Ui.BaseClass })
 
 function Ui.Button(parent, params)
-    Assert.Str(params.id)
-    Assert.FuncOrNil(params.onClick)
+    assert(CheckStr(params.id))
+    assert(CheckFuncOrNil(params.onClick))
 
     local id = parent.id.."_"..params.id.."Button"
     local textColor = params.textColor or Ui.LIGHT_BROWN
@@ -330,8 +330,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Ui.CheckButton(parent, params)
-    Assert.Str(params.id)
-    Assert.Func(params.onCheck)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onCheck))
 
     local id = parent.id.."_"..params.id.."CheckButton"
 
@@ -396,8 +396,8 @@ Ui.CheckBoxClass.__index = Ui.CheckBoxClass
 setmetatable(Ui.CheckBoxClass, { __index = Ui.BaseClass })
 
 function Ui.CheckBox(parent, params)
-    Assert.Str(params.id)
-    Assert.Func(params.onCheck)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onCheck))
 
     local id = parent.id.."_"..params.id.."CheckBox"
     Log.Debugf("Creating CheckBox %s", id)
@@ -456,8 +456,8 @@ Ui.OptionButtonGroupClass = {
 Ui.OptionButtonGroupClass.__index = Ui.OptionButtonGroupClass
 
 function Ui.OptionButtonGroup(parent, params)
-    Assert.Str(params.id)
-    Assert.Func(params.onSelect)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onSelect))
 
     local id = parent.id.."_"..params.id.."OptionButtons"
 
@@ -553,8 +553,8 @@ Ui.OptionBoxGroupClass = {
 Ui.OptionBoxGroupClass.__index = Ui.OptionBoxGroupClass
 
 function Ui.OptionBoxGroup(parent, params)
-    Assert.Str(params.id)
-    Assert.Func(params.onSelect)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onSelect))
 
     local id = parent.id.."_"..params.id.."OptionBoxes"
 

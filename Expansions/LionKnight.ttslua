@@ -14,10 +14,10 @@ return {
     monsters = { "Lion Knight" },
 
     timelineEvents = {
-        { year = 6, name = "An Uninvited Guest", type = "TimelineEvent" },
-        { year = 8, name = "Places, Everyone!", type = "TimelineEvent" },
-        { year = 12, name = "Places, Everyone!", type = "TimelineEvent" },
-        { year = 16, name = "Places, Everyone!", type = "TimelineEvent" },
+        { year = 6, name = "An Uninvited Guest", type = "RulebookEvent" },
+        { year = 8, name = "Places, Everyone!", type = "RulebookEvent" },
+        { year = 12, name = "Places, Everyone!", type = "RulebookEvent" },
+        { year = 16, name = "Places, Everyone!", type = "RulebookEvent" },
     },
 
     terrainTileSizes = {

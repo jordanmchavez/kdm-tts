@@ -1,4 +1,4 @@
-local Assert = require("Kdm/Util/Assert")
+require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Armor")
 
 local Armor = {
@@ -9,7 +9,7 @@ local Armor = {
 
 function Armor.RegisterExpansion(expansion)
     for armor, stats in pairs(expansion.armorStats or {}) do
-        Assert(Armor.armorStats[armor] == nil, "Armor %s is already registered", armor)
+        assert(Check(Armor.armorStats[armor] == nil, "Armor %s is already registered", armor))
         Armor.armorStats[armor] = stats
     end
 end
