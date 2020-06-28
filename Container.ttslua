@@ -1,7 +1,7 @@
 local Util = require("Kdm/Util/Util")
 require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Container")
-local Locations = require("Kdm/Locations")
+local Location = require("Kdm/Location")
 
 local Container = {}
 
@@ -17,13 +17,13 @@ ContainerClass.__index = ContainerClass
 ---------------------------------------------------------------------------------------------------
 
 function ContainerClass.Take(container, params)
-    assert(CheckTab(container))
+    assert(CheckTable(container))
     assert(container.object != nil, "Container is empty or was destroyed")  -- != nil is important for deleted TTS object comparison
 
     local name, type, location, spawnFunc = params.name, params.type, params.location, params.spawnFunc
-    local rotation = params.rotation or Locations.DEFAULT_ROTATION
-    local height = params.height or Locations.DEFAULT_HEIGHT
-    local position = Locations.WorldCenter(location)
+    local rotation = params.rotation or Location.DEFAULT_ROTATION
+    local height = params.height or Location.DEFAULT_SPAWN_HEIGHT
+    local position = Location.WorldCenter(location)
     position.y = position.y + height
 
     Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), location, height)

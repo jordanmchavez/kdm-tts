@@ -20,11 +20,11 @@ return {
         },
     },
 
-    terrainTiles = {
-        ["The Lonely Tree"] = { size = 2 },
+    terrainTileSizes = {
+        ["The Lonely Tree"] = { x = 3, y = 3 },
     },
 
-    namedGuids = { ["Lonely Tree Archive"] = "0857d8" },
+    guidNames = { ["0857d8"] = "Lonely Tree Archive" },
 
     archiveEntries = {
         archive = "Lonely Tree Archive",

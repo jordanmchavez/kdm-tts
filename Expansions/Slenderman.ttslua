@@ -41,7 +41,7 @@ return {
         ["Gloom Katana"]       = { speed = 4, accuracy = 5, strength = 0 },
     },
 
-    namedGuids = { ["Slenderman Archive"] = "797b30" },
+    guidNames = { ["797b30"] = "Slenderman Archive" },
 
     archiveEntries = {
         archive = "Slenderman Archive",

@@ -95,7 +95,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckTab(value, fmt, ...)
+function CheckTable(value, fmt, ...)
     if value == nil then
         return false, Util.SafeFormat("Required table arg is nil: "..(fmt or ""), ...)
     end
@@ -108,7 +108,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckTabOrNil(value, fmt, ...)
+function CheckTableOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
@@ -145,30 +145,30 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckVec(value, fmt, ...)
+function CheckVec3(value, fmt, ...)
     if value == nil then
-        return false, Util.SafeFormat("Required vector arg is nil: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required vec3 arg is nil: "..(fmt or ""), ...)
     end
     local t = type(value)
     if t != "table" then
-        return false, Util.SafeFormat("Required vector arg has type %s: "..(fmt or ""), t, ...)
+        return false, Util.SafeFormat("Required vec3 arg has type %s: "..(fmt or ""), t, ...)
     end
-    if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
-        return false, Util.SafeFormat("Required arg must be a vector: "..(fmt or ""), ...)
+    if value.x == nil or value.y == nil or value.z == nil then
+        return false, Util.SafeFormat("Required arg must be a vec3: "..(fmt or ""), ...)
     end
     return true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckVecOrNil(value, fmt, ...)
+function CheckVec3OrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
-            return false, Util.SafeFormat("Optional vector arg has type %s: "..(fmt or ""), t, ...)
+            return false, Util.SafeFormat("Optional vec3 arg has type %s: "..(fmt or ""), t, ...)
         end
-        if #value != 3 and (value.x    == nil or value.y == nil or value.z == nil) then
-            return false, Util.SafeFormat("Optional arg must be a vector: "..(fmt or ""), ...)
+        if value.x == nil or value.y == nil or value.z == nil then
+            return false, Util.SafeFormat("Optional arg must be a vec3: "..(fmt or ""), ...)
         end
     end
     return true
@@ -176,7 +176,38 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckCol(value, fmt, ...)
+function CheckVec2(value, fmt, ...)
+    if value == nil then
+        return false, Util.SafeFormat("Required vec2 arg is nil: "..(fmt or ""), ...)
+    end
+    local t = type(value)
+    if t != "table" then
+        return false, Util.SafeFormat("Required vec2 arg has type %s: "..(fmt or ""), t, ...)
+    end
+    if value.x == nil or value.y == nil then
+        return false, Util.SafeFormat("Required arg must be a vec2: "..(fmt or ""), ...)
+    end
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CheckVec2(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "table" then
+            return false, Util.SafeFormat("Optional vec2 arg has type %s: "..(fmt or ""), t, ...)
+        end
+        if value.x == nil or value.y == nil then
+            return false, Util.SafeFormat("Optional arg must be a vec2: "..(fmt or ""), ...)
+        end
+    end
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CheckColor(value, fmt, ...)
     if value == nil then
         return false, Util.SafeFormat("Required color arg is nil: "..(fmt or ""), ...)
     end
@@ -192,7 +223,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckColOrNil(value, fmt, ...)
+function CheckColorOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then
@@ -214,6 +245,18 @@ function CheckObj(value, fmt, ...)
     local t = type(value)
     if t != "userdata" then
         return false, Util.SafeFormat("Required userdata arg has type %s: "..(fmt or ""), t, ...)
+    end
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function CheckObjOrNil(value, fmt, ...)
+    if value != nil then
+        local t = type(value)
+        if t != "userdata" then
+            return false, Util.SafeFormat("Optional userdata arg has type %s: "..(fmt or ""), t, ...)
+        end
     end
     return true
 end

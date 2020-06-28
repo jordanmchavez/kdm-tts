@@ -65,7 +65,7 @@ return {
         ["The Weaver"]         = { speed = 3, accuracy = 6, strength = 2 },
     },
 
-    namedGuids = { ["Spidicules Archive"] = "c5735b" },
+    guidNames = { ["c5735b"] = "Spidicules Archive" },
 
     archiveEntries = {
         archive = "Spidicules Archive",

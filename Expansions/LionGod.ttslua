@@ -33,7 +33,7 @@ return {
         ["Necromancer's Eye"]  = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
     },
 
-    namedGuids = { ["Lion God Archive"] = "f2cc04" },
+    guidNames = { ["f2cc04"] = "Lion God Archive" },
 
     archiveEntries = {
         archive = "Lion God Archive",

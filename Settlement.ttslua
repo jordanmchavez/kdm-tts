@@ -3,11 +3,11 @@ require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Settlement")
 local Trie = require("Kdm/Util/Trie")
 local Rules = require("Kdm/Rules")
-local Ui = require("Kdm/XmlUi")
+local Ui = require("Kdm/Ui")
 local Showdown = require("Kdm/Showdown")
 local EventManager = require("Kdm/Util/EventManager")
 local Archive = require("Kdm/Archive")
-local Locations = require("Kdm/Locations")
+local Location = require("Kdm/Location")
 local Container = require("Kdm/Container")
 
 -------------------------------------------------------------------------------------------------
@@ -212,8 +212,9 @@ function Settlement.AddTimelineEvent(year, event, params)
         }
 
     elseif type == "ShowdownEvent" then
+        local name = params.custom and params.name or Settlement.NemesisTimelineEventName(params.monster, params.level)
         eventData = {
-            name = Settlement.NemesisTimelineEventName(params.monster, params.level),
+            name = name,
             type = type,
             monster = params.monster,
             level = params.level,
@@ -461,7 +462,7 @@ Settlement.EVENT_TYPE_HANDLERS = {
         Settlement.HideUi()
 
         local deck = nil
-        for _, hit in ipairs(Locations.RayCast("Settlement Events")) do
+        for _, hit in ipairs(Location.RayCast("Settlement Events")) do
             local obj = hit.hit_object
             if obj.tag == "Deck" and obj.getGMNotes() == "Settlement Events" then
                 deck = obj
@@ -469,7 +470,7 @@ Settlement.EVENT_TYPE_HANDLERS = {
             end
         end
         if deck == nil then
-            deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = "Settlement Events", rotation = Locations.FACE_DOWN })
+            deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = "Settlement Events", rotation = Location.FACE_DOWN })
             Log.Broadcastf("Couldn't find Settlement Event deck in the highlighted location, so created a new one.")
             Util.Highlight(deck)
         end
@@ -586,7 +587,7 @@ function Settlement.Init(saveState, ui)
         Settlement.survivalLimitText:SetText(Settlement.survivalLimit)
     end })
     Ui.InvisibleButton(panel, { id = "SurvivalLimitMinus", x = 952, y = 830,  width = 25, height = 25, onClick = function()
-        Settlement.survivalLimit = Settlement.survivalLimit + 1
+        Settlement.survivalLimit = Settlement.survivalLimit - 1
         Log.Debugf("Setting survival limit to %d", Settlement.survivalLimit)
         Settlement.survivalLimitText:SetText(Settlement.survivalLimit)
     end })
@@ -646,7 +647,7 @@ function Settlement.Init(saveState, ui)
     for i = 1, 10 do
         local x = (i <= 5) and 1301 or 1437
         local row = (i - 1) % 5
-        Settlement.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 477 + (row * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 14, onValueChanged = function(value)
+        Settlement.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 477 + (row * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 12, onValueChanged = function(value)
             Log.Debugf("Setting quarries[%d] to %s", i, value)
             Settlement.quarries[i] = value
         end })

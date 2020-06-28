@@ -1,30 +1,41 @@
 require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Overlay")
-local Guids = require("Kdm/Guids")
-local Grid = require("Kdm/Grid")
 
 ---------------------------------------------------------------------------------------------------
 
-local Overlay = {}
+local OverlayClass = {}
+OverlayClass.__index = OverlayClass
 
-Overlay.UI_HEIGHT = 10.75
+local function Overlay_Create(params)
+    assert(CheckObj(params.object))
+    assert(CheckTagged(params.grid, "Grid"))
+    assert(CheckNum(params.height))
+
+    local overlay = {
+        tag = "Overlay",
+        object = params.object,
+        grid = params.grid,
+        height = params.height,
+    }
+    setmetatable(overlay, OverlayClass)
+
+    return overlay
+end
 
 ---------------------------------------------------------------------------------------------------
 
-function Overlay_Dud() end
-
-function Overlay.ClampAndAddRect(showdownBoard, left, top, width, height, color)
-    local overlaysObj = Guids.GetObject("Overlays")
+local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
+    local grid = overlay.grid
 
     -- inclusive
     local right = left + width - 1
     local bottom = top + height - 1
 
     if left < 0 then left = 0 end
-    if right >= Grid.MAX_COLS then right = Grid.MAX_COLS - 1 end
+    if right >= grid:Cols() then right = grid:Cols() - 1 end
     if top < 0 then top = 0 end
-    if bottom >= Grid.MAX_ROWS then bottom = Grid.MAX_ROWS - 1 end
+    if bottom >= grid:Rows() then bottom = grid:Rows() - 1 end
 
     width = right - left + 1
     height = bottom - top + 1
@@ -34,10 +45,9 @@ function Overlay.ClampAndAddRect(showdownBoard, left, top, width, height, color)
 
     local centerCol = left + (right - left) / 2
     local centerRow = top + (bottom - top) / 2
-    local x, z = Grid.XZ(centerCol, centerRow)
-    local l = overlaysObj.positionToLocal(showdownBoard.positionToWorld({ x, Overlay.UI_HEIGHT, z }))
-    overlaysObj.createButton({
-        click_function = "Overlay_Dud",
+    local x, z = grid:XZ(centerCol, centerRow)
+    local l = overlay.object.positionToLocal(grid:Object().positionToWorld({ x, overlay.height, z }))
+    overlay.object.createButton({
         function_owner = self,
         position = { -l[1], l[2], l[3] },
         scale = { 0.2, 0.2, 0.2 },
@@ -51,19 +61,23 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Overlay.Create(position, baseSize, radius, color)
-    assert(CheckVec(position, "position"))
+function OverlayClass.Show(overlay, position, baseSize, radius, color)
+    assert(CheckVec3(position, "position"))
     assert(CheckNum(baseSize, "baseSize"))
     assert(CheckNum(radius, "radius"))
     assert(CheckCol(color, "color"))
 
-    Overlay.Destroy()
+    overlay:Hide()
 
-    local showdownBoardObj = Guids.GetObject("Showdown Board")
+    -- the movement overlay looks like a diamond
+    -- we want to draw this diamond using as few squares as possible, since each square must be represented by a button
+    -- and they're slow to create and destroy (pickup/drop will lag)
+    -- all of the following math is to construct the smallest number of squares for a given movement overlay.
+    -- there's one big central square, then rectangles on the top/bottom/left/right that get progressively smaller and taper off to zero.
 
-    local lpos = showdownBoardObj.positionToLocal(position)
-    local centerCol, centerRow = Grid.ColRow(lpos)
-    local baseLeft, baseTop
+    local localPosition = overlay.object.positionToLocal(position)
+    local centerCol, centerRow = overlay.grid.ColRow(localPosition)
+    local baseLeft, baseTop  -- left-top corner of the figurine's base (1x1, 2x2, 3x3, etc)
     if baseSize % 2 == 0 then
         local offset = math.floor(baseSize / 2) - 1
         baseLeft = math.floor(centerCol) - offset
@@ -84,7 +98,7 @@ function Overlay.Create(position, baseSize, radius, color)
 
     local size = baseSize + (2 * halfRadius)
 
-    Overlay.ClampAndAddRect(showdownBoardObj, bigLeft, bigTop, size, size, color)
+    Overlay_ClampAndAddRect(overlay, bigLeft, bigTop, size, size, color)
 
     local distance = 1
     local offset = 0
@@ -94,13 +108,13 @@ function Overlay.Create(position, baseSize, radius, color)
     end
     while size >= baseSize do
         -- left
-        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft - distance, bigTop + offset, 1, size, color)
+        Overlay_ClampAndAddRect(overlay, bigLeft - distance, bigTop + offset, 1, size, color)
         -- top
-        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft + offset, bigTop - distance, size, 1, color)
+        Overlay_ClampAndAddRect(overlay, bigLeft + offset, bigTop - distance, size, 1, color)
         -- right
-        Overlay.ClampAndAddRect(showdownBoardObj, bigRight + distance, bigTop + offset, 1, size, color)
+        Overlay_ClampAndAddRect(overlay, bigRight + distance, bigTop + offset, 1, size, color)
         -- bottom
-        Overlay.ClampAndAddRect(showdownBoardObj, bigLeft + offset, bigBottom + distance, size, 1, color)
+        Overlay_ClampAndAddRect(overlay, bigLeft + offset, bigBottom + distance, size, 1, color)
 
         size = size - 2
         distance = distance + 1
@@ -110,10 +124,12 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Overlay.Destroy()
-    Guids.GetObject("Overlays").clearButtons()
+function OverlayClass.Hide(overlay)
+    overlay.object.clearButtons()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Overlay
+return {
+    Create = Overlay_Create,
+}

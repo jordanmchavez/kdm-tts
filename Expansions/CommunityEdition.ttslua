@@ -10,7 +10,7 @@ return {
 
             { "Core Abilities", "Abilities" },
             { "Core Secret Fighting Arts", "Secret Fighting Arts" },
-            { "Core Weapon Specializations/Masteries", "Weapon Specializations/Masteries" },
+            { "Core Weapon Proficiencies", "Weapon Proficiencies" },
             { "Core Armor Sets", "Armor Sets" },
             { "Core Strange Resources", "Strange Resources" },
 
@@ -119,5 +119,5 @@ return {
         ["Zanbato (Broken)"] = { speed = 2, accuracy = 6, strength = 3 },
     },
 
-    namedGuids = { ["Community Edition Archive"] = "49ea5e" },
+    guidNames = { ["49ea5e"] = "Community Edition Archive" },
 }

@@ -14,11 +14,10 @@ Log.debugPackages = {
     -- ["SettlementBoard"] = true,
     -- ["Grid"] = true,
     -- ["Overlay"] = true,
-    ["Settlement"] = true,
+    --["Settlement"] = true,
     -- ["PopulationSheet"] = true,
     -- ["EventManager"] = true,
     -- ["DropZone"] = true,
-    --["CharSheet"] = true,
     -- ["Armor"] = true,
     -- ["PlayerFigurine"] = true,
     -- ["Monster"] = true,
@@ -31,9 +30,11 @@ Log.debugPackages = {
     --["Setup"] = true,
     --["PlayerBoard"] = true,
     --["SpatialIndex"] = true,
-    ["Showdown"] = true,
-    ["Hunt"] = true,
---    ["XmlUi"] = true,
+    --["Showdown"] = true,
+    --["Hunt"] = true,
+    ["Ui"] = true,
+    ["Ui3d"] = true,
+    ["CharSheet"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

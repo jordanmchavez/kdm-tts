@@ -39,7 +39,7 @@ return {
         ["Lion Knight's Right Claw"] = { speed = 2, accuracy = 8, strength = 8 },
     },
 
-    namedGuids = { ["Lion Knight Archive"] = "37eaad" },
+    guidNames = { ["37eaad"] = "Lion Knight Archive" },
 
     archiveEntries = {
         archive = "Lion Knight Archive",

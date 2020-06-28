@@ -6,7 +6,7 @@ return {
         ["Fighting Arts"] = "Dragon King Fighting Arts",
         ["Secret Fighting Arts"] = "Dragon King Secret Fighting Arts",
         ["Disorders"] = "Dragon King Disorders",
-        ["Weapon Specializations/Masteries"] = "Scythe",
+        ["Weapon Proficiencies"] = "Scythe",
         ["Armor Sets"] = "Dragon Armor",
         ["Strange Resources"] = "Dragon King Strange Resources",
         ["Terrain"] = "Dragon King Terrain",
@@ -119,7 +119,7 @@ return {
         ["Regal Edge"]       = { speed = 1, accuracy = 5, strength = 2, sharp = true },
     },
 
-    namedGuids = { ["Dragon King Archive"] = "f3b47c" },
+    guidNames = { ["f3b47c"] = "Dragon King Archive" },
 
     archiveEntries = {
         archive = "Dragon King Archive",
@@ -134,7 +134,7 @@ return {
             { "Dragon King Fighting Arts", "Fighting Arts" },
             { "Dragon King Secret Fighting Arts", "Secret Fighting Arts" },
             { "Dragon King Disorders", "Disorders" },
-            { "Scythe", "Weapon Specializations/Masteries" },
+            { "Scythe", "Weapon Proficiencies" },
             { "Dragon Armor", "Armor Sets" },
             { "Dragon King Strange Resources", "Strange Resources" },
             { "Dragon King Resources", "Monster Resources" },
@@ -370,7 +370,7 @@ return {
                     level = 1,
                     showdown = {
                         starting = {
-                            special = { "Crooked Step", "Spectral Blast" },
+                            special = { "Crooked Step", "Spectral Blast", "Destiny's Marrow" },
                         },
                         basic = 6,
                         advanced = 5,
@@ -383,7 +383,7 @@ return {
                     level = 2,
                     showdown = {
                         starting = {
-                            special = { "Crooked Step", "Spectral Blast", "Quickened" },
+                            special = { "Crooked Step", "Spectral Blast", "Destiny's Marrow", "Quickened" },
                         },
                         basic = 8,
                         advanced = 6,
@@ -398,7 +398,7 @@ return {
                     level = 3,
                     showdown = {
                         starting = {
-                            special = { "Crooked Step", "Spectral Blast", "Quickened" },
+                            special = { "Crooked Step", "Spectral Blast", "Destiny's Marrow", "Quickened" },
                         },
                         basic = 12,
                         advanced = 8,

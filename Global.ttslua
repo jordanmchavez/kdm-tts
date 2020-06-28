@@ -1,25 +1,14 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
+local KDM_VERSION = "0.27 Beta"
+
 local Log = require("Kdm/Util/Log").ForPackage("G")
-local Guids = require("Kdm/Guids")
-local Locations = require("Kdm/Locations")
-local Archive = require("Kdm/Archive")
-local Rules = require("Kdm/Rules")
-local Showdown = require("Kdm/Showdown")
-local DropZone = require("Kdm/Util/DropZone")
+local Zone = require("Kdm/Util/Zone")
+
+local NamedObject = require("Kdm/NamedObject")
+local Location = require("Kdm/Location")
+local Armor = require("Kdm/Armor")
+local Weapon = require("Kdm/Weapon")
 local CharSheet = require("Kdm/CharSheet")
 local PlayerBoard = require("Kdm/PlayerBoard")
-local Hunt = require("Kdm/Hunt")
-local SettlementBoard = require("Kdm/SettlementBoard")
-local RulesNav = require("Kdm/RulesNav")
-local Terrain = require("Kdm/Terrain")
-local DeckBoard = require("Kdm/DeckBoard")
-local PopulationSheet = require("Kdm/PopulationSheet")
-local Settlement = require("Kdm/Settlement")
-local BattleReference = require("Kdm/BattleReference")
-local Armor = require("Kdm/Armor")
-local Weapons = require("Kdm/Weapons")
-local Setup = require("Kdm/Setup")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -41,11 +30,11 @@ local Sunstalker = require("Kdm/Expansions/Sunstalker")
 
 function onSave()
     local saveState = {
-        Setup = Setup.Save(),
-        Showdown = Showdown.Save(),
         PlayerBoard = PlayerBoard.Save(),
-        Settlement = Settlement.Save(),
-        PopulationSheet = PopulationSheet.Save(),
+        --Setup = Setup.Save(),
+        --Showdown = Showdown.Save(),
+        --Settlement = Settlement.Save(),
+        --PopulationSheet = PopulationSheet.Save(),
     }
 
     return JSON.encode(saveState)
@@ -54,85 +43,45 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function onLoad(saveJson)
-    local uninteractable = {
-        "Table",
-        "Top Table",
-        "Left Table",
-        "Bottom Table",
-        "Right Table",
-        "Showdown Board",
-        "Hunt Board",
-        "Settlement Board",
-        "Rules Board",
-        "Rules Navigation Board",
-        "Player 1 Board",
-        "Player 2 Board",
-        "Player 3 Board",
-        "Player 4 Board",
-        "Player 1 Marker",
-        "Player 2 Marker",
-        "Player 3 Marker",
-        "Player 4 Marker",
-        "Overlays",
-    }
-    for _, name in ipairs(uninteractable) do
-        Guids.GetObject(name).interactable = false
-    end
+    Log.Init()
+    Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
+    Zone.Init()
 
     local saveState = JSON.decode(saveJson) or {}
-
-    local ui = { id = "UI", children = self.UI.getXmlTable() }
-
-    Log.Init()
-
-    for _, expansion in ipairs({ Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }) do
-        Log.Debugf("Registering expansion %s", expansion.name)
-        Setup.RegisterExpansion(expansion)
-        Locations.RegisterExpansion(expansion)
-        Terrain.RegisterExpansion(expansion)
-        SettlementBoard.RegisterExpansion(expansion)
-        Armor.RegisterExpansion(expansion)
-        Weapons.RegisterExpansion(expansion)
-        Guids.RegisterExpansion(expansion)
-        Archive.RegisterExpansion(expansion)
-        Rules.RegisterExpansion(expansion)
-        Hunt.RegisterExpansion(expansion)
-        Showdown.RegisterExpansion(expansion)
-        Settlement.RegisterExpansion(expansion)
-    end
+    local expansions = { Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }
 
     local modules = {
-        { DropZone, "DropZone" },
-        { CharSheet, "CharSheet" },
-        { PlayerBoard, "PlayerBoard" },
-        { Rules, "Rules" },
-        { Terrain, "Terrain" },
-        { DeckBoard, "DeckBoard" },
-        { SettlementBoard, "SettlementBoard" },
-        { RulesNav, "RulesNav" },
-        { PopulationSheet, "PopulationSheet" },
-        { Settlement, "Settlement" },
-        { Hunt, "Hunt" },
-        { Showdown, "Showdown" },
-        { BattleReference, "BattleReference" },
-        { Setup, "Setup" },
+        ["NamedObject"] = NamedObject,
+        ["Location"] = Location,
+        ["Armor"] = Armor,
+        ["Weapon"] = Weapon,
+        ["CharSheet"] = CharSheet,
+        ["PlayerBoard"] = PlayerBoard,
+
+        --{ Rules, "Rules" },
+        --{ Terrain, "Terrain" },
+        --{ DeckBoard, "DeckBoard" },
+        --{ SettlementBoard, "SettlementBoard" },
+        --{ RulesNav, "RulesNav" },
+        --{ PopulationSheet, "PopulationSheet" },
+        --{ Settlement, "Settlement" },
+        --{ Hunt, "Hunt" },
+        --{ Showdown, "Showdown" },
+        --{ BattleReference, "BattleReference" },
+        --{ Setup, "Setup" },
     }
 
-    for _, module in ipairs(modules) do
-        Log.Debugf("Initializing %s", module[2])
-        module[1].Init(saveState[module[2]], ui)
+    local deps = {}
+    for name, module in pairs(modules) do
+        Log.Debugf("Initializing %s", name)
+        module.Init(saveState[name], expansions, deps)
+        deps[name] = module
     end
 
-    if #ui.children > 0 then
-        self.UI.setXmlTable(ui.children)
-    end
-
-    for _, module in ipairs(modules) do
-        if module[1].PostInit then
-            Log.Debugf("Post-Initializing %s", module[2])
-            module[1].PostInit()
-        end
-    end
+    -- local ui = { id = "UI", children = self.UI.getXmlTable() }
+    -- if #ui.children > 0 then
+    --     self.UI.setXmlTable(ui.children)
+    -- end
 end
 
 ---------------------------------------------------------------------------------------------------

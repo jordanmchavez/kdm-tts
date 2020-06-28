@@ -6,7 +6,7 @@ return {
         ["Fighting Arts"] = "Sunstalker Fighting Arts",
         ["Secret Fighting Arts"] = "Sunstalker Secret Fighting Arts",
         ["Disorders"] = "Sunstalker Disorders",
-        ["Weapon Specializations/Masteries"] = "Katana",
+        ["Weapon Proficiencies"] = "Katana",
         ["Armor Sets"] = "Cycloid Scale Armor",
         ["Strange Resources"] = "Sunstalker Strange Resources",
         ["Terrain"] = "2 Salt Sculptures",
@@ -116,7 +116,7 @@ return {
         },
     },
 
-    namedGuids = { ["Sunstalker Archive"] = "2fb312" },
+    guidNames = { ["2fb312"] = "Sunstalker Archive" },
 
     archiveEntries = {
         archive = "Sunstalker Archive",
@@ -129,7 +129,7 @@ return {
             { "Sunstalker Fighting Arts", "Fighting Arts" },
             { "Sunstalker Secret Fighting Arts", "Secret Fighting Arts" },
             { "Sunstalker Disorders", "Disorders" },
-            { "Katana", "Weapon Specializations/Masteries" },
+            { "Katana", "Weapon Proficiencies" },
             { "Cycloid Scale Armor", "Armor Sets" },
             { "Sunstalker Strange Resources", "Strange Resources" },
             { "Sunstalker Resources", "Monster Resources" },

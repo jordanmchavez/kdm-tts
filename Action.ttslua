@@ -2,7 +2,7 @@ require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Action")
 local Archive = require("Kdm/Archive")
-local Locations = require("Kdm/Locations")
+local Location = require("Kdm/Location")
 local Container = require("Kdm/Container")
 
 local Action = {}
@@ -12,12 +12,10 @@ local OBJ_CLEAN_IGNORE_TAGS = { "Board", "Table" }
 ---------------------------------------------------------------------------------------------------
 
 function Action.Matches(obj, tags, types)
-    if tags and Util.ArrayContains(tags, obj.tag) then
-        return true
-    end
-    if types and Util.ArrayContains(types, obj.getGMNotes()) then
-        return true
-    end
+    local matchesTags = tags and Util.ArrayContains(tags, obj.tag)
+    local matchesTypes = types and Util.ArrayContains(types, obj.getGMNotes())
+
+    return matchesTags or matchesTypes
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -28,14 +26,18 @@ local function Action_Clean(params, castFunc)
 
     local hits = castFunc(location, debug)
     local blocking = {}
+    local ignore
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
 
-        if Action.Matches(obj, tags, types) then
+        if Action.Matches(obj, OBJ_CLEAN_IGNORE_TAGS, params.ignoreTypes) then
+            -- ignore
+
+        elseif Action.Matches(obj, tags, types) then
             Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
             obj.destruct()
 
-        elseif not Util.ArrayContains(OBJ_CLEAN_IGNORE_TAGS, obj.tag) then
+        else
             Log.Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
             table.insert(blocking, obj)
         end
@@ -44,8 +46,8 @@ local function Action_Clean(params, castFunc)
     return blocking
 end
 
-function Action.BoxClean(params) return Action_Clean(params, Locations.BoxCast) end
-function Action.RayClean(params) return Action_Clean(params, Locations.RayCast) end
+function Action.BoxClean(params) return Action_Clean(params, Location.BoxCast) end
+function Action.RayClean(params) return Action_Clean(params, Location.RayCast) end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -73,7 +75,7 @@ end
 function Action.CreateDeck(params)
     local sources = params.sources
     local location = params.location
-    local rotation = params.rotation or Locations.FACE_UP
+    local rotation = params.rotation or Location.FACE_UP
 
     local objects = {}
     for i, source in ipairs(sources) do
@@ -98,7 +100,7 @@ function Action.CreateDeck(params)
 
     deckObject.setName(params.name)
     deckObject.setGMNotes(params.type)
-    deckObject.setPositionSmooth(Locations.WorldCenter(location), false, true)
+    deckObject.setPositionSmooth(Location.WorldCenter(location), false, true)
     deckObject.setRotation(rotation)
 
     Log.Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location)
@@ -110,8 +112,8 @@ end
 
 function Action.Clone(params)
     local object, location, rotation = params.object, params.location, params.rotation
-    local height = params.height or Locations.DEFAULT_HEIGHT
-    local position = Locations.WorldCenter(params.location)
+    local height = params.height or Location.DEFAULT_SPAWN_HEIGHT
+    local position = Location.WorldCenter(params.location)
     position.y = position.y + height
 
     Log.Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location)

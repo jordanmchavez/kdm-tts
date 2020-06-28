@@ -2,11 +2,11 @@ local Util = require("Kdm/Util/Util")
 require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Hunt")
 local EventManager = require("Kdm/Util/EventManager")
-local Ui = require("Kdm/XmlUi")
+local Ui = require("Kdm/Ui")
 local Action = require("Kdm/Action")
 local Archive = require("Kdm/Archive")
 local Container = require("Kdm/Container")
-local Locations = require("Kdm/Locations")
+local Location = require("Kdm/Location")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ function Hunt.RegisterExpansion(expansion)
                 levelMap = levelMap,
             }
             if setup.resourcesDeck != false then
-                huntSetup.resourceDeck = monster.." Resources"
+                huntSetup.resourcesDeck = monster.." Resources"
             end
             table.insert(Hunt.setups, huntSetup)
             Hunt.setupMap[monster] = huntSetup
@@ -99,24 +99,24 @@ function Hunt.Setup(monsterSetup, levelSetup)
 
     Hunt.settingUpHunt = true
 
-    local huntEventsDeck = Container(Archive.Take({ name = "Hunt Events", type = "Hunt Events", location = "Hunt Events", rotation = Locations.FACE_DOWN }))
+    local huntEventsDeck = Container(Archive.Take({ name = "Hunt Events", type = "Hunt Events", location = "Hunt Events", rotation = Location.FACE_DOWN }))
     huntEventsDeck:Shuffle()
-    local monsterHuntEventsDeck = Container(Archive.Take({ name = monsterSetup.huntEventsDeck, type = "Monster Hunt Events",  location = "Monster Hunt Events", rotation = Locations.FACE_DOWN }))
+    local monsterHuntEventsDeck = Container(Archive.Take({ name = monsterSetup.huntEventsDeck, type = "Monster Hunt Events",  location = "Monster Hunt Events", rotation = Location.FACE_DOWN }))
     monsterHuntEventsDeck:Shuffle()
     Archive.Take({ name = "Herb Gathering", type = "Special Hunt Events", location = "Herb Gathering" })
     Archive.Take({ name = "Mineral Gathering", type = "Special Hunt Events", location = "Mineral Gathering" })
     Archive.Take({ name = "Sky Fishing", type = "Special Hunt Events", location = "Sky Fishing" })
 
     if monsterSetup.resourcesDeck then
-        local monsterResourcesDeck = Archive.Take({ name = monsterSetup.resourcesDeck, type = "Monster Resources", location = "Monster Resources", rotation = Locations.FACE_DOWN })
+        local monsterResourcesDeck = Archive.Take({ name = monsterSetup.resourcesDeck, type = "Monster Resources", location = "Monster Resources", rotation = Location.FACE_DOWN })
         monsterResourcesDeck.shuffle()
     end
 
     for i, c in ipairs(monsterSetup.huntTrack) do
         if c == 'H' then
-            huntEventsDeck:Take({ location = "Hunt Track "..i, rotation = Locations.FACE_DOWN })
+            huntEventsDeck:Take({ location = "Hunt Track "..i, rotation = Location.FACE_DOWN })
         elseif c == 'M' then
-            monsterHuntEventsDeck:Take({ location = "Hunt Track "..i, rotation = Locations.FACE_DOWN })
+            monsterHuntEventsDeck:Take({ location = "Hunt Track "..i, rotation = Location.FACE_DOWN })
         elseif c == 'O' then
             -- Overwhelming Darkness, no card
         elseif c == 'F' then

@@ -5,8 +5,8 @@ local CircularArray = require("Kdm/Util/CircularArray")
 local Trie = require("Kdm/Util/Trie")
 local Archive = require("Kdm/Archive")
 local Action = require("Kdm/Action")
-local Locations = require("Kdm/Locations")
-local Ui = require("Kdm/XmlUi")
+local Location = require("Kdm/Location")
+local Ui = require("Kdm/Ui")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ function Rules.RegisterExpansion(expansion)
         assert(CheckStr(rulebookName, "rulebook.name"))
 
         local pages = rulebook.pages
-        assert(CheckTab(rulebook.pages))
+        assert(CheckTable(rulebook.pages))
 
         for pageName, pageData in pairs(pages) do
             assert(CheckStr(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
@@ -35,7 +35,7 @@ function Rules.RegisterExpansion(expansion)
             Rules.index[pageName] = { rulebook = rulebookName, state = state }
 
             local keywords = pageData.keywords
-            assert(CheckTab(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
+            assert(CheckTable(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
 
             local entry = {
                 rulebook = rulebookName,
@@ -128,7 +128,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Rules.GetCurrentRules()
-    local hits = Locations.RayCast("Rules Board")
+    local hits = Location.RayCast("Rules Board")
     for _, hit in ipairs(hits) do
         local hitObj = hit.hit_object
         if hitObj.getGMNotes() == "Rulebook" then

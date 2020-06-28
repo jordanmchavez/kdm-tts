@@ -2,12 +2,12 @@ require("Kdm/Util/Check")
 local Util = require("Kdm/Util/Util")
 local Log = require("Kdm/Util/Log").ForPackage("Setup")
 local EventManager = require("Kdm/Util/EventManager")
-local Guids = require("Kdm/Guids")
+local NamedObject = require("Kdm/NamedObject")
 local Archive = require("Kdm/Archive")
-local Locations = require("Kdm/Locations")
+local Location = require("Kdm/Location")
 local Settlement = require("Kdm/Settlement")
 local Rules = require("Kdm/Rules")
-local Ui = require("Kdm/XmlUi")
+local Ui = require("Kdm/Ui")
 local Action = require("Kdm/Action")
 local Container = require("Kdm/Container")
 
@@ -159,14 +159,14 @@ function Setup.SetupDeck(params)
     end
 
     if params.resetArchive then
-        local archive = Guids.GetObject(deck.." Archive")
+        local archive = NamedObject.Get(deck.." Archive")
         archive.reset()
         archive.putObject(deckContainer.object)
 
         if params.respawnDeck then
             deckContainer = Container(archive.takeObject({
-                position = Locations.WorldCenter(location),
-                rotation = params.rotation or Locations.FACE_UP,
+                position = Location.WorldCenter(location),
+                rotation = params.rotation or Location.FACE_UP,
                 smooth   = false,
             }))
         end
@@ -189,7 +189,7 @@ function Setup.SetupStartingInnovationDeck(innovationDeck, startingInnovationDec
         table.insert(sources, Action.ContainerSource(innovationDeck, card, "Innovations"))
     end
 
-    local deck = Action.CreateDeck({ sources = sources, name = "Innovation Deck", type = "Innovations", location = "Innovation Deck", rotation = Locations.FACE_DOWN })
+    local deck = Action.CreateDeck({ sources = sources, name = "Innovation Deck", type = "Innovations", location = "Innovation Deck", rotation = Location.FACE_DOWN })
     deck:Shuffle()
 
     return deck
@@ -225,7 +225,7 @@ function Setup.SetupPrinciples(innovationDeck, startingPrinciples)
             for _, card in ipairs(SETUP_PRINCIPLE_CARDS[principle]) do
                 table.insert(sources, Action.ContainerSource(innovationDeck, card, "Innovations"))
             end
-            Action.CreateDeck({ sources = sources, name = principle, type = "Innovations", location = principle, rotation = Locations.FACE_DOWN })
+            Action.CreateDeck({ sources = sources, name = principle, type = "Innovations", location = principle, rotation = Location.FACE_DOWN })
         end
     end
 end
@@ -268,7 +268,7 @@ function Setup.Setup(campaign, expansionsMap)
 
     Setup.SetupTimeline(campaign, expansions)
 
-    Action.BoxClean({ location = "Deck Board", tags = { "Card", "Deck" } })
+    Action.BoxClean({ location = "Deck Board", tags = { "Card", "Deck" }, ignoreTypes = { "Monster Resources" }, })
     Action.BoxClean({ location = "Terrain", tags = { "Card", "Deck" } })
     Action.BoxClean({ location = "Settlement Events", tags = { "Card", "Deck" } })
     Action.BoxClean({ location = "Settlement Location Board", tags = { "Card", "Deck" } })
@@ -284,23 +284,23 @@ function Setup.Setup(campaign, expansionsMap)
     end
     Action.BoxClean({ location = "Hunt Events", tags = { "Card", "Deck" } })
 
-    Setup.SetupDeck({ expansions = expansions, deck = "Abilities", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Fighting Arts", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = campaign.removedFightingArts })
-    Setup.SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Disorders", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Severe Injuries", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Tactics", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Weapon Specializations/Masteries", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Armor Sets", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Vermin", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Terrain", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
-    local innovationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", rotation = Locations.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = campaign.removedInnovations })
+    Setup.SetupDeck({ expansions = expansions, deck = "Abilities", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Fighting Arts", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = campaign.removedFightingArts })
+    Setup.SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Disorders", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Severe Injuries", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Tactics", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Weapon Proficiencies", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Armor Sets", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Vermin", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Terrain", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
+    local innovationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", rotation = Location.FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = campaign.removedInnovations })
     local settlementLocationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Settlement Locations", resetArchive = false, respawnDeck = false, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear", type = "Gear", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Hunt Events", rotation = Locations.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear", type = "Gear", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Hunt Events", rotation = Location.FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
 
     Log.Debugf("Setting up starting innovation %s", campaign.startingInnovation)
     innovationDeck:Take({ name = campaign.startingInnovation, type = "Innovations", location = "Starting Innovation" })
@@ -310,8 +310,8 @@ function Setup.Setup(campaign, expansionsMap)
     Setup.SetupStartingSettlementLocations(settlementLocationDeck, campaign.startingSettlementLocations)
     Setup.SetupReferences(campaign.references)
 
-    Archive.Take({ name = "Starting Gear", type = "Gear", location = "Starting Gear", rotation = Locations.FACE_DOWN })
-    Archive.Take({ name = "Promo Gear", type = "Gear", location = "Promo Gear", rotation = Locations.FACE_DOWN })
+    Archive.Take({ name = "Starting Gear", type = "Gear", location = "Starting Gear", rotation = Location.FACE_DOWN })
+    Archive.Take({ name = "Promo Gear", type = "Gear", location = "Promo Gear", rotation = Location.FACE_DOWN })
 
     Archive.CleanupBags()
 

@@ -51,7 +51,7 @@ return {
         ["Calcified Zanbato"]          = { speed = 1, accuracy = 5, strength = 8, slow = true, deadly = 1 },
     },
 
-    namedGuids = { ["Dung Beetle Knight Archive"] = "d7ba5b" },
+    guidNames = { ["d7ba5b"] = "Dung Beetle Knight Archive" },
 
     archiveEntries = {
         archive = "Dung Beetle Knight Archive",

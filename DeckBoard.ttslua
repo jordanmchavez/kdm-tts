@@ -1,102 +1,101 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local Log = require("Kdm/Util/Log").ForPackage("DeckBoard")
-local Guids = require("Kdm/Guids")
-local Archive = require("Kdm/Archive")
-local Locations = require("Kdm/Locations")
-local UiButton = require("Kdm/UiButton")
-local Action = require("Kdm/Action")
-local Setup = require("Kdm/Setup")
-
-local DeckBoard = {}
-
-DeckBoard.NEEDS_SHUFFLE = {
-    ["Fighting Arts"] = true,
-    ["Disorders"] = true,
-    ["Tactics"] = true,
-    ["Vermin"] = true,
-    ["Basic Resources"] = true,
-    ["Monster Resources"] = true,
-    ["Terrain"] = true,
-}
-
----------------------------------------------------------------------------------------------------
-
-function DeckBoard.ResetDeck(deck)
-    Log.Debugf("Resetting deck %s", deck)
-
-    local blocking = Action.BoxClean({ location = deck, types = { deck } })
-    if #blocking > 0 then
-        Log.Broadcastf("Something is blocking the deck. Please move the highlighted objects out of the way and try again.")
-        Util.HighlightAll(blocking)
-        return
-    end
-
-    if not Setup.HasDeck(deck) then
-        Log.Broadcastf("There are no %s cards for the current expansions.", deck)
-        return
-    end
-
-    local deckObject = Archive.Take({ name = deck, type = deck, location = deck, rotation = Locations.FACE_DOWN })
-    if DeckBoard.NEEDS_SHUFFLE[deck] then
-        deckObject.shuffle()
-    end
-
-    Archive.CleanupBags()
-end
-
----------------------------------------------------------------------------------------------------
-
-function DeckBoard.Init()
-    local showdownBoardObj = Guids.GetObject("Showdown Board")
-
-    local x0 = -7.325
-    local z0 = -1.455
-    local dx = 0.82
-    local dz = 1.396
-
-    local uiHeight = 10.75
-
-    local deckGrid = {
-        { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
-        { "Disorders", "Severe Injuries", "Tactics" },
-        { "Weapon Specializations/Masteries", "Armor Sets", "Vermin" },
-        { "Strange Resources", "Basic Resources" },
-    }
-    for row, deckRow in ipairs(deckGrid) do
-        local z = z0 + ((row - 1) * dz)
-        for col, deck in ipairs(deckRow) do
-            local x = x0 + ((col - 1) * dx)
-
-            UiButton.Create({
-                object = showdownBoardObj,
-                name = deck.."Reset",
-                clickFunc = function() DeckBoard.ResetDeck(deck) end,
-                position = {
-                    x = x,
-                    y = uiHeight,
-                    z = z,
-                },
-                width = 1850.0,
-                height = 500.0,
-            })
-        end
-    end
-
-    UiButton.Create({
-        object = showdownBoardObj,
-        name = "TerrainReset",
-        position = {
-            x = -3.88,
-            y = uiHeight,
-            z = -3.84,
-        },
-        width = 500.0,
-        height = 2800.0,
-        clickFunc = function() DeckBoard.ResetDeck("Terrain") end,
-    })
-end
-
----------------------------------------------------------------------------------------------------
-
-return DeckBoard
+-- require("Kdm/Util/Check")
+-- local Util = require("Kdm/Util/Util")
+-- local Log = require("Kdm/Util/Log").ForPackage("DeckBoard")
+-- local NamedObject = require("Kdm/NamedObject")
+-- local Archive = require("Kdm/Archive")
+-- local Location = require("Kdm/Location")
+-- local Action = require("Kdm/Action")
+-- local Setup = require("Kdm/Setup")
+--
+-- local DeckBoard = {}
+--
+-- DeckBoard.NEEDS_SHUFFLE = {
+--     ["Fighting Arts"] = true,
+--     ["Disorders"] = true,
+--     ["Tactics"] = true,
+--     ["Vermin"] = true,
+--     ["Basic Resources"] = true,
+--     ["Monster Resources"] = true,
+--     ["Terrain"] = true,
+-- }
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- function DeckBoard.ResetDeck(deck)
+--     Log.Debugf("Resetting deck %s", deck)
+--
+--     local blocking = Action.BoxClean({ location = deck, types = { deck } })
+--     if #blocking > 0 then
+--         Log.Broadcastf("Something is blocking the deck. Please move the highlighted objects out of the way and try again.")
+--         Util.HighlightAll(blocking)
+--         return
+--     end
+--
+--     if not Setup.HasDeck(deck) then
+--         Log.Broadcastf("There are no %s cards for the current expansions.", deck)
+--         return
+--     end
+--
+--     local deckObject = Archive.Take({ name = deck, type = deck, location = deck, rotation = Location.FACE_DOWN })
+--     if DeckBoard.NEEDS_SHUFFLE[deck] then
+--         deckObject.shuffle()
+--     end
+--
+--     Archive.CleanupBags()
+-- end
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- function DeckBoard.Init()
+--     local showdownBoardObj = NamedObject.Get("Showdown Board")
+--
+--     local x0 = -7.325
+--     local z0 = -1.455
+--     local dx = 0.82
+--     local dz = 1.396
+--
+--     local uiHeight = 10.75
+--
+--     local deckGrid = {
+--         { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
+--         { "Disorders", "Severe Injuries", "Tactics" },
+--         { "Weapon Proficiencies", "Armor Sets", "Vermin" },
+--         { "Strange Resources", "Basic Resources" },
+--     }
+--     for row, deckRow in ipairs(deckGrid) do
+--         local z = z0 + ((row - 1) * dz)
+--         for col, deck in ipairs(deckRow) do
+--             local x = x0 + ((col - 1) * dx)
+--
+--             UiButton.Create({
+--                 object = showdownBoardObj,
+--                 name = deck.."Reset",
+--                 clickFunc = function() DeckBoard.ResetDeck(deck) end,
+--                 position = {
+--                     x = x,
+--                     y = uiHeight,
+--                     z = z,
+--                 },
+--                 width = 1850.0,
+--                 height = 500.0,
+--             })
+--         end
+--     end
+--
+--     UiButton.Create({
+--         object = showdownBoardObj,
+--         name = "TerrainReset",
+--         position = {
+--             x = -3.88,
+--             y = uiHeight,
+--             z = -3.84,
+--         },
+--         width = 500.0,
+--         height = 2800.0,
+--         clickFunc = function() DeckBoard.ResetDeck("Terrain") end,
+--     })
+-- end
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- return DeckBoard

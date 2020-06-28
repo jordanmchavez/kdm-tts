@@ -1,0 +1,249 @@
+require("Kdm/Util/Check")
+local Log = require("Kdm/Util/Log").ForPackage("Ui3d")
+local Util = require("Kdm/Util/Util")
+
+local UI_HEIGHT = -10.5
+local UI_ROTATION = "0 0 180"
+local UI_SCALE = 0.1
+local UI_SCALE_STR = "0.1 0.1 0.1"
+
+local UI_POSITION_MULTIPLIER = 100
+local UI_SIZE_MULTIPLIER = (1 / UI_SCALE) * 100
+
+local UI_LIGHT_BROWN = "#bbb4a1"
+local UI_DARK_BROWN = "#453824"
+local UI_IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
+local UI_INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
+--local UI_INVISIBLE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
+
+local UI_LEFT_MOUSE_BUTTON = "-1"   -- yes, this really is a string
+
+---------------------------------------------------------------------------------------------------
+
+local Ui_InputClass = {
+    Set = function(input, value)
+        Log.Debugf("Changing %s to %s", input.id, value)
+        input.object.UI.setAttribute(input.id, "text", value)
+    end,
+}
+Ui_InputClass.__index = Ui_InputClass
+
+function Ui_Input(parent, params)
+    local id, topLeft, bottomRight, fontSize, onValueChanged = params.id, params.topLeft, params.bottomRight, params.fontSize, params.onValueChanged
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+    assert(CheckNum(fontSize))
+    assert(CheckFunc(onValueChanged))
+
+    local id = parent.id.."_"..id.."Input"
+    Log.Debugf("Creating Input %s", id)
+
+    local input = {
+        id = id,
+        object = params.object or self,
+        onValueChanged = params.onValueChanged,
+    }
+    setmetatable(input, Ui_InputClass)
+
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
+    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
+    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
+    local onValueChanged = id.."_OnValueChanged"
+    self.setVar(onValueChanged, function(_, value)
+        input.onValueChanged(value)
+    end)
+    table.insert(parent.children, {
+        tag = "InputField",
+        attributes = {
+            id = id,
+            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width,
+            height = height,
+            text = params.value,
+            placeholder = params.placeholder,
+            textColor = params.textColor or UI_DARK_BROWN,
+            colors = UI_INVISIBLE_COLORS,
+            fontSize = params.fontSize,
+            textAlignment = "MiddleLeft",
+            onValueChanged = "Global/"..onValueChanged,
+            verticalOverflow = "Overflow",
+        }
+    })
+
+    return input
+end
+
+---------------------------------------------------------------------------------------------------
+
+local Ui_CounterClass = {
+    Set = function(counter, value)
+        assert(CheckNum(value))
+        Log.Debugf("Changing %s to %d", counter.textId, value)
+        counter.object.UI.setAttribute(counter.textId, "text", tostring(value))
+    end,
+}
+Ui_CounterClass.__index = Ui_CounterClass
+
+function Ui_Counter(parent, params)
+    local id, topLeft, bottomRight, fontSize, onValueChanged = params.id, params.topLeft, params.bottomRight, params.fontSize, params.onValueChanged
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+    assert(CheckNum(fontSize))
+    assert(CheckFunc(onValueChanged))
+
+    local id = parent.id.."_"..id.."Counter"
+    Log.Debugf("Creating Counter %s", id)
+
+    local textId = id.."Text"
+
+    local counter = {
+        textId = textId,
+        object = params.object or self,
+        fontSizes = params.fontSizes,
+        onValueChanged = params.onValueChanged,
+    }
+    setmetatable(counter, Ui_CounterClass)
+
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
+    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
+    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
+    local value = params.value or 0
+    table.insert(parent.children, {
+        tag = "Text",
+        attributes = {
+            id = textId,
+            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width,
+            height = height,
+            text = tostring(value),
+            color = UI_LIGHT_BROWN,
+            fontSize = fontSize,
+            textAlignment = "MiddleCenter",
+            horizontalOverflow = "Overflow",
+            verticalOverflow = "Overflow",
+        }
+    })
+
+    local minusId = id.."Minus"
+    local minusX = Util.Lerp(topLeft.x, bottomRight.x, 0.25) * UI_POSITION_MULTIPLIER
+    local minusOnClick = id.."Minus_OnClick"
+    self.setVar(minusOnClick, function(_, mouseButton)
+        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and -1 or -10)
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = minusId,
+            position = minusX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width / 2,
+            height = height,
+            colors = UI_INVISIBLE_COLORS,
+            textAlignment = "MiddleCenter",
+            onClick = "Global/"..minusOnClick,
+        }
+    })
+
+    local plusId = id.."Plus"
+    local plusX = Util.Lerp(topLeft.x, bottomRight.x, 0.75) * UI_POSITION_MULTIPLIER
+    local plusOnClick = id.."Plus_OnClick"
+    self.setVar(plusOnClick, function(_, mouseButton)
+        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and 1 or 10)
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = plusId,
+            position = plusX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width / 2,
+            height = height,
+            colors = UI_INVISIBLE_COLORS,
+            textAlignment = "MiddleCenter",
+            onClick = "Global/"..plusOnClick,
+        }
+    })
+
+    return counter
+end
+
+---------------------------------------------------------------------------------------------------
+
+local Ui_CheckBoxClass = {
+    Set = function(checkBox, value)
+        Log.Debugf("Changing %s to %s", checkBox.id, tostring(value))
+        if value then
+            checkBox.object.UI.setAttributes(checkBox.id, {
+                image = "CheckBoxFilled",
+                colors = UI_IMAGE_COLORS,
+            })
+        else
+            checkBox.object.UI.setAttributes(checkBox.id, {
+                image = nil,
+                colors = UI_INVISIBLE_COLORS,
+            })
+        end
+    end,
+}
+Ui_CheckBoxClass.__index = Ui_CheckBoxClass
+
+function Ui_CheckBox(parent, params)
+    local id, topLeft, bottomRight, onClick = params.id, params.topLeft, params.bottomRight, params.onClick
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+    assert(CheckFunc(onClick))
+
+    local id = parent.id.."_"..id.."CheckBox"
+    Log.Debugf("Creating CheckBox %s", id)
+
+    local checkBox = {
+        id = id,
+        object = params.object or self,
+        onClick = onClick,
+    }
+    setmetatable(checkBox, Ui_CheckBoxClass)
+
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
+    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
+    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
+    local onClick = id.."_OnClick"
+    self.setVar(onClick, function()
+        checkBox.onClick()
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = id,
+            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width,
+            height = height,
+            image = params.value and "CheckBoxFilled" or nil,
+            colors = params.value and UI_IMAGE_COLORS or UI_INVISIBLE_COLORS,
+            onClick = "Global/"..onClick,
+        }
+    })
+
+    return checkBox
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Input = Ui_Input,
+    Counter = Ui_Counter,
+    CheckBox = Ui_CheckBox,
+}

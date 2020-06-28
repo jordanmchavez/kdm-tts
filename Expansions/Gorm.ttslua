@@ -46,7 +46,7 @@ return {
         ["Riot Mace"]         = { speed = 2, accuracy = 5, strength = 5, deadly = 1 },
     },
 
-    namedGuids = { ["Gorm Archive"] = "211ef7" },
+    guidNames = { ["211ef7"] = "Gorm Archive" },
 
     archiveEntries = {
         archive = "Gorm Archive",
@@ -141,7 +141,9 @@ return {
                     level = 1,
                     monsterHuntPosition = 4,
                     showdown = {
-                        basic = 8,
+                        basic = 7,
+                        customBasic = { "Posturing Piss" },
+                        topAiCards = { "Posturing Piss" },
                         advanced = 2,
                         movement = 6,
                         toughness = 8,

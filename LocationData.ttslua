@@ -1,0 +1,627 @@
+return {
+    ["Rules Board"] = {
+        p1 = { x = -8.277505, y =    5, z = 8.241768 },
+        p2 = { x =    8.277505, y = -5, z = -8.241768 },
+        board = "Rules Board",
+    },
+
+    -----------------------------------------------------------------------------------------------
+
+    ["Showdown Grid"] = {
+        p1 = { x = 6.361594, y = 10.741001, z = 5.833877 },
+        p2 = { x = -6.015090, y = 10.741001, z = -3.155788 },
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------------------------
+
+    ["Deck Board"] = {
+        p1 = { x = 6.607502, y = 10.741001, z = 4.154560 },
+        p2 = { x = 9.370266, y = 10.741003, z = -1.179713 },
+        board = "Showdown Board",
+    },
+    ["Abilities"] = {
+        center = { x = 9.015150, y = 10.741002, z = -0.620570 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Fighting Arts"] = {
+        center = { x = 7.998055, y = 10.741000, z = -0.620570 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Secret Fighting Arts"] = {
+        center = { x = 6.980959, y = 10.741003, z = -0.620570 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Disorders"] = {
+        center = { x = 9.015150, y = 10.741000, z = 0.785908 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Severe Injuries"] = {
+        center = { x = 7.998055, y = 10.741001, z = 0.785908 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Tactics"] = {
+        center = { x = 6.980959, y = 10.741001, z = 0.785908 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Weapon Proficiencies"] = {
+        center = { x = 9.015150, y = 10.741002, z = 2.192385 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Armor Sets"] = {
+        center = { x = 7.998055, y = 10.741001, z = 2.192385 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Vermin"] = {
+        center = { x = 6.980959, y = 10.741001, z = 2.192385 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Strange Resources"] = {
+        center = { x = 9.015150, y = 10.741002, z = 3.598863 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Basic Resources"] = {
+        center = { x = 7.998055, y = 10.741001, z = 3.598863 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Resources"] = {
+        center = { x = 6.980959, y = 10.741002, z = 3.598863 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------------------------
+
+    ["Terrain Board"] = {
+        p1 = { x = 5.097445, y = 10.741002, z = -3.411523 },
+        p2 = { x = -4.970578, y = 10.741001, z = -4.551477 },
+        board = "Showdown Board",
+    },
+    ["Terrain"] = {
+        center = { x = 4.741388, y = 10.741003, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 1"] = {
+        center = { x = 3.904032, y = 10.741002, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 2"] = {
+        center = { x = 3.066676, y = 10.741000, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 3"] = {
+        center = { x = 2.229320, y = 10.741000, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 4"] = {
+        center = { x = 1.391964, y = 10.741002, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 5"] = {
+        center = { x = 0.554608, y = 10.741001, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 6"] = {
+        center = { x = -0.282748, y = 10.741001, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 7"] = {
+        center = { x = -1.120104, y = 10.741002, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 8"] = {
+        center = { x = -1.957460, y = 10.741003, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 9"] = {
+        center = { x = -2.794816, y = 10.741002, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain 10"] = {
+        center = { x = -3.632172, y = 10.741000, z = -3.967755 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Terrain Tiles"] = {
+        center = { x = -4.515556, y = 10.741003, z = -3.970696 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------------------------
+
+    ["Misc"] = {
+        center = { x = 4.741388, y = 10.741003, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 1"] = {
+        center = { x = 3.904032, y = 10.741002, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 2"] = {
+        center = { x = 3.066676, y = 10.741000, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 3"] = {
+        center = { x = 2.229320, y = 10.741000, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 4"] = {
+        center = { x = 1.391964, y = 10.741002, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 5"] = {
+        center = { x = 0.554608, y = 10.741001, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 6"] = {
+        center = { x = -0.282748, y = 10.741001, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 7"] = {
+        center = { x = -1.120104, y = 10.741002, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 8"] = {
+        center = { x = -1.957460, y = 10.741003, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 9"] = {
+        center = { x = -2.794816, y = 10.741002, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Misc 10"] = {
+        center = { x = -3.632172, y = 10.741000, z = -5.395621 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------------------------
+
+    ["Monster Board"] = {
+        p1 = { x = -6.927796, y = 10.741002, z = 5.043711 },
+        p2 = { x = -11.358661, y = 10.741003, z = -2.601561 },
+        board = "Showdown Board",
+    },
+    ["Monster Token 1"] = {
+        center = { x = -6.446431, y = 10.741002, z = -2.413854 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 2"] = {
+        center = { x = -6.446431, y = 10.741002, z = -1.945359 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 3"] = {
+        center = { x = -6.446431, y = 10.741001, z = -1.476864 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 4"] = {
+        center = { x = -6.446431, y = 10.741001, z = -1.008369 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 5"] = {
+        center = { x = -6.446431, y = 10.741000, z = -0.539874 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 6"] = {
+        center = { x = -6.446431, y = 10.741000, z = -0.071379 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 7"] = {
+        center = { x = -6.446431, y = 10.741000, z = 0.397116 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Token 8"] = {
+        center = { x = -6.446431, y = 10.741000, z = 0.865611 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    -- traits/moods aren't listed in top-down, left-to-right
+    ["Trait/Mood 1"] = {
+        center = { x = -7.280050, y = 10.741001, z = 0.415547 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 2"] = {
+        center = { x = -7.280050, y = 10.741002, z = -0.812282 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 3"] = {
+        center = { x = -7.280050, y = 10.741000, z = -2.040111 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 4"] = {
+        center = { x = -8.116979, y = 10.741001, z = 0.415547 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 5"] = {
+        center = { x = -8.116979, y = 10.741001, z = -0.812282 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 6"] = {
+        center = { x = -8.116979, y = 10.741000, z = -2.040111 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 7"] = {
+        center = { x = -8.953908, y = 10.741001, z = 1.643376 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 8"] = {
+        center = { x = -8.953908, y = 10.741002, z = 0.415547 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 9"] = {
+        center = { x = -8.953908, y = 10.741001, z = -0.812282 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 10"] = {
+        center = { x = -8.953908, y = 10.741001, z = -2.040111 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 11"] = {
+        center = { x = -9.790837, y = 10.741000, z = 1.643376 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 12"] = {
+        center = { x = -9.790837, y = 10.741002, z = 0.415547 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 13"] = {
+        center = { x = -9.790837, y = 10.741003, z = -0.812282 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Trait/Mood 14"] = {
+        center = { x = -9.790837, y = 10.741002, z = -2.040111 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Basic Action"] = {
+        center = { x = -7.280050, y = 10.741002, z = 1.643376 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Monster Info"] = {
+        center = { x = -8.116979, y = 10.741001, z = 1.643376 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["AI"] = {
+        center = { x = -7.458938, y = 10.741000, z = 3.058557 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["AI Discard"] = {
+        center = { x = -8.625810, y = 10.741002, z = 3.058557 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Wound Stack"] = {
+        center = { x = -9.786024, y = 10.741003, z = 3.058821 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["HL"] = {
+        center = { x = -7.458938, y = 10.741002, z = 4.473865 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["HL Discard"] = {
+        center = { x = -8.625810, y = 10.741003, z = 4.473865 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused HL"] = {
+        center = { x = -9.786024, y = 10.741003, z = 4.475617 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused Basic AI"] = {
+        center = { x = -10.986748, y = 10.741000, z = -2.038309 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused Advanced AI"] = {
+        center = { x = -10.986748, y = 10.741002, z = -0.410267 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused Legendary AI"] = {
+        center = { x = -10.986748, y = 10.741002, z = 1.217774 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused Special AI"] = {
+        center = { x = -10.986748, y = 10.741003, z = 2.845815 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Unused Misc AI"] = {
+        center = { x = -10.986748, y = 10.741002, z = 4.473855 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+
+    ["Hunt Cards"] = {
+        p1 = { x = 3.833936, y = 6, z = -7.537293 },
+        p2 = { x = -3.839113, y = -4, z = -2.886444 },
+        board = "Hunt Board",
+    },
+    ["Hunt Track"] = {
+        p1 = { x = 7.85826, y = 6, z = -0.780489 },
+        p2 = { x = -7.831961, y = -4, z = 6.639576 },
+        board = "Hunt Board",
+    },
+    ["Hunt Events"] = {
+        center = { x =    3.375038, y = 0.860623, z = -5.170869 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Monster Hunt Events"] = {
+        center = { x =    2.357527, y = 0.860623, z = -5.170869 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["The Forest Gate"] = {
+        center = { x =    1.340017, y = 0.860623, z = -5.170868 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Herb Gathering"] = {
+        center = { x = -1.338467, y = 0.860623, z = -5.170869 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Mineral Gathering"] = {
+        center = { x = -2.357022, y = 0.860623, z = -5.170869 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Sky Fishing"] = {
+        center = { x = -3.375580, y = 0.860623, z = -5.170869 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track Start"] = {
+        center = { x =    7.273605, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 1"] = {
+        center = { x =    6.059363, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 2"] = {
+        center = { x =    4.845125, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 3"] = {
+        center = { x =    3.630886, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 4"] = {
+        center = { x =    2.416644, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 5"] = {
+        center = { x =    1.202405, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 6"] = {
+        center = { x = -0.011834, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 7"] = {
+        center = { x = -1.226075, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 8"] = {
+        center = { x = -2.440314, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 9"] = {
+        center = { x = -3.654553, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 10"] = {
+        center = { x = -4.868794, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track 11"] = {
+        center = { x = -6.083034, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+    ["Hunt Track Starvation"] = {
+        center = { x = -7.297274, y = 0.860623, z =    2.921042 },
+        size = Location_CARD_SIZE,
+        board = "Hunt Board",
+    },
+
+    -----------------------------------------------------------------------------
+
+    ["Innovation Board"] = {
+        p1 = { x = 8.084217, y = 0.595169, z = -8.140269 },
+        p2 = { x = -8.087986, y = 0.595169, z = -3.594313 },
+        board = "Settlement Board",
+    },
+    ["Innovation Deck"] = {
+        center = { x = 3.051355, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Principle: Death"] = {
+        center = { x = 2.179312, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Principle: New Life"] = {
+        center = { x = 1.307268, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Principle: Society"] = {
+        center = { x = -1.308862, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Principle: Conviction"] = {
+        center = { x = -2.180904, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Innovations"] = {
+        center = { x = -3.052947, y = 0.595169, z = -7.423294 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+    ["Starting Innovation"] = {
+        center = { x = 3.053241, y = 0.595169, z = -6.384946 },
+        size = Location_CARD_SIZE,
+        board = "Settlement Board",
+    },
+
+    -----------------------------------------------------------------------------
+
+    ["Settlement Location Board"] = {
+        p1 = { x = 8.085206, y = 0.595168, z = 8.139897 },
+        p2 = { x = -8.087507, y = 0.595169, z = 1.754595 },
+        board = "Settlement Board",
+    },
+    ["Starting Gear"] = {
+        center = { x = 7.415189, y = 0.595169, z = 4.248330 },
+        size = Location_GEAR_SIZE,
+        board = "Settlement Board",
+    },
+    ["Rare Gear"] = {
+        center = { x = 7.415191, y = 0.595169, z = 4.949259 },
+        size = Location_GEAR_SIZE,
+        board = "Settlement Board",
+    },
+    ["Promo Gear"] = {
+        center = { x = 7.415189, y = 0.595169, z = 5.650189 },
+        size = Location_GEAR_SIZE,
+        board = "Settlement Board",
+    },
+
+    -----------------------------------------------------------------------------
+
+    ["Survivor Status 1"] = {
+        center = { x = 10.557465, y = 10.765527, z = 6.741133 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 2"] = {
+        center = { x =  4.559926, y = 10.765449, z = 6.741133 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 3"] = {
+        center = { x = -1.442106, y = 10.765368, z = 6.741133 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+    ["Survivor Status 4"] = {
+        center = { x = -7.440800, y = 10.765286, z = 6.741133 },
+        size = Location_CARD_SIZE,
+        board = "Showdown Board",
+    },
+
+    -----------------------------------------------------------------------------
+
+    ["Age Reference"] = {
+        center = { x = 87.130890, y = 2, z = -65.862335 },
+        size = Location_REFERENCE_SIZE,
+    },
+    ["Intimacy Reference"] = {
+        center = { x = 108.531082, y = 2, z = -65.862335 },
+        size = Location_REFERENCE_SIZE,
+    },
+    ["Bold Reference"] = {
+        center = { x = 87.130890, y = 2, z = -82.648521 },
+        size = Location_REFERENCE_SIZE,
+    },
+    ["Insight Reference"] = {
+        center = { x = 108.531082, y = 2, z = -82.648521 },
+        size = Location_REFERENCE_SIZE,
+    },
+
+    -----------------------------------------------------------------------------
+    -- Temporary hacks until we get art locations for these
+    ["Settlement Events"] = {
+        center = { x = -14.360849, y = 10.801341, z = -4.955215 },
+        size = Location_SETTLEMENT_EVENT_SIZE,
+        board = "Showdown Board",
+    },
+    ["Drawn Settlement Events"] = {
+        center = { x = -13.125675, y = 10.801341, z = -4.955215 },
+        size = Location_SETTLEMENT_EVENT_SIZE,
+        board = "Showdown Board",
+    },
+    ["Settlement Locations"] = {
+        center = { x = -10.137783, y = -0.039099, z = 4.920703 },
+        size = Location_SETTLEMENT_LOCATION_SIZE,
+        board = "Showdown Board",
+    }
+}

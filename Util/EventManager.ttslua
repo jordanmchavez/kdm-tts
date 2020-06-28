@@ -25,13 +25,18 @@ function EventManager.AddHandler(event, handler)
 
     _G[event] = function(...)
         local globalHandler = eventManager_globalHandlers[event]
+        local returnValue
         if globalHandler then
-            globalHandler(...)
+            returnValue = globalHandler(...)
         end
 
+        local args = table.pack(...)
+        table.insert(args, returnValue)
         for _, handler in ipairs(eventManager_handlers[event]) do
-            handler(...)
+            args[#args] = handler(table.unpack(args))
         end
+
+        return args[#args]
     end
 
     eventManager_handlers[event] = { handler }

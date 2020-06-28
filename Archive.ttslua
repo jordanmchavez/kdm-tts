@@ -1,7 +1,7 @@
 require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Archive")
-local Guids = require("Kdm/Guids")
-local Locations = require("Kdm/Locations")
+local NamedObject = require("Kdm/NamedObject")
+local Location = require("Kdm/Location")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ local Archive = {
         ["Disorders Archive"] = { { "Disorders", "Disorders" } },
         ["Severe Injuries Archive"] = { { "Severe Injuries", "Severe Injuries" } },
         ["Tactics Archive"] = { { "Tactics", "Tactics" } },
-        ["Weapon Specializations/Masteries Archive"] = { { "Weapon Specializations/Masteries", "Weapon Specializations/Masteries" } },
+        ["Weapon Proficiencies Archive"] = { { "Weapon Proficiencies", "Weapon Proficiencies" } },
         ["Armor Sets Archive"] = { { "Armor Sets", "Armor Sets" } },
         ["Vermin Archive"] = { { "Vermin", "Vermin" } },
         ["Strange Resources Archive"] = { { "Strange Resources", "Strange Resources" } },
@@ -35,7 +35,7 @@ local Archive = {
         ["Disorders Archive"]                        = true,
         ["Severe Injuries Archive"]                  = true,
         ["Tactics Archive"]                          = true,
-        ["Weapon Specializations/Masteries Archive"] = true,
+        ["Weapon Proficiencies Archive"] = true,
         ["Armor Sets Archive"]                       = true,
         ["Vermin Archive"]                           = true,
         ["Strange Resources Archive"]                = true,
@@ -104,13 +104,13 @@ function Archive.Take(params)
     assert(CheckStr(type))
     assert(CheckStr(location))
     assert(CheckNumOrNil(height))
-    assert(CheckVecOrNil(rotation))
+    assert(CheckVec3OrNil(rotation))
     assert(CheckFuncOrNil(spawnFunc))
 
-    rotation = rotation or Locations.DEFAULT_ROTATION
-    height = height or Locations.DEFAULT_HEIGHT
+    rotation = rotation or Location.DEFAULT_ROTATION
+    height = height or Location.DEFAULT_SPAWN_HEIGHT
 
-    local position = Locations.WorldCenter(location)
+    local position = Location.WorldCenter(location)
     position.y = position.y + height
 
     local typeIndex = Archive.index[type]
@@ -123,7 +123,7 @@ function Archive.Take(params)
     if Archive.singleItemArchives[archive] then
         -- for single item archives no need to pull intermediate bag
         Log.Debugf("Using single-item archive %s for %s (%s)", archive, name, type)
-        return Guids.GetObject(archive).takeObject({
+        return NamedObject.Get(archive).takeObject({
             position = position,
             rotation = rotation,
             smooth = false,
@@ -136,7 +136,7 @@ function Archive.Take(params)
         Log.Debugf("Re-using already-spawned archive bag %s (%s) for %s (%s)", bag.getName(), bag.getGUID(), name, type)
     else
         -- spawn new bag and cache
-        bag = Guids.GetObject(archive).takeObject({
+        bag = NamedObject.Get(archive).takeObject({
             position = { x = Archive.bagX, y = 15, z = Archive.bagZ },
             smooth = false,
         })

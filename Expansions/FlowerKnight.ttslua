@@ -35,7 +35,7 @@ return {
         ["Vespertine Bow"]       = { speed = 3, accuracy = 6, strength = 4, deadly = 1 },
     },
 
-    namedGuids = { ["Flower Knight Archive"] = "475b51" },
+    guidNames = { ["475b51"] = "Flower Knight Archive" },
 
     archiveEntries = {
         archive = "Flower Knight Archive",

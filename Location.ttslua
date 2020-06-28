@@ -1,0 +1,319 @@
+require("Kdm/Util/Check")
+local Util = require("Kdm/Util/Util")
+local Log = require("Kdm/Util/Log").ForPackage("Locations")
+
+local NamedObject = nil
+
+local Location = {
+    locations = {}
+}
+
+Location_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
+Location_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
+Location_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
+Location_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
+Location_GEAR_SIZE = { x = 3, y = 10, z = 3 }
+Location_TOKEN_SIZE = { x = 1.412567, y = 0.1, z = 1.405437 }
+
+Location_MAX_TERRAIN = 10
+Location_MAX_MISC = 10
+Location_MAX_TRAITS_MOODS = 14
+Location_MAX_MONSTER_TOKENS = 8
+
+Location_MAX_SETTLEMENT_LOCATION_COLS = 10
+Location_MAX_SETTLEMENT_LOCATION_ROWS = 2
+
+Location_DEFAULT_CAST_HEIGHT = 50
+
+Location_DEFAULT_SPAWN_HEIGHT = 2
+Location_FACE_UP = { 0, 180, 0 }
+Location_FACE_DOWN = { 0, 180, 180 }
+Location_DEFAULT_ROTATION = Location_FACE_UP
+
+local Location_data = require("Kdm/LocationData")
+
+local Location_index = {}
+
+local Location_Class = {}
+Location_Class.__index = Location_Class
+
+---------------------------------------------------------------------------------------------------
+
+function Location_Class.Center(location)
+    return location.object and location.object.positionToWorld(location.center) or location.center
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location_Class.Size(location)
+    local topLeft, bottomRight
+    if location.object then
+        topLeft = location.object.positionToWorld(location.topLeft)
+        bottomRight = location.object.positionToWorld(location.bottomRight)
+    else
+        topLeft, bottomRight = location.topLeft, location.bottomRight
+    end
+    return {
+        x = math.abs(bottomRight.x - topLeft.x),
+        y = math.abs(bottomRight.y - topLeft.y),
+        z = math.abs(bottomRight.z - topLeft.z),
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- returns left, top, right, bottom
+function Location_Class.WorldRect(location)
+    local topLeft, bottomRight
+    if location.object then
+        topLeft = location.object.positionToWorld(location.topLeft)
+        bottomRight = location.object.positionToWorld(location.bottomRight)
+    else
+        topLeft, bottomRight = location.topLeft, location.bottomRight
+    end
+    return topLeft.x, topLeft.z, bottomRight.x, bottomRight.z
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location_Class.BoxCast(location, params)
+    params = params or {}
+
+    local center = location:Center()
+    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+
+    local size = location:Size()
+    size.y = size.x -- doesn't matter, just needs to be > epsilon for a top-down cast
+
+    return Physics.cast({
+        origin    = center,
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = size,
+        debug     = params.debug,
+    })
+end
+
+function Location_Class.RayCast(location, params)
+    local center = location:Center()
+    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+
+    return Physics.cast({
+        origin    = center,
+        direction = { 0, -1, 0 },
+        type      = 1,
+        debug     = params.debug,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Create(params)
+    assert(CheckTable(params))
+    assert(CheckObjOrNil(params.object))
+
+    local location = {
+        object = params.object,
+    }
+    setmetatable(location, Location_Class)
+
+    if params.center and params.size then
+        location.center = params.center
+        location.rect = {
+            params.center.x - (params.size.x / 2),
+            params.center.y - (params.size.y / 2),
+            params.center.z - (params.size.z / 2),
+        }
+        location.bottomRight = {
+            params.center.x + (params.size.x / 2),
+            params.center.y + (params.size.y / 2),
+            params.center.z + (params.size.z / 2),
+        }
+
+    elseif params.p1 and params.p2 then
+        local p1 = params.p1
+        local p2 = params.p2
+        location.center = {
+            x = (p1.x + p2.x) / 2,
+            y = (p1.y + p2.y) / 2,
+            z = (p1.z + p2.z) / 2,
+        }
+        location.topLeft = {
+            x = Util.Min(p1.x, p2.x),
+            y = Util.Min(p1.y, p2.y),
+            z = Util.Min(p1.z, p2.z),
+        }
+        location.bottomRight = {
+            x = Util.Max(p1.x, p2.x),
+            y = Util.Max(p1.y, p2.y),
+            z = Util.Max(p1.z, p2.z),
+        }
+
+    else
+        assert(Check.Fail("Invalid params for Location_Create. Requires either center+size or p1+p2: %s", params))
+    end
+
+    return location
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Add(name, location)
+    assert(Check(not Location_index[name], "Location %s already registered: %s", name, Location_index[name]))
+    Location_index[name] = location
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Get(name)
+    local location = Location_index[name]
+    assert(Check(location, "Unknown location: %s", name))
+    return location
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Init(saveState, expansions, deps)
+    NamedObject = deps.NamedObject
+    assert(NamedObject)
+
+    -----------------------------------------------------------------------------------------------
+    -- Location data
+
+    for name, data in pairs(Location_data) do
+        if data.board then
+            data.object = NamedObject.Get(data.board)
+        end
+        Location_Add(name, Location_Create(data))
+    end
+
+    -----------------------------------------------------------------------------------------------
+    -- Showdown board grid locations
+
+    local gridLeft   = 6.0804635
+    local gridRight  = -5.735014
+    local gridTop    = -2.8629885
+    local gridBottom =  5.5242755
+    local y = 10.741001
+    local cellWidth  = math.abs(gridRight - gridLeft) / 21
+    local cellHeight = math.abs(gridBottom - gridTop) / 15
+    local size = { x = cellWidth, y = cellWidth, z = cellHeight }
+    local showdownBoard = NamedObject.Get("Showdown Board")
+    for col = 1, 22 do
+        for row = 1, 16 do
+            local x = gridLeft - ((col - 1) * cellWidth)
+            local xHalf = x - (cellWidth / 2)
+            local z = gridTop + ((row - 1) * cellHeight)
+            local zHalf = z + (cellHeight / 2)
+            Location_Add(string.format("(%d, %d)", col, row), Location_Create({
+                center = { x = x, y = y, z = z},
+                size = size,
+                object = showdownBoard,
+            }))
+            Location_Add(string.format("(%d, %d.5)", col, row), Location_Create({
+                center = { x = x, y = y, z = zHalf},
+                size = size,
+                object = showdownBoard,
+            }))
+            Location_Add(string.format("(%d.5, %d)", col, row), Location_Create({
+                center = { x = xHalf, y = y, z = z},
+                size = size,
+                object = showdownBoard,
+            }))
+            Location_Add(string.format("(%d.5, %d.5)", col, row), Location_Create({
+                center = { x = xHalf, y = y, z = zHalf},
+                size = size,
+                object = showdownBoard,
+            }))
+        end
+    end
+
+    -----------------------------------------------------------------------------------------------
+    -- Gear locations
+
+    local settlementBoard = NamedObject.Get("Settlement Board")
+    local topLeft = { x = 6.150475, y = 0.595169, z = 2.302748 }
+    local bottomRight = { x = -7.021307, y = 0.595168, z = 7.602671 }
+    local dx = (bottomRight.x - topLeft.x) / 9
+    local dz = (bottomRight.z - topLeft.z)
+    for col = 1, 10 do
+        local x = topLeft.x + (col - 1) * dx
+        for row = 1, 2 do
+            Location_Add(string.format("Gear %d %d", col, row), Location_Create({
+                center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
+                size = Location_GEAR_SIZE,
+                object = settlementBoard,
+            }))
+        end
+    end
+
+    -----------------------------------------------------------------------------------------------
+    -- Settlement locations
+
+    local settlementBoard = NamedObject.Get("Settlement Board")
+    local topLeft = { x = 6.054009, y = 0.595169, z = 3.801595 }
+    local bottomRight = { x = -7.115391, y = 0.595169, z = 6.102203 }
+    local dx = (bottomRight.x - topLeft.x) / 9
+    local dz = (bottomRight.z - topLeft.z)
+    for col = 1, Location_MAX_SETTLEMENT_LOCATION_COLS do
+        local x = topLeft.x + (col - 1) * dx
+        for row = 1, Location_MAX_SETTLEMENT_LOCATION_ROWS do
+            Location_Add(string.format("Settlement Location %d %d", col, row), Location_Create({
+                center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
+                size = Location_SETTLEMENT_LOCATION_SIZE,
+                object = settlementBoard,
+            }))
+        end
+    end
+
+    -----------------------------------------------------------------------------------------------
+    -- Player board locations
+    local cards = {
+        { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
+        { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
+    }
+    local playerBoardY = 0.602462
+    local topLeft = { x = 0.761011, y = 0.113605, z = 0.169144 }
+    local bottomRight = { x = -0.762014, y = 0.113605, z = 0.499068 }
+    local dx = (bottomRight.x - topLeft.x) / 7
+    local dz = (bottomRight.z - topLeft.z)
+    for playerNumber = 1, 4 do
+        local playerBoard = NamedObject.Get("Player "..playerNumber.." Board")
+        for col = 1, 8 do
+            local x = topLeft.x + (col - 1) * dx
+            for row = 1, 2 do
+                Location_Add(string.format("Player %d %s", playerNumber, cards[row][col]), Location_Create({
+                    center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
+                    size = Location_CARD_SIZE,
+                    object = playerBoard,
+                }))
+            end
+        end
+
+        Location_Add(string.format("Player %d Permanent Tokens", playerNumber), Location_Create({
+            p1 = { x = -0.056596, y = 0.113605, z = 0.764381 },
+            p2 = { x = -0.811249, y = 0.113605, z = 0.970867 },
+            object = playerBoard,
+        }))
+
+        Location_Add(string.format("Player %d Board", playerNumber), Location_Create({
+            p1 = { x = 0.889375, y = 0.150073, z = -0.999771 },
+            p2 = { x = -0.890428, y = 0.150359, z = 1.000068 },
+            object = playerBoard
+        }))
+    end
+
+    for _, expansion in ipairs(expansions) do
+        for name, locationParams in pairs(expansion.locations or {}) do
+            locationParams.object = NamedObject.Get(locationParams.board)
+            Location_Add(name, Location_Create(locationParams))
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Location_Init,
+    Get = Location_Get,
+}

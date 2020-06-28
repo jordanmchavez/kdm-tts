@@ -13,15 +13,12 @@ return {
 
     timelineEvents = {
         { year = 5, name = "The Hanged Man", type = "RulebookEvent" },
-        { year = 10, name = "Special Showdown - Manhunter Lvl 2", type = "ShowdownEvent", monster = "Manhunter", level = "Level 2" },
-        { year = 16, name = "Special Showdown - Manhunter Lvl 3", type = "ShowdownEvent", monster = "Manhunter", level = "Level 3" },
-        { year = 22, name = "Special Showdown - Manhunter Lvl 4", type = "ShowdownEvent", monster = "Manhunter", level = "Level 4" },
     },
 
     armorStats = {
         ["Manhunter's Hat"] = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
     },
-    namedGuids = { ["Manhunter Archive"] = "e5fe39" },
+    guidNames = { ["e5fe39"] = "Manhunter Archive" },
 
     archiveEntries = {
         archive = "Manhunter Archive",

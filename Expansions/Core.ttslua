@@ -7,7 +7,7 @@ return {
         ["Secret Fighting Arts"] = "Core Secret Fighting Arts",
         ["Disorders"] = "Core Disorders",
         ["Severe Injuries"] = "Core Severe Injuries",
-        ["Weapon Specializations/Masteries"] = "Core Weapon Specializations/Masteries",
+        ["Weapon Proficiencies"] = "Core Weapon Proficiencies",
         ["Armor Sets"] = "Core Armor Sets",
         ["Vermin"] = "Core Vermin",
         ["Strange Resources"] = "Core Strange Resources",
@@ -339,7 +339,7 @@ return {
         ["Zanbato"] = { speed = 1, accuracy = 6, strength = 6, slow = true, deadly = 1 },
     },
 
-    namedGuids = { ["Core Archive"] = "6392cb" },
+    guidNames = { ["6392cb"] = "Core Archive" },
 
     archiveEntries = {
         archive = "Core Archive",
@@ -355,7 +355,7 @@ return {
             { "Core Secret Fighting Arts", "Secret Fighting Arts" },
             { "Core Disorders", "Disorders" },
             { "Core Severe Injuries", "Severe Injuries" },
-            { "Core Weapon Specializations/Masteries", "Weapon Specializations/Masteries" },
+            { "Core Weapon Proficiencies", "Weapon Proficiencies" },
             { "Core Armor Sets", "Armor Sets" },
             { "Core Vermin", "Vermin" },
             { "Core Strange Resources", "Strange Resources" },

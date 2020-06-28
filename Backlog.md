@@ -1,37 +1,98 @@
+static init
+pre-init: receives save state, depends on objects being loaded, but not on any other subsystems
+register expansions
+init: depends on other subsystems (event management, guids), receive dependencies, fire events, build uis
 
-* timeline event redo
-    * settlement events with dropdown and custom
-    * real showdowns with selection with dropdown and custom
-    * new UI
-    * icons for search events
+PreInit(saveState)
+Init(dependencies)
+PostInit(ui)
 
-* fixed broken lion god
-* slendy shouldn't replace kingsman directly...use unspecified
-* campaign-specific milestones
-* People of the Sun Embolden token
-showdown/settlement/timeline event ICONS for the checkBoxes when adding a custom event
 
-----------------------------------------
+* Added version printed at the start of game
+* Fixed hunt not spawning monster resources
+* Shrunk size of quarry text so longer names will fit (Screaming Antelope / DBK were getting truncated)
+* Fixed "The Lonely Tree" terrain model not snapping
+* Fixed custom showdown timeline events overwriting the name with "Nemesis Encounter"
+* Manhunter expansion no longer preemptively adds special showdowns to the timeline.
+* Fixed evasion not clearing on showdown cleanup
+* Add lifetime reroll:
+    * Option: checkbox on the char sheet
+    * Option: token, similar to survival token
+    * Option: ability card
+* Redo of the main boards:
+    * Move "reset" buttons for decks to the side and give more space
+    * large showdown board
+    * Token board off to the side
+    * More terrain and trait slots
+    * Clearly labelled ai/hl and discard decks
+    * player boards tighter
+    * player boards closer to showdown board
+-------------------------------------------------------------------------
 
-location abstraction
-test script
-should say "right click to delete" somewhere
-reimport *all* images bigger than 4k
-camera view abstraction
-    hunt, showdown, rules
+redo sizes
+monster reset button
+wound stack in ai row
+unused hl to hl row
+replace unused hl with misc ai
+* Fix brain light injury on char sheet to align
+* Add suirvival actions to settlement sheet
 
-import/export
+* Constellation Tracker
 
-redo all decks so archive is *in front*
-steam screenshots
-mutually exclusive menus
-hide f&t and founding stone
-population UI
-swap innovations / resources on settlement board
-lifetime reroll token space
-settlement event type on timeline -> auto show event
-dependency injection
-redo settlement board: settlement events, tokens, settlement locations
+* Config menu
+    * Lock/unlock boards
+    * Player movement overlays
+    * Monster movement overlays
+    * Auto token stats
+    * Auto armor
+    * Auto deck reset
+    * Auto settlement location gear
+    * Auto setup timeline
+    * Auto setup expansion timeline
+    * Auto setup innovations
+    * Monster Grid Snapping
+    * Terrain Grid Snapping
+
+* Large notes field on back of char sheet
+* Better battle reference
+    * Full survivor stats
+    * Ability to show/hide F&T and founding stone, or any piece
+    * Show/hiude buttons with tooltips and "show all"
+* Location abstraction that's independent of position
+    * Spatial Index and Dropzone should interact with it directly
+* Menus should be mutually exclusive: clicking on one should close the others
+* Dependency injection to avoid circular requires()
+* Fix broken multi-line notes        
+* two armor sets keep one forever
+
+
+* Shrink "Permanent Token" sizes
+* Video tutorial
+* Export/Import saves
+* Swap Innovations and Resources on Settlement Board
+    * Indicators for principles
+    * Automatic consequence drawing
+* Add a Settlement Phase Board:
+    * Endeavor tokens
+    * Phase guide
+    * Settlement Event Deck / reshuffle/reset
+    * Drawn Settlement Event
+* Move player board closer to main board
+    * Move tokens to the side
+* Redo deck board:
+    * Reset buttons on the side
+    * Archives closer to the actual decks
+* Scan all gear
+* Limit all deck grids to 4k
+* Test scripting
+* Hunt/showdown camera movement
+* UI only visible to player who clicked?
+* Population UI
+* Test Script
+* Add "right click to delete" somewhere on the settlement timeline
+* Improve search to "find/spawn anything"
+* Once population sheet is gone, re-add the "show"/"layout" buttons for gear that will lay them out above the settlement board
+* Monster board token support
 
 
 # High Priority
@@ -40,13 +101,8 @@ redo settlement board: settlement events, tokens, settlement locations
 * sharp/devastating?
 * Spidicules
 * reset infinity bag for char sheets  in tut
-* Reroll card
-* Spawn Anything
 * Spiderling/Shade fixed movement -> "Minion" type
-* Message to move survivors/terrain after spawning a showdown
 * "lay out cards"
-* Tutorial
-* Monster board auto-token support
 * append (CE) to rest of CE cards
 
 # Medium Priority (will do, but not next release)
@@ -63,21 +119,15 @@ redo settlement board: settlement events, tokens, settlement locations
 * CE slocs should have black background
 * Table of Contents
 * Two-page rules allowing easy "copy this over here"
-* Lock nonsquare terrain
-* Automatic innovation consequnces
 * Custom life counter
 * Gigalion vignette
 * Strains
 * Support for "Enter" to select first item in search
 * Dice infinites
 * Organ grinder back central filigree is a lighter color than the others...not terrible but slightly noticable.
-* "Show" gear, like gloomhaven
 * Slot for terrain bag
-* Rethink the scripting system's abstraction for "creating decks"....we need a build deck abstraction that accepts input from multiple locations, spawns them in "the back" and then groups them and moves.
 * Move resets for promo/rare/starting gear to the other side...to hard to click next to big slocs
-* More space in between sloc and gear due to snapping, slocs can block gear
 * Move "pack button" to below surv action so it's clearer what it affects
-* Switch Innovations with Resource storage
 
 # Possibly Will Do
 * Battle UI work with weird shit like slenderman katana
@@ -103,71 +153,37 @@ redo settlement board: settlement events, tokens, settlement locations
 * Redo *all curved corners* with 10/6 or 10/7
 * Consider redoing survival actions with black/white and colored font
 * Rescan tokens
-* Redo the permanent tokens so the art is the *exact* same size...will involve resizing "permanent token" circles on player board and redoing the snap points
 * Flip "innovation deck" text horizontally
 * Move all reset buttons to the sides, so you can see them under stuff
 * Change all rules tile colors to match the actual page art
 * Fix all card color tints...they're *Grey*
-* Level select for hunt/showdown doesn't fill up the whole panel
-* Simplify script rotations to onyl care about y axis or flip
 * Terrain tiles/anything else using a grid snap to also snap on spawn/take out of container...currently can draw directly from container and drop on board, will not snap. seems to be bypassing onDrop()
 * Watcher retinue tokens
 * Precomppile the tries/other indexes
 * Requiring only once, and using dependency injection
 * Settable attr validation in palyer/char/showdown board
-* all script names underscores
-* fix LK girl foot geometry
 
 * redo rules: probably 2048 each
 * better battle UI close button
 * spatial indexes that support local coordinates
-* ruyles ui out of global
-* simplify rules search code
 * rules ui button highlighting
-* rules should have names as keys
-* brown cursors for all text
 * rename grid to snap, move to utils
 * rules = { "Dragon King Rules", 4 },
-* dk char sheets
-* move gigalion to its own white box
-    * same w/green knight
 guid object caching
     also checking that != nil
-battleui to use xmlui
+battleui to use Ui
 
-separate UIs?
-
-showdown and hunt should be their own things
-* space for set locs/set events
-    meantime move slocs to below sevents
 auto keyword tokenization..silly otherwise
-custom milestones (edged tonometry)
 
-remove unused innos from decks (campaign-specific, destiny, etc)
+remove unused innos/slocs from decks (campaign-specific, destiny, etc)
 
-principle labels on spots
 inconsistent "SettlementLocation_" in location names
     same with sb grid
-oo/modularity pass: location/locationdata
 rulebook/rules ambiguity
-
-battleui to use xmlui
-
-hunt event deck needs tooltip
 
 rename setup.position to setup.location
 
-rotation should probably be renamed rotation
-
-inits on each thing
-
-
-assert(x, str) str less needed with stack traces
-
-checkgroup = selected vs checked?
-
 init -> load
-
 
 assert vec3 shouldn't supprot numbered indexes
 
@@ -236,3 +252,37 @@ faq:
     custom cards
     delete an event
     packing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Upcoming Feature Brainstorm (post suggestions in comments/PM me!):
+    * A video tutorial
+    * Spidicules model
+    * Spiderling model
+    * Lonely Fruit Model
+    * Dragon King texture cleanup
+    * Custom "Life" counter with a UI counter.
+    * *Either*: 100-card Hunt deck with the hunt events on the card *OR* auto-spawning the hunt even rules when you flip a card.
+    * More showdown automation: resetting survival actions
+    * Automatic locking terrain after starting a showdown.
+    * More survivor models! I plan on scanning in many of my 50+ survivor minis...I have this idea where you can drop a survivor model on your player board and it will then become the "designated" model for that player. It's base would turn the appropriate color and the previous mini for that player would have a black base. This way you can 'assign' survivors to players arbitrarily.
+    * Bette resin dung ball scan. Currently it's just a sphere.
+    * Custom bases with stone faces and such.
+    * Better infinite containers for dice. The blue bags just suck!
+    * Rescans galore: I've done all the cards, but need to rescan terrain tiles and expansion rulebooks.
+    * An extended survivor system for more functionality between the individual survivor sheets and the big survivor sheet.
+    * A clean way to automatically do innovation consequences.
+    * Gigalion vignette
+    * Strains and milestones!

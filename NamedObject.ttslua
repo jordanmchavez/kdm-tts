@@ -1,0 +1,150 @@
+require("Kdm/Util/Check")
+local Log = require("Kdm/Util/Log").ForPackage("NamedObject")
+local EventManager = require("Kdm/Util/EventManager")
+
+---------------------------------------------------------------------------------------------------
+
+local NamedObject_guidNames = {
+    ["0b2ed0"] = "Table",
+    ["bafa19"] = "Top Table",
+    ["8bf5e2"] = "Left Table",
+    ["dff000"] = "Bottom Table",
+    ["f7805a"] = "Right Table",
+
+    ["da72c5"] = "Abilities Archive",
+    ["0dc4b8"] = "Fighting Arts Archive",
+    ["13a43d"] = "Secret Fighting Arts Archive",
+    ["590a4f"] = "Disorders Archive",
+    ["1d3367"] = "Severe Injuries Archive",
+    ["379dcf"] = "Tactics Archive",
+    ["a80b96"] = "Weapon Proficiencies Archive",
+    ["d843fb"] = "Armor Sets Archive",
+    ["43ac01"] = "Vermin Archive",
+    ["dd76f7"] = "Strange Resources Archive",
+    ["57a8b5"] = "Basic Resources Archive",
+    ["7223e1"] = "Terrain Archive",
+    ["2551b1"] = "Terrain Tiles Archive",
+    ["916de5"] = "Settlement Events Archive",
+    ["7a04ec"] = "Rare Gear Archive",
+    ["5d72f3"] = "Hunt Events Archive",
+
+    ["437cd7"] = "Showdown Board",
+    ["51a21e"] = "Hunt Board",
+    ["226d8a"] = "Settlement Board",
+    ["456dc5"] = "Rules Board",
+    ["58f2b5"] = "Rules Navigation Board",
+
+    ["34bfdb"] = "Player 1 Board",
+    ["9f3675"] = "Player 2 Board",
+    ["fbebc8"] = "Player 3 Board",
+    ["d70755"] = "Player 4 Board",
+
+    ["27334a"] = "Player 1 Marker",
+    ["c6d863"] = "Player 2 Marker",
+    ["a8d948"] = "Player 3 Marker",
+    ["e00244"] = "Player 4 Marker",
+
+    ["6bc296"] = "Population Sheet",
+
+    ["b07b40"] = "Overlays",
+}
+
+local NamedObject_guids = {}
+
+local namedObjects_index = {}
+
+---------------------------------------------------------------------------------------------------
+
+local function NamedObject_Add(name, guid)
+    local object = getObjectFromGUID(guid)
+    assert(Check(object != nil, "Couldn't find critical component '%s' with guid %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
+    local existing = namedObjects_index[name]
+    if existing then
+        assert(CheckFail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
+    end
+
+    namedObjects_index[name] = object
+    NamedObject_guids[guid] = true
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function NamedObject_Get(name)
+    local object = namedObjects_index[name]
+    assert(Check(object, "Unknown object '%s'", name))
+
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function NamedObject_OnObjectDestroy(object)
+    if NamedObject_guids[object.getGUID()] then
+        Log.Broadcastf("A critical game component '%s' (GUID %s) was just deleted. This may cause the mod to malfunction. Please restore an earlier save game.", object.getName(), object.getGUID())
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function NamedObject_FilterObjectEnterContainer(container, object, previousReturnValue)
+    if previousReturnValue == false then
+        return false
+    end
+
+    if NamedObject_guids[object.getGUID()] then
+        Log.Broadcastf("%s (%s) is a critical game component. The mod may break if it's put in a container.", object.getName(), object.getGUID())
+        return false
+    end
+
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function NamedObject_Init(saveState, expansions)
+    for guid, name in pairs(NamedObject_guidNames) do
+        NamedObject_Add(name, guid)
+    end
+
+    for _, expansion in ipairs(expansions) do
+        for guid, name in pairs(expansion.guidNames or {}) do
+            NamedObject_Add(name, guid)
+        end
+    end
+
+    local uninteractable = {
+        "Table",
+        "Top Table",
+        "Left Table",
+        "Bottom Table",
+        "Right Table",
+        "Showdown Board",
+        "Hunt Board",
+        "Settlement Board",
+        "Rules Board",
+        "Rules Navigation Board",
+        "Player 1 Board",
+        "Player 2 Board",
+        "Player 3 Board",
+        "Player 4 Board",
+        "Player 1 Marker",
+        "Player 2 Marker",
+        "Player 3 Marker",
+        "Player 4 Marker",
+        "Overlays",
+    }
+    for _, name in ipairs(uninteractable) do
+        NamedObject_Get(name).interactable = false
+    end
+
+    EventManager.AddHandler("onObjectDestroy", NamedObject_OnObjectDestroy)
+    EventManager.AddHandler("filterObjectEnterContainer", NamedObject_FilterObjectEnterContainer)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Add = NamedObject_Add,
+    Get = NamedObject_Get,
+    Init = NamedObject_Init,
+}

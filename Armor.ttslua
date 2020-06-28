@@ -1,25 +1,28 @@
 require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("Armor")
 
-local Armor = {
-    armorStats = {}
-}
+local Armor_stats = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function Armor.RegisterExpansion(expansion)
-    for armor, stats in pairs(expansion.armorStats or {}) do
-        assert(Check(Armor.armorStats[armor] == nil, "Armor %s is already registered", armor))
-        Armor.armorStats[armor] = stats
+local function Armor_Init(saveState, expansions, deps)
+    for _, expansion in ipairs(expansions) do
+        for armor, stats in pairs(expansion.armorStats or {}) do
+            assert(Check(Armor_stats[armor] == nil, "Armor %s is already registered", armor))
+            Armor_stats[armor] = stats
+        end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Armor.GetStats(armor)
-    return Armor.armorStats[armor]
+local function Armor_Get(armor)
+    return Armor_stats[armor]
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Armor
+return {
+    Init = Armor_Init,
+    Get = Armor_Get,
+}

@@ -1,145 +1,142 @@
-local Util = require("Kdm/Util/Util")
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("PopulationSheet")
-local Guids = require("Kdm/Guids")
-local UiCounter = require("Kdm/UiCounter")
-local UiCheckBox = require("Kdm/UiCheckBox")
-local UiText = require("Kdm/UiText")
-
----------------------------------------------------------------------------------------------------
-
-local PopulationSheet = {}
-
-PopulationSheet.MAX_SURVIVORS = 35
-
-PopulationSheet.population = 4
-PopulationSheet.survivors = {}
-
-for i = 1, PopulationSheet.MAX_SURVIVORS do
-    PopulationSheet.survivors[i] = {}
-end
-
-PopulationSheet.UI_HEIGHT = 0.105
-
----------------------------------------------------------------------------------------------------
-
-function PopulationSheet.Save()
-    return {
-        population = PopulationSheet.population,
-        newSurvivorBonuses = PopulationSheet.newSurvivorBonuses,
-        survivors = PopulationSheet.survivors,
-    }
-end
-
----------------------------------------------------------------------------------------------------
-
-function PopulationSheet.Init(saveState)
-    Log.Debugf("Creating population sheet UI")
-
-    local populationSheetObj = Guids.GetObject("Population Sheet")
-
-    saveState = saveState or {}
-
-    PopulationSheet.population = saveState.population or PopulationSheet.population
-    PopulationSheet.newSurvivorBonuses = saveState.newSurvivorBonuses
-    if saveState.survivors then
-        for i = 1, PopulationSheet.MAX_SURVIVORS do
-            PopulationSheet.survivors[i] = saveState.survivors[i] or {}
-        end
-    end
-
-    local fontColor = { 0, 0, 0, 100 }
-    local scale = { 0.01666667, 0.01666667, 0.01666667 }
-
-    UiCounter.Create({
-        object = populationSheetObj,
-        name = "Population",
-        value = PopulationSheet.population,
-        position = { -0.815618, PopulationSheet.UI_HEIGHT, -0.835 },
-        size = 800,
-        fontColor = fontColor,
-        scale = { 0.05, 0.05, 0.05 },
-        changeFunc = function(uiCounter, delta)
-            Log.Debugf("Changed survival limit by %d", delta)
-            PopulationSheet.population = PopulationSheet.population + delta
-            UiCounter.Set(uiCounter, PopulationSheet.population)
-        end,
-    })
-
-    UiText.Create({
-        object = populationSheetObj,
-        name = "NewSurvivorBonuses",
-        value = PopulationSheet.newSurvivorBonuses,
-        position = { 0.2, PopulationSheet.UI_HEIGHT, -0.86 },
-        width = 27000,
-        height = 750,
-        fontColor = fontColor,
-        fontSize = 600,
-        scale = scale,
-        changeFunc = function(_, value)
-            Log.Debugf("Changed new survivor bonuses to %s", value)
-            PopulationSheet.newSurvivorBonuses = value
-        end,
-    })
-    local x1 = -0.712961
-    local x2 = 0.108913
-    local x3 = 0.820
-    local z1 = -0.724
-    local z35 = 0.86
-    local dz = (z35 - z1) / 34
-
-    for i = 1, PopulationSheet.MAX_SURVIVORS do
-        local z = z1 + (i - 1) * dz
-        UiText.Create({
-            object = populationSheetObj,
-            name = "Survivor"..i.."Name",
-            value = PopulationSheet.survivors[i].name,
-            position = { x1, PopulationSheet.UI_HEIGHT, z },
-            width = 7000,
-            height = 750,
-            fontColor = fontColor,
-            fontSize = 600,
-            scale = scale,
-            changeFunc = function(_, value)
-                Log.Debugf("Changed survivor %d name to %s", i, value)
-                PopulationSheet.survivors[i].name = value
-            end,
-        })
-
-        UiText.Create({
-            object = populationSheetObj,
-            name = "Survivor"..i.."Notes",
-            value = PopulationSheet.survivors[i].notes,
-            position = { x2, PopulationSheet.UI_HEIGHT, z },
-            width = 38000,
-            height = 750,
-            fontColor = fontColor,
-            fontSize = 600,
-            scale = scale,
-            changeFunc = function(_, value)
-                Log.Debugf("Changed survivor %d notes to %s", i, value)
-                PopulationSheet.survivors[i].notes = value
-            end,
-        })
-
-        UiCheckBox.Create({
-            object = populationSheetObj,
-            name = "Survivor"..i.."Dead",
-            value = PopulationSheet.survivors[i].dead,
-            position = { x3, PopulationSheet.UI_HEIGHT, z },
-            size = 400,
-            color = fontColor,
-            scale = { 0.05, 0.05, 0.05 },
-            changeFunc = function(name)
-                local checked = not PopulationSheet.survivors[i].dead
-                Log.Debugf("Checking survivor %d dead: %s", i, tostring(checked))
-                PopulationSheet.survivors[i].dead = checked
-                UiCheckBox.Set(name, checked)
-            end
-        })
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-return PopulationSheet
+-- local Util = require("Kdm/Util/Util")
+-- require("Kdm/Util/Check")
+-- local Log = require("Kdm/Util/Log").ForPackage("PopulationSheet")
+-- local NamedObject = require("Kdm/NamedObject")
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- local PopulationSheet = {}
+--
+-- PopulationSheet.MAX_SURVIVORS = 35
+--
+-- PopulationSheet.population = 4
+-- PopulationSheet.survivors = {}
+--
+-- for i = 1, PopulationSheet.MAX_SURVIVORS do
+--     PopulationSheet.survivors[i] = {}
+-- end
+--
+-- PopulationSheet.UI_HEIGHT = 0.105
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- function PopulationSheet.Save()
+--     return {
+--         population = PopulationSheet.population,
+--         newSurvivorBonuses = PopulationSheet.newSurvivorBonuses,
+--         survivors = PopulationSheet.survivors,
+--     }
+-- end
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- function PopulationSheet.Init(saveState)
+--     Log.Debugf("Creating population sheet UI")
+--
+--     local populationSheetObj = NamedObject.Get("Population Sheet")
+--
+--     saveState = saveState or {}
+--
+--     PopulationSheet.population = saveState.population or PopulationSheet.population
+--     PopulationSheet.newSurvivorBonuses = saveState.newSurvivorBonuses
+--     if saveState.survivors then
+--         for i = 1, PopulationSheet.MAX_SURVIVORS do
+--             PopulationSheet.survivors[i] = saveState.survivors[i] or {}
+--         end
+--     end
+--
+--     local fontColor = { 0, 0, 0, 100 }
+--     local scale = { 0.01666667, 0.01666667, 0.01666667 }
+--
+--     UiCounter.Create({
+--         object = populationSheetObj,
+--         name = "Population",
+--         value = PopulationSheet.population,
+--         position = { -0.815618, PopulationSheet.UI_HEIGHT, -0.835 },
+--         size = 800,
+--         fontColor = fontColor,
+--         scale = { 0.05, 0.05, 0.05 },
+--         changeFunc = function(uiCounter, delta)
+--             Log.Debugf("Changed survival limit by %d", delta)
+--             PopulationSheet.population = PopulationSheet.population + delta
+--             UiCounter.Set(uiCounter, PopulationSheet.population)
+--         end,
+--     })
+--
+--     UiText.Create({
+--         object = populationSheetObj,
+--         name = "NewSurvivorBonuses",
+--         value = PopulationSheet.newSurvivorBonuses,
+--         position = { 0.2, PopulationSheet.UI_HEIGHT, -0.86 },
+--         width = 27000,
+--         height = 750,
+--         fontColor = fontColor,
+--         fontSize = 600,
+--         scale = scale,
+--         changeFunc = function(_, value)
+--             Log.Debugf("Changed new survivor bonuses to %s", value)
+--             PopulationSheet.newSurvivorBonuses = value
+--         end,
+--     })
+--     local x1 = -0.712961
+--     local x2 = 0.108913
+--     local x3 = 0.820
+--     local z1 = -0.724
+--     local z35 = 0.86
+--     local dz = (z35 - z1) / 34
+--
+--     for i = 1, PopulationSheet.MAX_SURVIVORS do
+--         local z = z1 + (i - 1) * dz
+--         UiText.Create({
+--             object = populationSheetObj,
+--             name = "Survivor"..i.."Name",
+--             value = PopulationSheet.survivors[i].name,
+--             position = { x1, PopulationSheet.UI_HEIGHT, z },
+--             width = 7000,
+--             height = 750,
+--             fontColor = fontColor,
+--             fontSize = 600,
+--             scale = scale,
+--             changeFunc = function(_, value)
+--                 Log.Debugf("Changed survivor %d name to %s", i, value)
+--                 PopulationSheet.survivors[i].name = value
+--             end,
+--         })
+--
+--         UiText.Create({
+--             object = populationSheetObj,
+--             name = "Survivor"..i.."Notes",
+--             value = PopulationSheet.survivors[i].notes,
+--             position = { x2, PopulationSheet.UI_HEIGHT, z },
+--             width = 38000,
+--             height = 750,
+--             fontColor = fontColor,
+--             fontSize = 600,
+--             scale = scale,
+--             changeFunc = function(_, value)
+--                 Log.Debugf("Changed survivor %d notes to %s", i, value)
+--                 PopulationSheet.survivors[i].notes = value
+--             end,
+--         })
+--
+--         UiCheckBox.Create({
+--             object = populationSheetObj,
+--             name = "Survivor"..i.."Dead",
+--             value = PopulationSheet.survivors[i].dead,
+--             position = { x3, PopulationSheet.UI_HEIGHT, z },
+--             size = 400,
+--             color = fontColor,
+--             scale = { 0.05, 0.05, 0.05 },
+--             changeFunc = function(name)
+--                 local checked = not PopulationSheet.survivors[i].dead
+--                 Log.Debugf("Checking survivor %d dead: %s", i, tostring(checked))
+--                 PopulationSheet.survivors[i].dead = checked
+--                 UiCheckBox.Set(name, checked)
+--             end
+--         })
+--     end
+-- end
+--
+-- ---------------------------------------------------------------------------------------------------
+--
+-- return PopulationSheet
