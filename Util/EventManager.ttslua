@@ -31,12 +31,14 @@ function EventManager.AddHandler(event, handler)
         end
 
         local args = table.pack(...)
+        local n = #args
         table.insert(args, returnValue)
         for _, handler in ipairs(eventManager_handlers[event]) do
-            args[#args] = handler(table.unpack(args))
+            args[n + 1] = returnValue
+            returnValue = handler(table.unpack(args))
         end
 
-        return args[#args]
+        return returnValue
     end
 
     eventManager_handlers[event] = { handler }

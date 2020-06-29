@@ -6,7 +6,7 @@ local EventManager = require("Kdm/Util/EventManager")
 local PlayerBoard = require("Kdm/PlayerBoard")
 local Showdown = require("Kdm/Showdown")
 local CharSheet = require("Kdm/CharSheet")
-local Ui = require("Kdm/Ui")
+local Ui = require("Kdm/Util/Ui")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -315,7 +315,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_OnCharSheetChangeAttribute(charSheet, attribute, value)
+local function BattleReference_onCharSheetChangeStat(charSheet, attribute, value)
     if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
         BattleReference_Update()
     end
@@ -341,7 +341,7 @@ function BattleReference.Init(saveState, ui)
     EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleReference_OnPlayerBoardLinkCharSheet)
     EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", BattleReference_OnPlayerBoardUnlinkCharSheet)
     EventManager.AddHandler("onMonsterChangeAttribute", BattleReference_OnMonsterChangeAttribute)
-    EventManager.AddHandler("onCharSheetChangeAttribute", BattleReference_OnCharSheetChangeAttribute)
+    EventManager.AddHandler("onCharSheetChangeStat", BattleReference_onCharSheetChangeStat)
     EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleReference_OnPlayerBoardLinkWeapon)
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleReference_OnPlayerBoardUnlinkWeapon)
 

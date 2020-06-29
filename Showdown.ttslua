@@ -1,3 +1,60 @@
+-- local OVERLAY_UI_HEIGHT = 10.75
+--
+-- left = 4.885550,
+-- right = -4.436194,
+-- top = -2.834642,
+-- bottom = 3.801133,
+-- cols = 22,
+-- rows = 16,
+
+
+local function PlayerBoard_OnObjectDrop(_, object)
+--     for _, playerBoard in pairs(PlayerBoard_playerBoards) do
+--         if playerBoard.figurine == object then
+--             Overlay.Destroy("Player "..playerBoard.playerNumber)
+--         end
+--     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickUp(_, object)
+--     local playerBoard = nil
+--     for _, pb in ipairs(PlayerBoard_playerBoards) do
+--         if pb.figurine == object then
+--             playerBoard = pb
+--             break
+--         end
+--     end
+--     if not playerBoard then
+--         return
+--     end
+--
+--     local charSheet = playerBoard.linkedCharSheet
+--     if not charSheet then
+--         return
+--     end
+--
+--     local color = object.getColorTint()
+--     color[4] = 0.7
+--     Overlay.Create(object.getPosition(), 1, CharSheet.GetMovement(charSheet), color)
+end
+
+---------------------------------------------------------------------------------------------------
+
+
+local function PlayerBoard_OnObjectDrop(_, object)
+--     for _, playerBoard in pairs(PlayerBoard_playerBoards) do
+--         if playerBoard.figurine == object then
+--             Overlay.Destroy("Player "..playerBoard.playerNumber)
+--         end
+--     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+
+
 -- require("Kdm/Util/Check")
 -- local Util = require("Kdm/Util/Util")
 -- local Log = require("Kdm/Util/Log").ForPackage("Showdown")
@@ -7,7 +64,7 @@
 -- local PlayerBoard = require("Kdm/PlayerBoard")
 -- local EventManager = require("Kdm/Util/EventManager")
 -- local Location = require("Kdm/Location")
--- local Ui = require("Kdm/Ui")
+-- local Ui = require("Kdm/Util/Ui")
 -- local Terrain = require("Kdm/Terrain")
 -- local Action = require("Kdm/Action")
 -- local Container = require("Kdm/Container")

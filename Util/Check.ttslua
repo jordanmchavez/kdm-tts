@@ -154,7 +154,7 @@ function CheckVec3(value, fmt, ...)
         return false, Util.SafeFormat("Required vec3 arg has type %s: "..(fmt or ""), t, ...)
     end
     if value.x == nil or value.y == nil or value.z == nil then
-        return false, Util.SafeFormat("Required arg must be a vec3: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required arg must be a vec3: %s "..(fmt or ""), value, ...)
     end
     return true
 end
@@ -168,7 +168,7 @@ function CheckVec3OrNil(value, fmt, ...)
             return false, Util.SafeFormat("Optional vec3 arg has type %s: "..(fmt or ""), t, ...)
         end
         if value.x == nil or value.y == nil or value.z == nil then
-            return false, Util.SafeFormat("Optional arg must be a vec3: "..(fmt or ""), ...)
+            return false, Util.SafeFormat("Optional arg must be a vec3: %s "..(fmt or ""), value, ...)
         end
     end
     return true
@@ -185,7 +185,7 @@ function CheckVec2(value, fmt, ...)
         return false, Util.SafeFormat("Required vec2 arg has type %s: "..(fmt or ""), t, ...)
     end
     if value.x == nil or value.y == nil then
-        return false, Util.SafeFormat("Required arg must be a vec2: "..(fmt or ""), ...)
+        return false, Util.SafeFormat("Required arg must be a vec2: %s "..(fmt or ""), value, ...)
     end
     return true
 end
@@ -199,7 +199,7 @@ function CheckVec2(value, fmt, ...)
             return false, Util.SafeFormat("Optional vec2 arg has type %s: "..(fmt or ""), t, ...)
         end
         if value.x == nil or value.y == nil then
-            return false, Util.SafeFormat("Optional arg must be a vec2: "..(fmt or ""), ...)
+            return false, Util.SafeFormat("Optional arg must be a vec2: %s "..(fmt or ""), value, ...)
         end
     end
     return true

@@ -9,6 +9,8 @@ local Armor = require("Kdm/Armor")
 local Weapon = require("Kdm/Weapon")
 local CharSheet = require("Kdm/CharSheet")
 local PlayerBoard = require("Kdm/PlayerBoard")
+local Rules = require("Kdm/Rules")
+local RulesNav = require("Kdm/RulesNav")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -59,10 +61,11 @@ function onLoad(saveJson)
         ["PlayerBoard"] = PlayerBoard,
 
         --{ Rules, "Rules" },
+        --{ RulesNav, "RulesNav" },
+
         --{ Terrain, "Terrain" },
         --{ DeckBoard, "DeckBoard" },
         --{ SettlementBoard, "SettlementBoard" },
-        --{ RulesNav, "RulesNav" },
         --{ PopulationSheet, "PopulationSheet" },
         --{ Settlement, "Settlement" },
         --{ Hunt, "Hunt" },

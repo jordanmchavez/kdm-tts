@@ -242,8 +242,52 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Ui_Button(parent, params)
+    local id, topLeft, bottomRight, onClick = params.id, params.topLeft, params.bottomRight, params.onClick
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+    assert(CheckFunc(onClick))
+
+    local id = parent.id.."_"..id.."Button"
+    Log.Debugf("Creating Button %s", id)
+
+    local button = {
+        id = id,
+        object = params.object or self,
+        onClick = onClick,
+    }
+
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
+    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
+    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
+    local onClick = id.."_OnClick"
+    self.setVar(onClick, function()
+        button.onClick()
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = id,
+            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            rotation = UI_ROTATION,
+            scale = UI_SCALE,
+            width = width,
+            height = height,
+            colors = UI_INVISIBLE_COLORS,
+            onClick = "Global/"..onClick,
+        }
+    })
+
+    return button
+end
+
+---------------------------------------------------------------------------------------------------
+
 return {
     Input = Ui_Input,
     Counter = Ui_Counter,
     CheckBox = Ui_CheckBox,
+    Button = Ui_Button,
 }

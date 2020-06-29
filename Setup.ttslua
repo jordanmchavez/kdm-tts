@@ -7,7 +7,7 @@ local Archive = require("Kdm/Archive")
 local Location = require("Kdm/Location")
 local Settlement = require("Kdm/Settlement")
 local Rules = require("Kdm/Rules")
-local Ui = require("Kdm/Ui")
+local Ui = require("Kdm/Util/Ui")
 local Action = require("Kdm/Action")
 local Container = require("Kdm/Container")
 

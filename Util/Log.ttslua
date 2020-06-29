@@ -28,13 +28,14 @@ Log.debugPackages = {
     --["Archive"] = true,
     --["Action"] = true,
     --["Setup"] = true,
-    --["PlayerBoard"] = true,
     --["SpatialIndex"] = true,
     --["Showdown"] = true,
     --["Hunt"] = true,
-    ["Ui"] = true,
-    ["Ui3d"] = true,
-    ["CharSheet"] = true,
+    --["Ui"] = true,
+    --["Ui3d"] = true,
+    --["CharSheet"] = true,
+    --["PlayerBoard"] = true,
+    --["Zone"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

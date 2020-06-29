@@ -286,3 +286,5 @@ faq:
     * A clean way to automatically do innovation consequences.
     * Gigalion vignette
     * Strains and milestones!
+
+zone wait for initial objects is a hack

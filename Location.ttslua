@@ -4,10 +4,6 @@ local Log = require("Kdm/Util/Log").ForPackage("Locations")
 
 local NamedObject = nil
 
-local Location = {
-    locations = {}
-}
-
 Location_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
 Location_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 Location_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
@@ -34,77 +30,8 @@ local Location_data = require("Kdm/LocationData")
 
 local Location_index = {}
 
-local Location_Class = {}
-Location_Class.__index = Location_Class
-
----------------------------------------------------------------------------------------------------
-
-function Location_Class.Center(location)
-    return location.object and location.object.positionToWorld(location.center) or location.center
-end
-
----------------------------------------------------------------------------------------------------
-
-function Location_Class.Size(location)
-    local topLeft, bottomRight
-    if location.object then
-        topLeft = location.object.positionToWorld(location.topLeft)
-        bottomRight = location.object.positionToWorld(location.bottomRight)
-    else
-        topLeft, bottomRight = location.topLeft, location.bottomRight
-    end
-    return {
-        x = math.abs(bottomRight.x - topLeft.x),
-        y = math.abs(bottomRight.y - topLeft.y),
-        z = math.abs(bottomRight.z - topLeft.z),
-    }
-end
-
----------------------------------------------------------------------------------------------------
-
--- returns left, top, right, bottom
-function Location_Class.WorldRect(location)
-    local topLeft, bottomRight
-    if location.object then
-        topLeft = location.object.positionToWorld(location.topLeft)
-        bottomRight = location.object.positionToWorld(location.bottomRight)
-    else
-        topLeft, bottomRight = location.topLeft, location.bottomRight
-    end
-    return topLeft.x, topLeft.z, bottomRight.x, bottomRight.z
-end
-
----------------------------------------------------------------------------------------------------
-
-function Location_Class.BoxCast(location, params)
-    params = params or {}
-
-    local center = location:Center()
-    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
-
-    local size = location:Size()
-    size.y = size.x -- doesn't matter, just needs to be > epsilon for a top-down cast
-
-    return Physics.cast({
-        origin    = center,
-        direction = { 0, -1, 0 },
-        type      = 3,
-        size      = size,
-        debug     = params.debug,
-    })
-end
-
-function Location_Class.RayCast(location, params)
-    local center = location:Center()
-    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
-
-    return Physics.cast({
-        origin    = center,
-        direction = { 0, -1, 0 },
-        type      = 1,
-        debug     = params.debug,
-    })
-end
+local LocationClass = {}
+LocationClass.__index = LocationClass
 
 ---------------------------------------------------------------------------------------------------
 
@@ -113,26 +40,35 @@ local function Location_Create(params)
     assert(CheckObjOrNil(params.object))
 
     local location = {
+        tag = "Location",
         object = params.object,
     }
-    setmetatable(location, Location_Class)
+    setmetatable(location, LocationClass)
 
     if params.center and params.size then
-        location.center = params.center
-        location.rect = {
-            params.center.x - (params.size.x / 2),
-            params.center.y - (params.size.y / 2),
-            params.center.z - (params.size.z / 2),
+        if location.object then
+            location.center = location.object.positionToWorld(params.center)
+        else
+            location.center = params.center
+        end
+        location.topLeft = {
+            x = location.center.x - (params.size.x / 2),
+            y = location.center.y - (params.size.y / 2),
+            z = location.center.z - (params.size.z / 2),
         }
         location.bottomRight = {
-            params.center.x + (params.size.x / 2),
-            params.center.y + (params.size.y / 2),
-            params.center.z + (params.size.z / 2),
+            x = location.center.x + (params.size.x / 2),
+            y = location.center.y + (params.size.y / 2),
+            z = location.center.z + (params.size.z / 2),
         }
 
     elseif params.p1 and params.p2 then
         local p1 = params.p1
         local p2 = params.p2
+        if params.object then
+            p1 = params.object.positionToWorld(p1)
+            p2 = params.object.positionToWorld(p2)
+        end
         location.center = {
             x = (p1.x + p2.x) / 2,
             y = (p1.y + p2.y) / 2,
@@ -150,10 +86,77 @@ local function Location_Create(params)
         }
 
     else
-        assert(Check.Fail("Invalid params for Location_Create. Requires either center+size or p1+p2: %s", params))
+        assert(CheckFail("Invalid params for Location_Create. Requires either center+size or p1+p2: %s", params))
     end
 
     return location
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_CreateFromObject(object)
+    local bounds = object.getBounds()
+    return Location_Create({ center = bounds.center, size = bounds.size })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.Center(location)
+    return { x = location.center.x, y = location.center.y, z = location.center.z }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.Size(location)
+    local topLeft, bottomRight = location.topLeft, location.bottomRight
+    return {
+        x = math.abs(bottomRight.x - topLeft.x),
+        y = math.abs(bottomRight.y - topLeft.y),
+        z = math.abs(bottomRight.z - topLeft.z),
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.Rect(location)
+    local topLeft, bottomRight = location.topLeft, location.bottomRight
+    local left = Util.Min(topLeft.x, bottomRight.x)
+    local right = Util.Max(topLeft.x, bottomRight.x)
+    local top = Util.Min(topLeft.z, bottomRight.z)
+    local bottom = Util.Max(topLeft.z, bottomRight.z)
+    return left, top, right, bottom
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.BoxCast(location, params)
+    params = params or {}
+
+    local center = location:Center()
+    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+
+    local size = location:Size()
+    size.y = size.x -- doesn't matter, just needs to be > epsilon for a top-down cast
+
+    return Physics.cast({
+        origin    = center,
+        direction = { 0, -1, 0 },
+        type      = 3,
+        size      = size,
+        debug     = params.debug,
+    })
+end
+
+function LocationClass.RayCast(location, params)
+    local center = location:Center()
+    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+
+    return Physics.cast({
+        origin    = center,
+        direction = { 0, -1, 0 },
+        type      = 1,
+        debug     = params.debug,
+    })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -279,6 +282,7 @@ local function Location_Init(saveState, expansions, deps)
     local dz = (bottomRight.z - topLeft.z)
     for playerNumber = 1, 4 do
         local playerBoard = NamedObject.Get("Player "..playerNumber.." Board")
+
         for col = 1, 8 do
             local x = topLeft.x + (col - 1) * dx
             for row = 1, 2 do
@@ -295,12 +299,6 @@ local function Location_Init(saveState, expansions, deps)
             p2 = { x = -0.811249, y = 0.113605, z = 0.970867 },
             object = playerBoard,
         }))
-
-        Location_Add(string.format("Player %d Board", playerNumber), Location_Create({
-            p1 = { x = 0.889375, y = 0.150073, z = -0.999771 },
-            p2 = { x = -0.890428, y = 0.150359, z = 1.000068 },
-            object = playerBoard
-        }))
     end
 
     for _, expansion in ipairs(expansions) do
@@ -315,5 +313,7 @@ end
 
 return {
     Init = Location_Init,
+    Create = Location_Create,
+    CreateFromObject = Location_CreateFromObject,
     Get = Location_Get,
 }

@@ -31,7 +31,7 @@ local function Zone_Add(params)
     assert(CheckFuncOrNil(pickUpHandler))
 
     local left, top, right, bottom = location:Rect()
-    Log.Debugf("Adding zone %s (%d, %d) to (%d, %d)", name, left, top, right, bottom)
+    Log.Debugf("Adding zone %s (%.2f, %.2f) to (%.2f, %.2f)", name, left, top, right, bottom)
 
     local zone = {
         name = name,
@@ -57,23 +57,27 @@ local function Zone_Add(params)
     end
 
     if dropHandler then
-        local hits = Physics.cast({
-            origin    = { x = center.x, y = center.y + 50, z = center.z },
-            direction = { x = 0, y = -1, z = 0 },
-            type      = 3,
-            size      = size,
-        })
-        for _, hit in ipairs(hits) do
-            local hitObject = hit.hit_object
-            Log.Debugf("Object %s (%s) started in %s", hitObject.getName(), hitObject.getGUID(), name)
-            dropHandler(hitObject)
+        -- the wait is a hack to avoid triggering UI updates in the same frame where we create the UI itself via setXmlTable()
+        Wait.frames(function()
+            local center = location:Center()
+            local hits = Physics.cast({
+                origin    = { x = center.x, y = center.y + 50, z = center.z },
+                direction = { x = 0, y = -1, z = 0 },
+                type      = 3,
+                size      = location:Size(),
+            })
+            for _, hit in ipairs(hits) do
+                local hitObject = hit.hit_object
+                Log.Debugf("Object %s (%s) started in %s", hitObject.getName(), hitObject.getGUID(), name)
+                dropHandler(hitObject)
 
-            if not Zone_objectZones[hitObject] then
-                Zone_objectZones[hitObject] = { zone }
-            else
-                table.insert(Zone_objectZones[hitObject], zone)
+                if not Zone_objectZones[hitObject] then
+                    Zone_objectZones[hitObject] = { zone }
+                else
+                    table.insert(Zone_objectZones[hitObject], zone)
+                end
             end
-        end
+        end, 3)
     end
 end
 
@@ -87,7 +91,7 @@ local function Zone_Get(position)
     for _, zone in ipairs(Zone_cells[Zone_Index(col, row)] or {}) do
         if x >= zone.left and x <= zone.right and z >= zone.top and z <= zone.bottom then
             Log.Debugf("Zone %s contains (%f, %f)", zone.name, x, z)
-            table.insert(results, zone.value)
+            table.insert(results, zone)
         end
     end
 
@@ -106,7 +110,9 @@ local function Zone_Drop(object, verb)
     local objectZones = {}
     for _, zone in ipairs(zones) do
         Log.Debugf("Object %s (%s) %s in %s", object.getName(), object.getGUID(), verb, zone.name)
-        zone.dropHandler(object)
+        if zone.dropHandler then
+            zone.dropHandler(object)
+        end
         table.insert(objectZones, zone)
     end
 
@@ -141,11 +147,11 @@ local function Zone_OnObjectDestroy(object) Zone_PickUp(object, "destroyed") end
 ---------------------------------------------------------------------------------------------------
 
 local function Zone_Init()
-        EventManager.AddHandler("onObjectDrop", Zone_OnObjectDrop)
-        EventManager.AddHandler("onObjectPickUp", Zone_OnObjectPickUp)
-        EventManager.AddHandler("onObjectEnterContainer", Zone_OnObjectEnterContainer)
-        EventManager.AddHandler("onObjectSpawn", Zone_OnObjectSpawn)
-        EventManager.AddHandler("onObjectDestroy", Zone_OnObjectDestroy)
+    EventManager.AddHandler("onObjectDrop", Zone_OnObjectDrop)
+    EventManager.AddHandler("onObjectPickUp", Zone_OnObjectPickUp)
+    EventManager.AddHandler("onObjectEnterContainer", Zone_OnObjectEnterContainer)
+    EventManager.AddHandler("onObjectSpawn", Zone_OnObjectSpawn)
+    EventManager.AddHandler("onObjectDestroy", Zone_OnObjectDestroy)
 end
 
 ---------------------------------------------------------------------------------------------------

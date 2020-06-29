@@ -2,7 +2,7 @@ require("Kdm/Util/Check")
 local Log = require("Kdm/Util/Log").ForPackage("CharSheet")
 local Util = require("Kdm/Util/Util")
 local EventManager = require("Kdm/Util/EventManager")
-local Ui3d = require("Kdm/Ui3d")
+local Ui3d = require("Kdm/Util/Ui3d")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -24,11 +24,11 @@ CharSheetClass.__index = CharSheetClass
 
 local function CharSheet_SetStr(charSheet, stat, value)
     assert(CheckStr(value))
-    Log.Debugf("Setting %s %s to %s", charSheet:Name(), stat, value)
+    Log.Debugf("Setting %s %s to %s", charSheet.object.getGUID(), stat, value)
     charSheet[stat] = value
     charSheet[stat.."Text"]:Set(value)
     charSheet:Save()
-    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, value)
+    EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, value)
 end
 
 function CharSheetClass.Name(charSheet) return charSheet.name end
@@ -47,11 +47,11 @@ function CharSheetClass.SetWeaponProficiencyType(charSheet, value) CharSheet_Set
 
 local function CharSheet_SetNum(charSheet, stat, value)
     assert(CheckNum(value))
-    Log.Debugf("Setting %s %s to %d", charSheet:Name(), stat, value)
+    Log.Debugf("Setting %s %s to %d", charSheet.object.getGUID(), stat, value)
     charSheet[stat] = value
     charSheet[stat.."Counter"]:Set(value)
     charSheet:Save()
-    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, value)
+    EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, value)
 end
 
 
@@ -66,12 +66,12 @@ function CharSheetClass.SetInsanity(charSheet, value) CharSheet_SetNum(charSheet
 local function CharSheet_GetModified(charSheet, stat) return charSheet[stat] + charSheet[stat.."Temporary"] + charSheet[stat.."Permanent"] end
 local function CharSheet_SetModified(charSheet, stat, value)
     assert(CheckNum(value))
-    Log.Debugf("Setting %s %s to %d", charSheet:Name(), stat, value)
+    Log.Debugf("Setting %s %s to %d", charSheet.object.getGUID(), stat, value)
     charSheet[stat] = value
     local modifiedValue = charSheet[stat] + charSheet[stat.."Temporary"] + charSheet[stat.."Permanent"]
     charSheet[stat.."Counter"]:Set(modifiedValue)
     charSheet:Save()
-    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, modifiedValue)
+    EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, modifiedValue)
 end
 
 function CharSheetClass.Movement(charSheet) return CharSheet_GetModified(charSheet, "movement") end
@@ -96,11 +96,11 @@ function CharSheetClass.SetLuck(charSheet, value) CharSheet_SetModified(charShee
 
 local function CharSheet_SetBool(charSheet, stat, value)
     assert(CheckBoolOrNil(value))
-    Log.Debugf("Setting %s %s to %s", charSheet:Name(), stat, tostring(value))
+    Log.Debugf("Setting %s %s to %s", charSheet.object.getGUID(), stat, tostring(value))
     charSheet[stat] = value
     charSheet[stat.."CheckBox"]:Set(value)
     charSheet:Save()
-    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, value)
+    EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, value)
 end
 
 function CharSheetClass.BrainInjury(charSheet) return charSheet.brainInjury end
@@ -125,7 +125,7 @@ function CharSheetClass.SetSkipNextHunt(charSheet, value) CharSheet_SetBool(char
 
 local function CharSheet_SetCheckBoxSequence(charSheet, stat, value)
     assert(CheckNum(value))
-    Log.Debugf("Setting %s %s to %s", charSheet:Name(), stat, tostring(value))
+    Log.Debugf("Setting %s %s to %s", charSheet.object.getGUID(), stat, tostring(value))
     local oldValue = charSheet[stat] or 0
     charSheet[stat] = value
     for i = 1, value do
@@ -135,7 +135,7 @@ local function CharSheet_SetCheckBoxSequence(charSheet, stat, value)
         charSheet[stat..i.."CheckBox"]:Set(false)
     end
     charSheet:Save()
-    EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, value)
+    EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, value)
 end
 
 function CharSheetClass.HuntXp(charSheet) return charSheet.huntXp end
@@ -174,35 +174,36 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function CharSheet_SetTemporaryModifier(charSheet, stat, value)
+function CharSheetClass.SetTemporaryModifier(charSheet, stat, value)
     assert(CheckStr(stat))
     assert(CheckNum(value))
 
-    Log.Debugf("Setting temporary modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
+    Log.Debugf("Setting temporary modifier %s to %d for charSheet %s", stat, value, charSheet.object.getGUID())
 
     local oldValue = CharSheet_GetModified(charSheet, stat)
     charSheet[stat.."Temporary"] = value
     local newValue = CharSheet_GetModified(charSheet, stat)
     if newValue != oldValue then
         charSheet[stat.."Counter"]:Set(newValue)
-        EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, newValue)
+        EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, newValue)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function CharSheetClass.SetPermanentModifier(charSheet, attribute, modifier)
+function CharSheetClass.SetPermanentModifier(charSheet, stat, value)
     assert(CheckStr(stat))
     assert(CheckNum(value))
 
-    Log.Debugf("Setting permanent modifier %s to %d for charSheet %s", attribute, modifier, charSheet.object.getGUID())
+    Log.Debugf("Setting permanent modifier %s to %d for charSheet %s", stat, value, charSheet.object.getGUID())
 
     local oldValue = CharSheet_GetModified(charSheet, stat)
     charSheet[stat.."Permanent"] = value
     local newValue = CharSheet_GetModified(charSheet, stat)
+    Log.Debugf("    old %d, new %d", oldValue, newValue)
     if newValue != oldValue then
         charSheet[stat.."Counter"]:Set(newValue)
-        EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, newValue)
+        EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, newValue)
     end
 end
 
@@ -214,12 +215,12 @@ function CharSheetClass.SetModifiers(charSheet, temporary, permanent)
 
     for _, stat in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
         local oldValue = CharSheet_GetModified(charSheet, stat)
-        charSheet[state.."Temporary"] = temporary[stat] or 0
-        charSheet[state.."Permanent"] = permanent[stat] or 0
+        charSheet[stat.."Temporary"] = temporary[stat] or 0
+        charSheet[stat.."Permanent"] = permanent[stat] or 0
         local newValue = CharSheet_GetModified(charSheet, stat)
         if newValue != oldValue then
             charSheet[stat.."Counter"]:Set(newValue)
-            EventManager.FireEvent("onCharSheetChangeAttribute", charSheet, stat, newValue)
+            EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, newValue)
         end
     end
 end
@@ -227,8 +228,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CharSheetClass.HealAndReset(charSheet)
+    Log.Debugf("Healing and resetting charSheet %s", charSheet.object.getGUID())
     for _, stat in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
-        charSheet:SetTemporaryModifier(charSheet, stat, 0)
+        charSheet:SetTemporaryModifier(stat, 0)
     end
     charSheet:SetBrainInjury(false)
 end
@@ -372,7 +374,6 @@ local function CharSheet_Create(object)
         luckTemporary = 0,
         luckPermanent = 0,
     }
-    Log.Debugf("%s", charSheet)
     setmetatable(charSheet, CharSheetClass)
 
     CharSheet_LoadPackedData(charSheet, saveState)
@@ -504,7 +505,7 @@ end
 
 -------------------------------------------------------------------------------------------------
 
-local function CharSheet_Get(object)
+local function CharSheet_ForObject(object)
     assert(CheckObj(object))
     return CharSheet_charSheetsByObject[object]
 end
@@ -526,5 +527,5 @@ end
 
 return {
     Init = CharSheet_Init,
-    Get = CharSheet_Get,
+    ForObject = CharSheet_ForObject,
 }

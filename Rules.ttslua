@@ -3,72 +3,23 @@ local Log = require("Kdm/Util/Log").ForPackage("Rules")
 local Util = require("Kdm/Util/Util")
 local CircularArray = require("Kdm/Util/CircularArray")
 local Trie = require("Kdm/Util/Trie")
-local Archive = require("Kdm/Archive")
-local Action = require("Kdm/Action")
-local Location = require("Kdm/Location")
-local Ui = require("Kdm/Ui")
+local Ui = require("Kdm/Util/Ui")
+
+local Archive
+local Action
+local Location
 
 ---------------------------------------------------------------------------------------------------
 
-Rules = {
-    trie = Trie.Create(),
-    history = CircularArray.Create(100),
-    index = {},
-}
+local Rules_trie = Trie.Create()
+local Rules_history = CircularArray.Create(100)
+local Rules_index = {}
 
----------------------------------------------------------------------------------------------------
-
-function Rules.RegisterExpansion(expansion)
-    for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
-        local rulebookName = rulebook.name
-        assert(CheckStr(rulebookName, "rulebook.name"))
-
-        local pages = rulebook.pages
-        assert(CheckTable(rulebook.pages))
-
-        for pageName, pageData in pairs(pages) do
-            assert(CheckStr(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
-            local state = pageData.state
-            assert(CheckNum(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
-
-            assert(Check(Rules.index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules.index[pageName]))
-            Rules.index[pageName] = { rulebook = rulebookName, state = state }
-
-            local keywords = pageData.keywords
-            assert(CheckTable(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
-
-            local entry = {
-                rulebook = rulebookName,
-                name = pageName,
-                state = state,
-                timelineEvent = pageData.timelineEvent,
-                showdown = pageData.showdown,
-            }
-
-            for keywordIndex, keyword in ipairs(keywords) do
-                assert(CheckStr(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
-                Trie.Set(Rules.trie, keyword, entry)
-            end
-
-            if pageData.huntEventStart then
-                local huntEventStart = pageData.huntEventStart
-                assert(CheckNum(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
-
-                local huntEventEnd = pageData.huntEventEnd
-                assert(CheckNum(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
-
-                for huntEventNumber = huntEventStart, huntEventEnd do
-                    Trie.Set(Rules.trie, tostring(huntEventNumber), entry)
-                end
-            end
-        end
-    end
-end
 
 ---------------------------------------------------------------------------------------------------
 
 function Rules.GetRulebookAndState(name)
-    local data = Rules.index[name]
+    local data = Rules_index[name]
     assert(Check(data, "Unknown rule: %s", name))
     return data.rulebook, data.state
 end
@@ -84,7 +35,7 @@ function Rules.Search(searchTerms)
     local matchIndex = {}
     local i = 1
     for term in string.gmatch(searchTerms, "%S+") do
-        local termMatches = Trie.Get(Rules.trie, term)
+        local termMatches = Trie.Get(Rules_trie, term)
         local termIndex = Util.Index(termMatches, "name")
 
         matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
@@ -121,7 +72,7 @@ function Rules.SpawnRules(rules, state, dontRecordHistory)
     Archive.CleanupBags()
 
     if not dontRecordHistory then
-        CircularArray.Push(Rules.history, { rules, state })
+        CircularArray.Push(Rules_history, { rules, state })
     end
 end
 
@@ -146,13 +97,13 @@ function Rules.Back()
         return
     end
 
-    if CircularArray.Size(Rules.history) <= 1 then
+    if CircularArray.Size(Rules_history) <= 1 then
         Log.Debugf("<= 1 history element, can't go back")
         return
     end
 
-    CircularArray.Pop(Rules.history)
-    local last = CircularArray.Top(Rules.history)
+    CircularArray.Pop(Rules_history)
+    local last = CircularArray.Top(Rules_history)
     Log.Debugf("Going back to %s[%d]", last[1], last[2])
     Rules.SpawnRules(last[1], last[2], true)   -- dontRecordHistory
 end
@@ -188,7 +139,7 @@ function Rules.ChangePage(dir)
 
     assert(Check(rulebookName, "No rulebook name (page with state 1) in %s (%s)", rules.getName(), rules.getGUID()))
 
-    CircularArray.Push(Rules.history, { rulebookName, nextState })
+    CircularArray.Push(Rules_history, { rulebookName, nextState })
     rules.setState(nextState)
 end
 
@@ -228,7 +179,63 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Init(saveState, ui)
+function Rules_RegisterExpansion(expansion)
+    for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
+        local rulebookName = rulebook.name
+        assert(CheckStr(rulebookName, "rulebook.name"))
+
+        local pages = rulebook.pages
+        assert(CheckTable(rulebook.pages))
+
+        for pageName, pageData in pairs(pages) do
+            assert(CheckStr(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
+            local state = pageData.state
+            assert(CheckNum(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
+
+            assert(Check(Rules_index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules_index[pageName]))
+            Rules_index[pageName] = { rulebook = rulebookName, state = state }
+
+            local keywords = pageData.keywords
+            assert(CheckTable(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
+
+            local entry = {
+                rulebook = rulebookName,
+                name = pageName,
+                state = state,
+                timelineEvent = pageData.timelineEvent,
+                showdown = pageData.showdown,
+            }
+
+            for keywordIndex, keyword in ipairs(keywords) do
+                assert(CheckStr(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
+                Trie.Set(Rules_trie, keyword, entry)
+            end
+
+            if pageData.huntEventStart then
+                local huntEventStart = pageData.huntEventStart
+                assert(CheckNum(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
+
+                local huntEventEnd = pageData.huntEventEnd
+                assert(CheckNum(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
+
+                for huntEventNumber = huntEventStart, huntEventEnd do
+                    Trie.Set(Rules_trie, tostring(huntEventNumber), entry)
+                end
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Rules_Init(saveState, ui, deps)
+    Archive = deps.Archive
+    assert(Archive)
+    Action = deps.Action
+    assert(Action)
+    Location = deps.Location
+    assert(Location)
+
     local rules = Rules.GetCurrentRules()
     if rules != nil then
         local currentState = rules.getStateId()
@@ -243,7 +250,7 @@ function Rules.Init(saveState, ui)
             end
         end
         assert(Check(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID()))
-        CircularArray.Push(Rules.history, { rulebookName, currentState})
+        CircularArray.Push(Rules_history, { rulebookName, currentState})
     end
 
     local xStart = 80+110
@@ -264,4 +271,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return Rules
+return {
+    Init = Rules_Init,
+}
