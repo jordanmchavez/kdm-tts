@@ -1,4 +1,4 @@
-local Util = require("Kdm/Util/Util")
+local Util = require("Kdm/Util")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -9,33 +9,12 @@ local Log = {
 
 Log.debugPackages = {
     ["G"] = true,
-    --["Rules"] = true,
-    -- ["Showdown"] = true,
-    -- ["SettlementBoard"] = true,
-    -- ["Grid"] = true,
-    -- ["Overlay"] = true,
-    --["Settlement"] = true,
-    -- ["PopulationSheet"] = true,
-    -- ["EventManager"] = true,
-    -- ["DropZone"] = true,
-    -- ["Armor"] = true,
-    -- ["PlayerFigurine"] = true,
-    -- ["Monster"] = true,
-    -- ["TerrainTile"] = true,
-    --["BattleReference"] = true,
-    -- ["Locations"] = true,
-    --["Container"] = true,
-    --["Archive"] = true,
-    --["Action"] = true,
-    --["Setup"] = true,
-    --["SpatialIndex"] = true,
-    --["Showdown"] = true,
-    --["Hunt"] = true,
-    --["Ui"] = true,
-    --["Ui3d"] = true,
-    --["CharSheet"] = true,
-    --["PlayerBoard"] = true,
-    --["Zone"] = true,
+    ["Action"] = true,
+    ["Locations"] = true,
+    ["Showdown"] = true,
+    ["Hunt"] = true,
+    ["Grid"] = true,
+    ["Overlay"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -76,9 +55,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Log.Init()
-    logStyle("debug", { 1.0, 1.0, 1.0 }, "", "")
-    logStyle("print", { 0.0, 1.0, 1.0 }, "", "")
-    logStyle("error", { 1.0, 0.0, 0.0 }, "", "")
+    logStyle("debug", { r = 1.0, g = 1.0, b = 1.0 }, "", "")
+    logStyle("print", { r = 0.0, g = 1.0, b = 1.0 }, "", "")
+    logStyle("error", { r = 1.0, g = 0.0, b = 0.0 }, "", "")
 end
 
 ---------------------------------------------------------------------------------------------------

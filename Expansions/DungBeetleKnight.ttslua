@@ -147,17 +147,17 @@ return {
                 {
                     terrain = "Resin Dung Ball",
                     positions = { "(11.5, 6.5)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(3, 3.5)", "(5, 8.5)", "(3, 13.5)", "(20, 3.5)", "(18, 8.5)", "(20, 13.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "Bug Patch",
                     positions = { "(11, 4)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
             },
             levels = {

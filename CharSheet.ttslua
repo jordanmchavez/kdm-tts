@@ -1,12 +1,10 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("CharSheet")
-local Util = require("Kdm/Util/Util")
-local EventManager = require("Kdm/Util/EventManager")
-local Ui3d = require("Kdm/Util/Ui3d")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("CharSheet")
+local Util = require("Kdm/Util")
+local EventManager = require("Kdm/EventManager")
+local Ui3d = require("Kdm/Ui3d")
 
 ---------------------------------------------------------------------------------------------------
-
-local CharSheet_UI_HEIGHT = 0.105
 
 local CHAR_SHEET_MAXES = {
     huntXp = 16,
@@ -15,6 +13,7 @@ local CHAR_SHEET_MAXES = {
     weaponProficiencyRank = 8,
 }
 
+local CharSheet_id = 0
 local CharSheet_charSheetsByObject = {}
 
 local CharSheetClass = {}
@@ -322,7 +321,10 @@ local function CharSheet_Create(object)
     end
     object.setLuaScript("--")
 
+    CharSheet_id = CharSheet_id + 1
     local charSheet = {
+        id = CharSheet_id,
+
         object = object,
 
         name = saveState.name,
@@ -378,7 +380,7 @@ local function CharSheet_Create(object)
 
     CharSheet_LoadPackedData(charSheet, saveState)
 
-    local ui = { id = "CharSheet", children = object.UI.getXmlTable() }
+    local ui = { id = "CharSheet"..charSheet.id, children = object.UI.getXmlTable() }
 
     local topLeft = { x = 0.734, y = -0.816 }
     local bottomRight = { x = 0.472, y = -0.554 }
@@ -513,14 +515,14 @@ end
 -------------------------------------------------------------------------------------------------
 
 local function CharSheet_Init()
-    EventManager.AddHandler("onObjectSpawn", CharSheet_OnObjectSpawn)
-    EventManager.AddHandler("onObjectDestroy", CharSheet_OnObjectDestroy)
-
     for _, object in ipairs(getAllObjects()) do
         if object.getGMNotes() == "Character Sheet" then
             local charSheet = CharSheet_Create(object)
         end
     end
+
+    EventManager.AddHandler("onObjectSpawn", CharSheet_OnObjectSpawn)
+    EventManager.AddHandler("onObjectDestroy", CharSheet_OnObjectDestroy)
 end
 
 ---------------------------------------------------------------------------------------------------

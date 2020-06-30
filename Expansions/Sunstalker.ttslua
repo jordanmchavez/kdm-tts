@@ -108,13 +108,14 @@ return {
         ["Sunring Bow"]     = { speed = 2, accuracy = 4, strength = 4 },
     },
 
-    locations = {
-        ["Sun Dial"] = {
-            center = { x = -10.535775, y = 10.801341, z = 0.399195 },
-            size = { x = 2, y = 2, z = 4 },
-            board = "Showdown Board",
-        },
-    },
+    -- locations = {
+    --     ["Sun Dial"] = {
+    --         name = "Sun Dial",
+    --         center = { x = -10.535775, y = 10.801341, z = 0.399195 },
+    --         size = { x = 2, y = 2, z = 4 },
+    --         board = "Showdown Board",
+    --     },
+    -- },
 
     guidNames = { ["2fb312"] = "Sunstalker Archive" },
 
@@ -249,14 +250,14 @@ return {
             rules = { "Sunstalker Rules", 5 },
             huntTrack = { "H", "M", "M", "H", "H", "O", "M", "H", "H", "M", "H" },
             position = "(11.5, 8.5)",
-            rotation = { 0, -90, 0 },
+            rotation = { x = 0, y = -90, z = 0 },
             playerPositions = { "(1, 7)", "(1, 8)", "(1, 9)", "(1, 10)" },
-            playerRotations = { { 0, 90, 0 }, { 0, 90, 0 }, { 0, 90, 0 }, { 0, 90, 0 } },
+            playerRotations = { { x = 0, y = 90, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 90, z = 0 } },
             specialTerrain = {
                 {
                     terrainTile = "Sun Dial",
-                    position = "Sun Dial",
-                    rotation = { 0, 180, 0 },
+                    position = "(20.5, 8.5)",
+                    rotation = { x = 0, y = 180, z = 0 },
                 },
             },
             miscObject = { name = "Shades", type = "AI" },
@@ -264,17 +265,17 @@ return {
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(3, 3.5)", "(10.5, 3)" },
-                    rotations = { { 0, 180, 0 }, { 0, 90, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 } },
                 },
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(3, 13.5)", "(10.5, 14)" },
-                    rotations = { { 0, 180, 0 }, { 0, 90, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 } },
                 },
                 {
                     terrain = "2 Salt Sculptures",
                     positions = { "(18, 5.5)", "(18, 11.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             levels = {
@@ -350,12 +351,12 @@ return {
                             {
                                 terrain = "3 Stone Columns",
                                 positions = { "(4, 5.5)", "(11.5, 3)", "(18, 5.5)" },
-                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 180, z = 0 } },
                             },
                             {
                                 terrain = "3 Stone Columns",
                                 positions = { "(4, 11.5)", "(11.5, 14)", "(18, 11.5)" },
-                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 180, z = 0 } },
                             },
                         },
                     },

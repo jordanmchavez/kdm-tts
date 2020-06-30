@@ -1,11 +1,11 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Armor")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Armor")
 
 local Armor_stats = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Armor_Init(saveState, expansions, deps)
+local function Armor_Init(saveState, expansions, modules)
     for _, expansion in ipairs(expansions) do
         for armor, stats in pairs(expansion.armorStats or {}) do
             assert(Check(Armor_stats[armor] == nil, "Armor %s is already registered", armor))

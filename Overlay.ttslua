@@ -1,6 +1,6 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local Log = require("Kdm/Util/Log").ForPackage("Overlay")
+require("Kdm/Check")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("Overlay")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -25,6 +25,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Overlay_Dud() end
+
 local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local grid = overlay.grid
 
@@ -47,15 +49,17 @@ local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local centerRow = top + (bottom - top) / 2
     local x, z = grid:XZ(centerCol, centerRow)
     local l = overlay.object.positionToLocal(grid:Object().positionToWorld({ x, overlay.height, z }))
+    local squareSize = 2730
     overlay.object.createButton({
         function_owner = self,
-        position = { -l[1], l[2], l[3] },
-        scale = { 0.2, 0.2, 0.2 },
-        width = 4280 * width,
-        height = 4280 * height,
+        position = { x = -l[1], y = l[2], z = l[3] },
+        scale = { x = 0.1, y = 0.1, z = 0.1 },
+        width = squareSize * width,
+        height = squareSize * height,
         color = color,
         hover_color = color,
         press_color = color,
+        click_function = "Overlay_Dud",
     })
 end
 
@@ -65,7 +69,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
     assert(CheckVec3(position, "position"))
     assert(CheckNum(baseSize, "baseSize"))
     assert(CheckNum(radius, "radius"))
-    assert(CheckCol(color, "color"))
+    assert(CheckColor(color, "color"))
 
     overlay:Hide()
 
@@ -76,7 +80,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
     -- there's one big central square, then rectangles on the top/bottom/left/right that get progressively smaller and taper off to zero.
 
     local localPosition = overlay.object.positionToLocal(position)
-    local centerCol, centerRow = overlay.grid.ColRow(localPosition)
+    local centerCol, centerRow = overlay.grid:ColRow(localPosition)
     local baseLeft, baseTop  -- left-top corner of the figurine's base (1x1, 2x2, 3x3, etc)
     if baseSize % 2 == 0 then
         local offset = math.floor(baseSize / 2) - 1
@@ -130,6 +134,4 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return {
-    Create = Overlay_Create,
-}
+return Overlay_Create

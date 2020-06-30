@@ -1,29 +1,28 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
+require("Kdm/Check")
+local Util = require("Kdm/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local CircularArray = {}
+local CircularArrayClass = {}
+CircularArrayClass.__index = CircularArrayClass
 
----------------------------------------------------------------------------------------------------
-
-function CircularArray.Create(capacity)
-    assert(CheckNum(capacity, "capacity"))
+local function CircularArray_Create(capacity)
     assert(Check(capacity > 0))
 
-    return {
+    local circularArray = {
         tag = "CircularArray",
         head = 1,
         tail = 1,
         capacity = capacity,
         array = {}
     }
+    setmetatable(circularArray, CircularArrayClass)
+    return circularArray
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function CircularArray.Size(ca)
-    assert(CheckTagged(ca, "CircularArray"))
+function CircularArrayClass.Size(ca)
     if ca.head >= ca.tail then
         return (ca.head - ca.tail)
     else
@@ -33,8 +32,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CircularArray.Top(ca)
-    assert(CheckTagged(ca, "CircularArray"))
+function CircularArrayClass.Top(ca)
     assert(Check(ca.head != ca.tail, "Circular array is empty"))
     if ca.head > 1 then
         return ca.array[ca.head - 1]
@@ -45,9 +43,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CircularArray.Push(ca, value)
-    assert(CheckTagged(ca, "CircularArray"))
-
+function CircularArrayClass.Push(ca, value)
     ca.array[ca.head] = value
 
     ca.head = ca.head + 1
@@ -66,8 +62,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CircularArray.Pop(ca)
-    assert(CheckTagged(ca, "CircularArray"))
+function CircularArrayClass.Pop(ca)
     assert(Check(ca.head != ca.tail, "Circular array is empty"))
 
     ca.head = ca.head - 1
@@ -79,4 +74,4 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return CircularArray
+return CircularArray_Create

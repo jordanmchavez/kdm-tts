@@ -118,17 +118,17 @@ return {
             resourcesDeck = false,
             position = "(11.5, 8.5)",
             playerPositions = { "(1, 16)", "(1, 1)", "(22, 1)", "(22, 16)" },
-            playerRotations = { { 0, 90, 0 }, { 0, 90, 0 }, { 0, -90, 0 }, { 0, -90, 0 } },
+            playerRotations = { { x = 0, y = 90, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 } },
             fixedTerrain = {
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(3, 3.5)", "(20, 3.5)", "(3, 11.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "Bug Patch",
                     positions = { "(20, 11)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 1,

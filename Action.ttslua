@@ -1,57 +1,15 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local Log = require("Kdm/Util/Log").ForPackage("Action")
-local Archive = require("Kdm/Archive")
-local Location = require("Kdm/Location")
+require("Kdm/Check")
+require("Kdm/Constants")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("Action")
 local Container = require("Kdm/Container")
+local Location = require("Kdm/Location")
 
-local Action = {}
-
-local OBJ_CLEAN_IGNORE_TAGS = { "Board", "Table" }
-
----------------------------------------------------------------------------------------------------
-
-function Action.Matches(obj, tags, types)
-    local matchesTags = tags and Util.ArrayContains(tags, obj.tag)
-    local matchesTypes = types and Util.ArrayContains(types, obj.getGMNotes())
-
-    return matchesTags or matchesTypes
-end
+local Archive = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_Clean(params, castFunc)
-    location, tags, types, debug = params.location, params.tags, params.types, params.debug
-    Log.Debugf("Cleaning %s", location)
-
-    local hits = castFunc(location, debug)
-    local blocking = {}
-    local ignore
-    for _, hit in ipairs(hits) do
-        local obj = hit.hit_object
-
-        if Action.Matches(obj, OBJ_CLEAN_IGNORE_TAGS, params.ignoreTypes) then
-            -- ignore
-
-        elseif Action.Matches(obj, tags, types) then
-            Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
-            obj.destruct()
-
-        else
-            Log.Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
-            table.insert(blocking, obj)
-        end
-    end
-
-    return blocking
-end
-
-function Action.BoxClean(params) return Action_Clean(params, Location.BoxCast) end
-function Action.RayClean(params) return Action_Clean(params, Location.RayCast) end
-
----------------------------------------------------------------------------------------------------
-
-function Action.ArchiveSource(name, type)
+local function Action_ArchiveSource(name, type)
     return {
         source = "Archive",
         name = name,
@@ -61,7 +19,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.ContainerSource(container, name, type)
+local function Action_ContainerSource(container, name, type)
     return {
         source = "Container",
         container = container,
@@ -72,10 +30,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.CreateDeck(params)
-    local sources = params.sources
-    local location = params.location
-    local rotation = params.rotation or Location.FACE_UP
+local function Action_CreateDeck(params)
+    local sources, location, rotation = params.sources,  Location.Get(params.location), (params.rotation or FACE_UP)
 
     local objects = {}
     for i, source in ipairs(sources) do
@@ -100,23 +56,24 @@ function Action.CreateDeck(params)
 
     deckObject.setName(params.name)
     deckObject.setGMNotes(params.type)
-    deckObject.setPositionSmooth(Location.WorldCenter(location), false, true)
+    deckObject.setPositionSmooth(location:Center(), false, true)
     deckObject.setRotation(rotation)
 
-    Log.Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location)
+    Log.Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location:Name())
 
     return Container(deckObject)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Action.Clone(params)
-    local object, location, rotation = params.object, params.location, params.rotation
-    local height = params.height or Location.DEFAULT_SPAWN_HEIGHT
-    local position = Location.WorldCenter(params.location)
+local function Action_Clone(params)
+    local object, location, rotation = params.object, Location.Get(params.location), params.rotation
+    assert(CheckTagged(location, "Location"))
+    local height = params.height or DEFAULT_SPAWN_HEIGHT
+    local position = location:Center()
     position.y = position.y + height
 
-    Log.Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location)
+    Log.Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location:Name())
 
     local clonedObject = object.clone({ position =  position })
     if rotation then
@@ -129,4 +86,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return Action
+local function Action_Init(saveState, expansions, modules)
+    Archive = modules.Archive
+    assert(Archive)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Action_Init,
+    ArchiveSource = Action_ArchiveSource,
+    ContainerSource = Action_ContainerSource,
+    CreateDeck = Action_CreateDeck,
+    Clone = Action_Clone,
+}

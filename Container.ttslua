@@ -1,18 +1,32 @@
-local Util = require("Kdm/Util/Util")
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Container")
+require("Kdm/Check")
+require("Kdm/Constants")
+local Log = require("Kdm/Log").ForPackage("Container")
+local Util = require("Kdm/Util")
 local Location = require("Kdm/Location")
 
-local Container = {}
+---------------------------------------------------------------------------------------------------
 
-Container.CONTAINER_TAGS = {
+local CONTAINER_TAGS = {
     ["Deck"] = true,
     ["Bag"] = true,
     ["Infinite"] = true,
 }
 
+---------------------------------------------------------------------------------------------------
+
 local ContainerClass = {}
 ContainerClass.__index = ContainerClass
+
+local function Container_Create(object)
+    assert(CheckObj(object))
+
+    local container  = {
+        object = object
+    }
+    setmetatable(container, ContainerClass)
+
+    return container
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -20,15 +34,17 @@ function ContainerClass.Take(container, params)
     assert(CheckTable(container))
     assert(container.object != nil, "Container is empty or was destroyed")  -- != nil is important for deleted TTS object comparison
 
-    local name, type, location, spawnFunc = params.name, params.type, params.location, params.spawnFunc
-    local rotation = params.rotation or Location.DEFAULT_ROTATION
-    local height = params.height or Location.DEFAULT_SPAWN_HEIGHT
-    local position = Location.WorldCenter(location)
+    local name, type, location, spawnFunc = params.name, params.type, Location.Get(params.location), params.spawnFunc
+    assert(CheckTagged(location, "Location"))
+
+    local rotation = params.rotation or FACE_UP
+    local height = params.height or DEFAULT_SPAWN_HEIGHT
+    local position = location:Center()
     position.y = position.y + height
 
-    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), location, height)
+    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), location:Name(), height)
 
-    if not Container.CONTAINER_TAGS[container.object.tag] then
+    if not CONTAINER_TAGS[container.object.tag] then
         local lastObject = container.object
         if name then
             assert(Check(lastObject.getName() == name and lastObject.getGMNotes() == type, "Couldn't take %s/%s from container; last remaining object is %s/%s", name, type, lastObject.getName(), lastObject.getGMNotes()))
@@ -78,7 +94,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function ContainerClass.Shuffle(container)
-    if Container.CONTAINER_TAGS[container.object.tag] then
+    if CONTAINER_TAGS[container.object.tag] then
         container.object.Shuffle()
     end
 end
@@ -92,7 +108,7 @@ function ContainerClass.Delete(container, names)
 
     Log.Debugf("Deleting %s from %s (%s)", names, container.object.getName(), container.object.getGUID())
 
-    if not Container.CONTAINER_TAGS[container.object.tag] then
+    if not CONTAINER_TAGS[container.object.tag] then
         assert(Check(#names == 1))
         local name = names[1]
 
@@ -193,17 +209,4 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-setmetatable(Container, { __call = function(self, object)
-    assert(CheckObj(object))
-
-    local container  = {
-        object = object
-    }
-    setmetatable(container, ContainerClass)
-
-    return container
-end })
-
----------------------------------------------------------------------------------------------------
-
-return Container
+return Container_Create

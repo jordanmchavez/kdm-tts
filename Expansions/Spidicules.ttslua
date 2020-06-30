@@ -154,7 +154,7 @@ return {
             huntTrack = { "M", "M", "H", "H", "M", "F", "H", "M", "M", "H", "H" },
             position = "(11.5, 8.5)",
             playerPositions = { "(10, 1)", "(11, 1)", "(12, 1)", "(13, 1)" },
-            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+            playerRotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
             -- no need for misc { "Spiderling" } since egg sacs fixed terrain will snag it
             levels = {
                 {
@@ -174,12 +174,12 @@ return {
                             {
                                 terrain = "Silk Nest",
                                 positions = { "(11.5, 8.5)" },
-                                rotations = { { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 } },
                             },
                             {
                                 terrain = "Egg Sacs",
                                 positions = { "(11, 4)", "(12, 4)" },
-                                rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                             }
                         },
                         randomTerrain = 2,
@@ -204,12 +204,12 @@ return {
                             {
                                 terrain = "Silk Nest",
                                 positions = { "(11.5, 8.5)" },
-                                rotations = { { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 } },
                             },
                             {
                                 terrain = "Egg Sacs",
                                 positions = { "(10, 5)", "(11, 4)", "(12, 4)", "(13, 5)" },
-                                rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                             }
                         },
                         randomTerrain = 2,
@@ -235,12 +235,12 @@ return {
                             {
                                 terrain = "Silk Nest",
                                 positions = { "(11.5, 8.5)" },
-                                rotations = { { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 } },
                             },
                             {
                                 terrain = "Egg Sacs",
                                 positions = { "(9, 6)", "(10, 5)", "(11, 4)", "(12, 4)", "(13, 5)", "(14, 6)" },
-                                rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                             }
                         },
                         randomTerrain = 2,

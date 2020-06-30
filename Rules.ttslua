@@ -1,24 +1,25 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Rules")
-local Util = require("Kdm/Util/Util")
-local CircularArray = require("Kdm/Util/CircularArray")
-local Trie = require("Kdm/Util/Trie")
-local Ui = require("Kdm/Util/Ui")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Rules")
+local Util = require("Kdm/Util")
+local CircularArray = require("Kdm/CircularArray")
+local Trie = require("Kdm/Trie")
+local Ui = require("Kdm/Ui")
+local Location = require("Kdm/Location")
 
-local Archive
-local Action
-local Location
+local Archive = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local Rules_trie = Trie.Create()
-local Rules_history = CircularArray.Create(100)
+local Rules_trie = Trie()
+local Rules_history = CircularArray(100)
 local Rules_index = {}
-
+local Rules_searchResultsPanel = nil
+local Rules_searchInput = nil
+local Rules_searchResultButtons = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.GetRulebookAndState(name)
+local function Rules_RulebookAndState(name)
     local data = Rules_index[name]
     assert(Check(data, "Unknown rule: %s", name))
     return data.rulebook, data.state
@@ -26,7 +27,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Search(searchTerms)
+local function Rules_Search(searchTerms)
     if searchTerms == nil or searchTerms == "" then
         return {}
     end
@@ -35,7 +36,7 @@ function Rules.Search(searchTerms)
     local matchIndex = {}
     local i = 1
     for term in string.gmatch(searchTerms, "%S+") do
-        local termMatches = Trie.Get(Rules_trie, term)
+        local termMatches = Rules_trie:Get(term)
         local termIndex = Util.Index(termMatches, "name")
 
         matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
@@ -54,64 +55,58 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.SpawnRules(rules, state, dontRecordHistory)
-    assert(CheckStr(rules, "rules"))
-    assert(CheckNum(state, "state"))
-    assert(CheckBoolOrNil(dontRecordHistory, "dontRecordHistory"))
+local function Rules_SpawnRules(rules, state, dontRecordHistory)
+    assert(CheckStr(rules))
+    assert(CheckNum(state))
+    assert(CheckBoolOrNil(dontRecordHistory))
 
     Log.Debugf("Spawning rules %s[%d]", rules, state)
 
-    local blocking = Action.BoxClean({ location = "Rules Board", types = { "Rulebook" } })
+    local location = Location.Get("Rules Board")
+    local blocking = location:BoxClean({ types = { "Rulebook" } })
     if #blocking > 0 then
         Log.Broadcastf("Something is blocking the rules board. Please move the highlighted objects out of the way and try again.")
         Util.HighlightAll(blocking)
         return
     end
 
-    Archive.Take({ name = rules, type = "Rulebook", location = "Rules Board", spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil })
+    Archive.Take({ name = rules, type = "Rulebook", location = location, spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil })
     Archive.CleanupBags()
 
     if not dontRecordHistory then
-        CircularArray.Push(Rules_history, { rules, state })
+        Rules_history:Push({ rules, state })
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.GetCurrentRules()
-    local hits = Location.RayCast("Rules Board")
-    for _, hit in ipairs(hits) do
-        local hitObj = hit.hit_object
-        if hitObj.getGMNotes() == "Rulebook" then
-            return hitObj
-        end
-    end
-    return nil
+local function Rules_GetCurrentRules()
+    return Location.Get("Rules Board"):Find("Rulebook")
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.Back()
-    local rules = Rules.GetCurrentRules()
+local function Rules_Back()
+    local rules = Rules_GetCurrentRules()
     if not rules then
         return
     end
 
-    if CircularArray.Size(Rules_history) <= 1 then
+    if Rules_history:Size() <= 1 then
         Log.Debugf("<= 1 history element, can't go back")
         return
     end
 
-    CircularArray.Pop(Rules_history)
-    local last = CircularArray.Top(Rules_history)
+    Rules_history:Pop()
+    local last = Rules_history:Top()
     Log.Debugf("Going back to %s[%d]", last[1], last[2])
-    Rules.SpawnRules(last[1], last[2], true)   -- dontRecordHistory
+    Rules_SpawnRules(last[1], last[2], true)   -- dontRecordHistory
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.ChangePage(dir)
-    local rules = Rules.GetCurrentRules()
+local function Rules_ChangePage(dir)
+    local rules = Rules_GetCurrentRules()
     if not rules then
         return
     end
@@ -139,38 +134,38 @@ function Rules.ChangePage(dir)
 
     assert(Check(rulebookName, "No rulebook name (page with state 1) in %s (%s)", rules.getName(), rules.getGUID()))
 
-    CircularArray.Push(Rules_history, { rulebookName, nextState })
+    Rules_history:Push({ rulebookName, nextState })
     rules.setState(nextState)
 end
 
-function Rules.PreviousPage() Rules.ChangePage(-1) end
-function Rules.NextPage() Rules.ChangePage(1) end
+local function Rules_PreviousPage() Rules_ChangePage(-1) end
+local function Rules_NextPage() Rules_ChangePage(1) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules.SetSearchResults(results)
+local function Rules_SetSearchResults(results)
     if #results == 0 then
-        Rules.searchResultsPanel:Hide()
+        Rules_searchResultsPanel:Hide()
         return
     end
 
-    Rules.searchResultsPanel:Show()
-    Rules.searchResultsPanel:SetHeight(10 + (#results * 30))
+    Rules_searchResultsPanel:Show()
+    Rules_searchResultsPanel:SetHeight(10 + (#results * 30))
 
     for i = 1, Util.Min(5, #results) do
         local result = results[i]
-        local button = Rules.searchResultButtons[i]
+        local button = Rules_searchResultButtons[i]
         button:Show()
         button:SetOnClick(function()
-            Rules.searchInput:SetText(nil)
-            Rules.SetSearchResults({})
-            Rules.SpawnRules(result.rulebook, result.state)
+            Rules_searchInput:SetText(nil)
+            Rules_SetSearchResults({})
+            Rules_SpawnRules(result.rulebook, result.state)
         end)
         button:SetText(result.name)
     end
 
     for i = #results + 1, 5 do
-        local button = Rules.searchResultButtons[i]
+        local button = Rules_searchResultButtons[i]
         button:Hide()
         button:SetOnClick(nil)
         button:SetText(nil)
@@ -179,7 +174,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Rules_RegisterExpansion(expansion)
+local function Rules_RegisterExpansion(expansion)
     for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
         local rulebookName = rulebook.name
         assert(CheckStr(rulebookName, "rulebook.name"))
@@ -208,7 +203,7 @@ function Rules_RegisterExpansion(expansion)
 
             for keywordIndex, keyword in ipairs(keywords) do
                 assert(CheckStr(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
-                Trie.Set(Rules_trie, keyword, entry)
+                Rules_trie:Set(keyword, entry)
             end
 
             if pageData.huntEventStart then
@@ -219,7 +214,7 @@ function Rules_RegisterExpansion(expansion)
                 assert(CheckNum(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
 
                 for huntEventNumber = huntEventStart, huntEventEnd do
-                    Trie.Set(Rules_trie, tostring(huntEventNumber), entry)
+                    Rules_trie:Set(tostring(huntEventNumber), entry)
                 end
             end
         end
@@ -228,15 +223,15 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_Init(saveState, ui, deps)
-    Archive = deps.Archive
+local function Rules_Init(saveState, expansions, modules, ui)
+    Archive = modules.Archive
     assert(Archive)
-    Action = deps.Action
-    assert(Action)
-    Location = deps.Location
-    assert(Location)
 
-    local rules = Rules.GetCurrentRules()
+    for _, expansion in ipairs(expansions) do
+        Rules_RegisterExpansion(expansion)
+    end
+
+    local rules = Rules_GetCurrentRules()
     if rules != nil then
         local currentState = rules.getStateId()
         local rulebookName = nil
@@ -250,22 +245,22 @@ local function Rules_Init(saveState, ui, deps)
             end
         end
         assert(Check(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID()))
-        CircularArray.Push(Rules_history, { rulebookName, currentState})
+        Rules_history:Push({ rulebookName, currentState})
     end
 
     local xStart = 80+110
-    Rules.searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
-        Rules.SetSearchResults(Rules.Search(value))
+    Rules_searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
+        Rules_SetSearchResults(Rules_Search(value))
     end })
     Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
-        Rules.SetSearchResults({})
-        Rules.searchInput:SetText(nil)
+        Rules_SetSearchResults({})
+        Rules_searchInput:SetText(nil)
     end })
-    Rules.searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = -90, width = 300, height = 160, color = "#00000088", active = false })
+    Rules_searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = -90, width = 300, height = 160, color = "#00000088", active = false })
 
-    Rules.searchResultButtons = {}
+    Rules_searchResultButtons = {}
     for i = 1, 5 do
-        Rules.searchResultButtons[i] = Ui.Button(Rules.searchResultsPanel, { id = "Result"..i, rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_BUTTON_COLORS, textColor = "#dddddd" })
+        Rules_searchResultButtons[i] = Ui.Button(Rules_searchResultsPanel, { id = "Result"..i, rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 290, height = 30, fontSize = 16, colors = Ui.INVISIBLE_COLORS, textColor = "#dddddd" })
     end
 end
 
@@ -273,4 +268,10 @@ end
 
 return {
     Init = Rules_Init,
+    RulebookAndState = Rules_RulebookAndState,
+    Search = Rules_Search,
+    SpawnRules = Rules_SpawnRules,
+    Back = Rules_Back,
+    PreviousPage = Rules_PreviousPage,
+    NextPage = Rules_NextPage,
 }

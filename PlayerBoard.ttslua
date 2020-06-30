@@ -1,11 +1,12 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local Log = require("Kdm/Util/Log").ForPackage("PlayerBoard")
-local Zone = require("Kdm/Util/Zone")
-local EventManager = require("Kdm/Util/EventManager")
-local Ui = require("Kdm/Util/Ui3d")
+require("Kdm/Check")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("PlayerBoard")
+local Zone = require("Kdm/Zone")
+local EventManager = require("Kdm/EventManager")
+local Ui = require("Kdm/Ui3d")
+local Location = require("Kdm/Location")
+local NamedObject = require("Kdm/NamedObject")
 
-local Location = nil
 local CharSheet = nil
 local Armor = nil
 local Weapon = nil
@@ -73,7 +74,7 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         if not figurine then
             Log.Errorf("Player Board %d was linked to Figurine %s, but that object no longer exists. Please re-link player %d with a survivor figurine.", playerNumber, saveState.figurineGuid, playerNumber)
         else
-            PlayerBoard_LinkFigurine(playerBoard, figurine)
+            playerBoard:LinkFigurine(figurine)
         end
     end
 
@@ -245,7 +246,7 @@ function PlayerBoardClass.UnlinkFigurine(playerBoard)
     end
 
     Log.Debugf("Unlinking figurine %s (%s) from player %d", figurine.getName(), figurine.getGUID(), playerBoard.playerNumber)
-    figurine.setColorTint({ 0, 0, 0 })
+    figurine.setColorTint({ r = 0, g = 0, b = 0 })
     if playerBoard.linkedCharSheet then
         playerBoard.linkedCharSheet:UnlinkFigurine()
     end
@@ -322,8 +323,8 @@ function PlayerBoardClass.PackCharSheet(playerBoard)
     charSheetObj.setLock(false)
 
     -- scan area covering the cards section of the player board
-    local corner1 = { 1.095649, 0.331540, 0.757645 }
-    local corner2 = { -0.640439, 0.331540, 0.381691 }
+    local corner1 = { x = 1.095649, y = 0.331540, z = 0.757645 }
+    local corner2 = { x = -0.640439, y = 0.331540, z = 0.381691 }
     local center = {
         (corner1[1] + corner2[1]) / 2,
         (corner1[2] + corner2[2]) / 2,
@@ -343,7 +344,7 @@ function PlayerBoardClass.PackCharSheet(playerBoard)
     -- scan all cards
     local hits = Physics.cast({
         origin        = wcenter,
-        direction = { 0, -1, 0 },
+        direction = { x = 0, y = -1, z = 0 },
         type            = 3,
         size            = wsize,
         --debug         = true,
@@ -509,7 +510,7 @@ function PlayerBoardClass.UnpackCharSheet(playerBoard)
                     position = pos,
                     -- necessary hack because the char sheet "owns" the table, other we'll get an error about resources owned by different scripts
                     -- this also needs to be x/y/z not 1/2/3 since this will be loaded from json and it only saves x/y/z
-                    rotation = { 0, 180, 0 },
+                    rotation = { x = 0, y = 180, z = 0 },
                     guid     = bagEntry.guid,
                     smooth   = false,
                 })
@@ -689,7 +690,7 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
             Log.Debugf("Linking armor %s (%s) to %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
             playerBoard.linkedArmor[object] = armorStats
             for _, hitLocation in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
-                playerBoard:AddArmor(location, 0, armorStats[hitLocation])
+                playerBoard:AddArmor(hitLocation, 0, armorStats[hitLocation])
             end
         end
 
@@ -708,7 +709,6 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
         local isPermanent = false
         local position = object.getPosition()
         for _, zone in ipairs(Zone.Get(position)) do
-            log(zone.name)
             if zone.name == "Player "..playerBoard.playerNumber.." Permanent Tokens" then
                 isPermanent = true
                 break
@@ -818,8 +818,6 @@ local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
 local function PlayerBoard_Init(saveState, expansions, modules)
     saveState = saveState or {}
 
-    NamedObject = modules.NamedObject
-    Location = modules.Location
     CharSheet = modules.CharSheet
     Armor = modules.Armor
     Weapon = modules.Weapon

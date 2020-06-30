@@ -1,21 +1,22 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Ui")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Ui")
+local Util = require("Kdm/Util")
 
-local Ui = {}
+local UI_DARK_BROWN = "#453824"
+local UI_MID_BROWN = "#7f7059"
+local UI_LIGHT_BROWN = "#bbb4a1"
 
-Ui.DARK_BROWN = "#453824"
-Ui.MID_BROWN = "#7f7059"
-Ui.LIGHT_BROWN = "#bbb4a1"
+local UI_DARK_BROWN_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
+local UI_MID_BROWN_COLORS = "#7f7059|#655741|#655741|#ffffff"
 
-Ui.DARK_BROWN_BUTTON_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
-Ui.MID_BROWN_BUTTON_COLORS = "#7f7059|#655741|#655741|#ffffff"
+local UI_INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
+local UI_IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
 
-Ui.INVISIBLE_BUTTON_COLORS = "#00000000|#00000088|#00000088|#00000000"
-Ui.IMAGE_BUTTON_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
+local UI_LEFT_MOUSE_BUTTON = "-1"
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.BaseClass = {
+local Ui_BaseClass = {
     Show = function(elem)
         Log.Debugf("Showing %s", elem.id)
         elem.object.UI.setAttribute(elem.id, "active", true)
@@ -36,11 +37,11 @@ Ui.BaseClass = {
         elem.object.UI.setAttribute(elem.id, "height", height)
     end
 }
-Ui.BaseClass.__index = Ui.BaseClass
+Ui_BaseClass.__index = Ui_BaseClass
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.Panel(parent, params)
+local function Ui_Panel(parent, params)
     assert(CheckStr(params.id))
 
     local id = parent.id.."_"..params.id.."Panel"
@@ -51,7 +52,7 @@ function Ui.Panel(parent, params)
         object = params.object or self,
         children = {},
     }
-    setmetatable(panel, Ui.BaseClass)
+    setmetatable(panel, Ui_BaseClass)
 
     local elem = {
         tag = "Panel",
@@ -73,7 +74,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.TextClass = {
+local Ui_TextClass = {
     SetText = function(elem, text)
         text = text or ""   -- nil will not actually clear the text
         Log.Debugf("Setting text for %s to '%s'", elem.id, text)
@@ -83,10 +84,10 @@ Ui.TextClass = {
         })
     end
 }
-Ui.TextClass.__index = Ui.TextClass
-setmetatable(Ui.TextClass, { __index = Ui.BaseClass })
+Ui_TextClass.__index = Ui_TextClass
+setmetatable(Ui_TextClass, { __index = Ui_BaseClass })
 
-function Ui.Text(parent, params)
+local function Ui_Text(parent, params)
     assert(CheckStr(params.id))
     assert(Check(params.color, "Text color is required"))
 
@@ -97,7 +98,7 @@ function Ui.Text(parent, params)
         object = params.object or self,
         color = params.color
     }
-    setmetatable(text, Ui.TextClass)
+    setmetatable(text, Ui_TextClass)
 
     table.insert(parent.children, {
         tag = "Text",
@@ -120,28 +121,28 @@ function Ui.Text(parent, params)
     return text
 end
 
-function Ui.DarkText(parent, params)
-    params.color = params.color or Ui.DARK_BROWN
-    return Ui.Text(parent, params)
+local function Ui_DarkText(parent, params)
+    params.color = params.color or UI_DARK_BROWN
+    return Ui_Text(parent, params)
 end
 
-function Ui.LightText(parent, params)
-    params.color = params.color or Ui.LIGHT_BROWN
-    return Ui.Text(parent, params)
+local function Ui_LightText(parent, params)
+    params.color = params.color or UI_LIGHT_BROWN
+    return Ui_Text(parent, params)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.ImageClass = {
+local Ui_ImageClass = {
     SetImage = function(elem, image)
         Log.Debugf("Setting image for %s to '%s'", elem.id, image)
         elem.object.UI.setAttribute(elem.id, "image", image)
     end
 }
-Ui.ImageClass.__index = Ui.ImageClass
-setmetatable(Ui.ImageClass, { __index = Ui.BaseClass })
+Ui_ImageClass.__index = Ui_ImageClass
+setmetatable(Ui_ImageClass, { __index = Ui_BaseClass })
 
-function Ui.Image(parent, params)
+local function Ui_Image(parent, params)
     local id = parent.id.."_"..params.id.."Image"
     Log.Debugf("Creating Image %s", id)
 
@@ -149,7 +150,7 @@ function Ui.Image(parent, params)
         id = id,
         object = params.object or self,
     }
-    setmetatable(image, Ui.ImageClass)
+    setmetatable(image, Ui_ImageClass)
 
     table.insert(parent.children, {
         tag = "Image",
@@ -169,20 +170,20 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.InputClass = {
-    SetText = function(elem, text)
-        text = text or ""   -- nil will not actually clear the text
-        Log.Debugf("Setting text for %s to '%s'", elem.id, text)
+local Ui_InputClass = {
+    Set = function(elem, value)
+        text = value or ""   -- nil will not actually clear the text
+        Log.Debugf("Setting text for %s to '%s'", elem.id, value)
         elem.object.UI.setAttributes(elem.id, {
-            text = text,
+            text = value,
             textColor = elem.textColor,
         })
     end,
 }
-Ui.InputClass.__index = Ui.InputClass
-setmetatable(Ui.InputClass, { __index = Ui.BaseClass })
+Ui_InputClass.__index = Ui_InputClass
+setmetatable(Ui_InputClass, { __index = Ui_BaseClass })
 
-function Ui.Input(parent, params)
+local function Ui_Input(parent, params)
     assert(CheckStr(params.id))
     assert(CheckFunc(params.onValueChanged))
 
@@ -196,14 +197,11 @@ function Ui.Input(parent, params)
         onValueChanged = params.onValueChanged,
         textColor = params.textColor,
     }
-    setmetatable(input, Ui.InputClass)
+    setmetatable(input, Ui_InputClass)
 
     local onValueChanged = id.."_OnValueChanged"
     input.object.setVar(onValueChanged, function(_, value)
         input.onValueChanged(value)
-        -- necessary for the text update to propagate through multipalyer
-        -- doesn't cause infinite recursion
-        self.UI.setAttribute(id, "text", value)
     end)
 
     table.insert(parent.children, {
@@ -230,28 +228,28 @@ function Ui.Input(parent, params)
     return input
 end
 
-function Ui.DarkInput(parent, params)
-    params.textColor = Ui.DARK_BROWN
-    params.colors = Ui.INVISIBLE_BUTTON_COLORS
-    return Ui.Input(parent, params)
+local function Ui_DarkInput(parent, params)
+    params.textColor = UI_DARK_BROWN
+    params.colors = UI_INVISIBLE_COLORS
+    return Ui_Input(parent, params)
 end
 
-function Ui.LightInput(parent, params)
-    params.textColor = Ui.LIGHT_BROWN
-    params.colors = Ui.INVISIBLE_BUTTON_COLORS
-    return Ui.Input(parent, params)
+local function Ui_LightInput(parent, params)
+    params.textColor = UI_LIGHT_BROWN
+    params.colors = UI_INVISIBLE_COLORS
+    return Ui_Input(parent, params)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.ButtonClass = {
+local Ui_ButtonClass = {
     SetOnClick = function(elem, onClick)
         elem.onClick = onClick
     end,
     SetText = function(elem, text)
         text = text or ""
         Log.Debugf("Setting %s text to %s", elem.id, text)
-        elem.UI.setAttributes(elem.id, {
+        elem.object.UI.setAttributes(elem.id, {
             text = text,
             textColor = elem.textColor,
         })
@@ -261,26 +259,26 @@ Ui.ButtonClass = {
             Log.Debugf("Setting button %s image to %s", elem.id, image)
             elem.object.UI.setAttributes(elem.id, {
                 image = image,
-                colors = Ui.IMAGE_BUTTON_COLORS,
+                colors = UI_IMAGE_COLORS,
             })
         else
             Log.Debugf("Clearing %s image", elem.id)
             elem.object.UI.setAttributes(elem.id, {
                 image = nil,
-                colors = Ui.INVISIBLE_BUTTON_COLORS,
+                colors = UI_INVISIBLE_COLORS,
             })
         end
     end,
 }
-Ui.ButtonClass.__index = Ui.ButtonClass
-setmetatable(Ui.ButtonClass, { __index = Ui.BaseClass })
+Ui_ButtonClass.__index = Ui_ButtonClass
+setmetatable(Ui_ButtonClass, { __index = Ui_BaseClass })
 
-function Ui.Button(parent, params)
+local function Ui_Button(parent, params)
     assert(CheckStr(params.id))
     assert(CheckFuncOrNil(params.onClick))
 
     local id = parent.id.."_"..params.id.."Button"
-    local textColor = params.textColor or Ui.LIGHT_BROWN
+    local textColor = params.textColor or UI_LIGHT_BROWN
 
     Log.Debugf("Creating Button %s", id)
 
@@ -290,7 +288,7 @@ function Ui.Button(parent, params)
         textColor = textColor,
         onClick = params.onClick,
     }
-    setmetatable(button, Ui.ButtonClass)
+    setmetatable(button, Ui_ButtonClass)
 
     local onClick = id.."_OnClick"
     button.object.setVar(onClick, function(_, mouseButton) button.onClick(mouseButton) end)
@@ -317,21 +315,40 @@ function Ui.Button(parent, params)
     return button
 end
 
-function Ui.InvisibleButton(parent, params)
-     params.colors = Ui.INVISIBLE_BUTTON_COLORS
-     return Ui.Button(parent, params)
+local function Ui_InvisibleButton(parent, params)
+     params.colors = UI_INVISIBLE_COLORS
+     return Ui_Button(parent, params)
 end
 
-function Ui.ImageButton(parent, params)
-     params.colors = Ui.IMAGE_BUTTON_COLORS
-     return Ui.Button(parent, params)
+local function Ui_ImageButton(parent, params)
+     params.colors = UI_IMAGE_COLORS
+     return Ui_Button(parent, params)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.CheckButton(parent, params)
+local Ui_CheckButtonClass = {
+    Set = function(checkButton, value)
+        if value then
+            checkButton.object.UI.setAttributes(checkButton.id, {
+                colors = checkButton.selectedColors,
+                textColor = checkButton.textColor,
+            })
+        else
+            checkButton.object.UI.setAttributes(checkButton.id, {
+                colors = checkButton.unselectedColors,
+                textColor = checkButton.textColor,
+            })
+        end
+    end,
+}
+Ui_CheckButtonClass.__index = Ui_CheckButtonClass
+setmetatable(Ui_CheckButtonClass, { __index = Ui_BaseClass })
+
+
+local function Ui_CheckButton(parent, params)
     assert(CheckStr(params.id))
-    assert(CheckFunc(params.onCheck))
+    assert(CheckFunc(params.onClick))
 
     local id = parent.id.."_"..params.id.."CheckButton"
 
@@ -340,30 +357,16 @@ function Ui.CheckButton(parent, params)
     local checkButton = {
         id = id,
         object = params.object or self,
-        checked = params.checked,
-        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
-        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
-        textColor = params.textColor or Ui.LIGHT_BROWN,
-        onCheck = params.onCheck,
+        selectedColors = params.selectedColors or UI_DARK_BROWN_COLORS,
+        unselectedColors = params.unselectedColors or UI_MID_BROWN_COLORS,
+        textColor = params.textColor or UI_LIGHT_BROWN,
+        onClick = params.onClick,
     }
+    setmetatable(checkButton, Ui_CheckButtonClass)
 
     local onClick = id.."_OnClick"
     checkButton.object.SetVar(onClick, function(_, _, id)
-        if checkButton.checked then
-            checkButton.object.UI.setAttributes(checkButton.id, {
-                colors = checkButton.unselectedColors,
-                textColor = checkButton.textColor,
-            })
-            checkButton.checked = nil
-        else
-            checkButton.object.UI.setAttributes(checkButton.id, {
-                colors = checkButton.selectedColors,
-                textColor = checkButton.textColor,
-            })
-            checkButton.checked = true
-        end
-
-        params.onCheck(checkButton.checked)
+        checkButton.onClick()
     end)
 
     table.insert(parent.children, {
@@ -382,23 +385,23 @@ function Ui.CheckButton(parent, params)
             onClick = onClick,
         },
     })
+
+    return checkButton
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.CheckBoxClass = {
-    Check = function(elem, checked)
-        elem.checked = checked
-        elem.object.UI.setAttribute(elem.id, "image", checked and "CheckBoxFilled" or "CheckBoxEmpty")
-        elem.onCheck(checked)
+local Ui_CheckBoxClass = {
+    Set = function(checkBox, value)
+        checkBox.object.UI.setAttribute(checkBox.id, "image", value and "CheckBoxFilled" or "CheckBoxEmpty")
     end,
 }
-Ui.CheckBoxClass.__index = Ui.CheckBoxClass
-setmetatable(Ui.CheckBoxClass, { __index = Ui.BaseClass })
+Ui_CheckBoxClass.__index = Ui_CheckBoxClass
+setmetatable(Ui_CheckBoxClass, { __index = Ui_BaseClass })
 
-function Ui.CheckBox(parent, params)
+local function Ui_CheckBox(parent, params)
     assert(CheckStr(params.id))
-    assert(CheckFunc(params.onCheck))
+    assert(CheckFunc(params.onClick))
 
     local id = parent.id.."_"..params.id.."CheckBox"
     Log.Debugf("Creating CheckBox %s", id)
@@ -406,14 +409,13 @@ function Ui.CheckBox(parent, params)
     local checkBox = {
         id = id,
         object = params.object or self,
-        checked = params.checked,
-        onCheck = params.onCheck,
+        onClick = params.onClick,
     }
-    setmetatable(checkBox, Ui.CheckBoxClass)
+    setmetatable(checkBox, Ui_CheckBoxClass)
 
     local onClick = id.."_OnClick"
     checkBox.object.setVar(onClick, function()
-        checkBox:Check(not checkBox.checked)
+        checkBox.onClick()
     end)
 
     table.insert(parent.children, {
@@ -424,8 +426,8 @@ function Ui.CheckBox(parent, params)
             offsetXY = params.x.." "..params.y,
             width = params.width or 30,
             height = params.height or 30,
-            colors = Ui.IMAGE_BUTTON_COLORS,
-            image = checkBox.checked and "CheckBoxFilled" or "CheckBoxEmpty",
+            colors = UI_IMAGE_COLORS,
+            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
             active = params.active,
             onClick = onClick,
         },
@@ -436,8 +438,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.OptionButtonGroupClass = {
-    Select = function(group, option)
+local Ui_OptionButtonGroupClass = {
+    Set = function(group, option)
         local selectedId = option and option.id or nil
         for _, option in ipairs(group.options) do
             if option.id != selectedId then
@@ -450,16 +452,15 @@ Ui.OptionButtonGroupClass = {
                     colors = group.selectedColors,
                     textColor = group.textColor,
                 })
-                group.onSelect(option.value)
             end
         end
     end,
 }
-Ui.OptionButtonGroupClass.__index = Ui.OptionButtonGroupClass
+Ui_OptionButtonGroupClass.__index = Ui_OptionButtonGroupClass
 
-function Ui.OptionButtonGroup(parent, params)
+local function Ui_OptionButtonGroup(parent, params)
     assert(CheckStr(params.id))
-    assert(CheckFunc(params.onSelect))
+    assert(CheckFunc(params.onClick))
 
     local id = parent.id.."_"..params.id.."OptionButtons"
 
@@ -470,24 +471,25 @@ function Ui.OptionButtonGroup(parent, params)
         id = id,
         object = params.object or self,
         options = {},
-        selectedColors = params.selectedColors or Ui.DARK_BROWN_BUTTON_COLORS,
-        unselectedColors = params.unselectedColors or Ui.MID_BROWN_BUTTON_COLORS,
-        textColor = params.textColor or Ui.LIGHT_BROWN,
+        selectedColors = params.selectedColors or UI_DARK_BROWN_COLORS,
+        unselectedColors = params.unselectedColors or UI_MID_BROWN_COLORS,
+        textColor = params.textColor or UI_LIGHT_BROWN,
         textAlignment = params.textAlignment or "MiddleCenter",
         fontSize = params.fontSize or 16,
-        onClick = id.."_OnClick",
-        onSelect = params.onSelect,
+        onClick = params.onClick,
     }
-    setmetatable(group, Ui.OptionButtonGroupClass)
-
-    group.object.SetVar(group.onClick, function(_, _, id)
-        group:Select({ id = id })    -- hack to make it look like an option
-    end)
+    setmetatable(group, Ui_OptionButtonGroupClass)
 
     return group
 end
 
-Ui.OptionButtonClass = {
+local Ui_OptionButtonClass = {
+    Value = function(optionButton)
+        return optionButton.value
+    end,
+    SetValue = function(optionButton, value)
+        optionButton.value = value
+    end,
     SetText = function(optionButton, text)
         text = text or ""
         Log.Debugf("Setting %s text to %s", optionButton.id, text)
@@ -496,14 +498,11 @@ Ui.OptionButtonClass = {
             textColor = optionButton.group.textColor,
         })
     end,
-    SetValue = function(optionButton, value)
-        optionButton.value = value
-    end,
 }
-Ui.OptionButtonClass.__index = Ui.OptionButtonClass
-setmetatable(Ui.OptionButtonClass, { __index = Ui.BaseClass })
+Ui_OptionButtonClass.__index = Ui_OptionButtonClass
+setmetatable(Ui_OptionButtonClass, { __index = Ui_BaseClass })
 
-function Ui.OptionButton(group, params)
+local function Ui_OptionButton(group, params)
     local id = group.id.."_"..(#group.options + 1)
 
     Log.Debugf("Creating OptionButton %s", id)
@@ -514,10 +513,14 @@ function Ui.OptionButton(group, params)
         group = group,
         value = params.value,
     }
-    setmetatable(optionButton, Ui.OptionButtonClass)
+    setmetatable(optionButton, Ui_OptionButtonClass)
 
     table.insert(group.options, optionButton)
 
+    local onClick = id.."_OnClick"
+    group.object.SetVar(onClick, function()
+        group.onClick(optionButton)
+    end)
     table.insert(group.parent.children, {
         tag = "Button",
         attributes = {
@@ -531,8 +534,8 @@ function Ui.OptionButton(group, params)
             textColor = group.textColor,
             fontSize = group.fontSize,
             textAlignment = group.textAlignment,
+            onClick = onClick,
             active = params.active,
-            onClick = group.onClick,
         },
     })
 
@@ -541,24 +544,23 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.OptionBoxGroupClass = {
-    Select = function(group, option)
+local Ui_OptionBoxGroupClass = {
+    Set = function(group, option)
         local selectedId = option and option.id or nil
         for _, option in ipairs(group.options) do
             if option.id != selectedId then
                 group.object.UI.setAttribute(option.id, "image", "CheckBoxEmpty")
             else
                 group.object.UI.setAttribute(option.id, "image", "CheckBoxFilled")
-                group.onSelect(option.value)
             end
         end
     end,
 }
-Ui.OptionBoxGroupClass.__index = Ui.OptionBoxGroupClass
+Ui_OptionBoxGroupClass.__index = Ui_OptionBoxGroupClass
 
-function Ui.OptionBoxGroup(parent, params)
+local function Ui_OptionBoxGroup(parent, params)
     assert(CheckStr(params.id))
-    assert(CheckFunc(params.onSelect))
+    assert(CheckFunc(params.onClick))
 
     local id = parent.id.."_"..params.id.."OptionBoxes"
 
@@ -569,25 +571,42 @@ function Ui.OptionBoxGroup(parent, params)
         id = id,
         object = params.object or self,
         options = {},
-        onClick = id.."_OnClick",
-        onSelect = params.onSelect,
+        onClick = params.onClick,
     }
-    setmetatable(group, Ui.OptionBoxGroupClass)
-
-    group.object.SetVar(group.onClick, function(_, _, id)
-        group:Select({ id = id })    -- hack to make it look like an option box
-    end)
+    setmetatable(group, Ui_OptionBoxGroupClass)
 
     return group
 end
 
-function Ui.OptionBox(group, params)
+local Ui_OptionBoxClass = {
+    Value = function(optionButton)
+        return optionButton.value
+    end,
+    SetValue = function(optionButton, value)
+        optionButton.value = value
+    end,
+}
+Ui_OptionBoxClass.__index = Ui_OptionBoxClass
+setmetatable(Ui_OptionBoxClass, { __index = Ui_BaseClass })
+
+local function Ui_OptionBox(group, params)
     local id = group.id.."_"..(#group.options + 1)
 
     Log.Debugf("Creating OptionBox %s", id)
 
-    local optionBox = { id = id, value = params.value }
+    local optionBox = {
+        id = id,
+        object = group.object,
+        group = group,
+        value = params.value,
+    }
+    setmetatable(optionBox, Ui_OptionBoxClass)
     table.insert(group.options, optionBox)
+
+    local onClick = id.."_OnClick"
+    group.object.SetVar(onClick, function()
+        group.onClick(optionBox)
+    end)
 
     table.insert(group.parent.children, {
         tag = "Button",
@@ -597,9 +616,9 @@ function Ui.OptionBox(group, params)
             offsetXY = params.x.." "..params.y,
             width = params.width or 30,
             height = params.height or 30,
-            colors = Ui.IMAGE_BUTTON_COLORS,
+            colors = UI_IMAGE_COLORS,
             image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
-            onClick = group.onClick,
+            onClick = onClick,
         },
     })
 
@@ -608,7 +627,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.VerticalScroll(parent, params)
+local function Ui_VerticalScroll(parent, params)
     -- hack/pass-through to make the ID concatenation work
     local verticalScroll = {
         id = parent.id,
@@ -632,4 +651,120 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return Ui
+local Ui_CounterClass = {
+    Set = function(counter, value)
+        assert(CheckNum(value))
+        Log.Debugf("Changing %s to %d", counter.textId, value)
+        counter.object.UI.setAttribute(counter.textId, "text", tostring(value))
+    end,
+}
+Ui_CounterClass.__index = Ui_CounterClass
+
+local function Ui_Counter(parent, params)
+    assert(CheckStr(params.id))
+    assert(CheckFunc(params.onValueChanged))
+
+    local id = parent.id.."_"..params.id.."Counter"
+    Log.Debugf("Creating Counter %s", id)
+
+    local textId = id.."Text"
+
+    local counter = {
+        textId = textId,
+        object = params.object or self,
+        onValueChanged = params.onValueChanged,
+    }
+    setmetatable(counter, Ui_CounterClass)
+
+    local value = params.value or 0
+    table.insert(parent.children, {
+        tag = "Text",
+        attributes = {
+            id = textId,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            text = tostring(value),
+            color = params.textColor or UI_DARK_BROWN,
+            fontSize = params.fontSize,
+            textAlignment = "MiddleCenter",
+            horizontalOverflow = "Overflow",
+            verticalOverflow = "Overflow",
+        }
+    })
+
+    local minusId = id.."Minus"
+    local minusOnClick = id.."Minus_OnClick"
+    self.setVar(minusOnClick, function(_, mouseButton)
+        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and -1 or -10)
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = minusId,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width / 2,
+            height = params.height,
+            colors = UI_INVISIBLE_COLORS,
+            textAlignment = "MiddleCenter",
+            onClick = minusOnClick,
+        }
+    })
+
+    local plusId = id.."Plus"
+    local plusOnClick = id.."Plus_OnClick"
+    self.setVar(plusOnClick, function(_, mouseButton)
+        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and 1 or 10)
+    end)
+    table.insert(parent.children, {
+        tag = "Button",
+        attributes = {
+            id = plusId,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = (params.x + (params.width / 2)).." "..params.y,
+            width = params.width / 2,
+            height = params.height,
+            colors = UI_INVISIBLE_COLORS,
+            textAlignment = "MiddleCenter",
+            onClick = plusOnClick,
+        }
+    })
+
+    return counter
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Panel = Ui_Panel,
+    Text = Ui_Text,
+    DarkText = Ui_DarkText,
+    LightText = Ui_LightText,
+    Image = Ui_Image,
+    Input = Ui_Input,
+    DarkInput = Ui_DarkInput,
+    LightInput = Ui_LightInput,
+    Button = Ui_Button,
+    InvisibleButton = Ui_InvisibleButton,
+    ImageButton = Ui_ImageButton,
+    CheckButton = Ui_CheckButton,
+    CheckBox = Ui_CheckBox,
+    OptionButtonGroup = Ui_OptionButtonGroup,
+    OptionButton = Ui_OptionButton,
+    OptionBoxGroup = Ui_OptionBoxGroup,
+    OptionBox = Ui_OptionBox,
+    VerticalScroll = Ui_VerticalScroll,
+    Counter = Ui_Counter,
+
+    DARK_BROWN = UI_DARK_BROWN,
+    MID_BROWN = UI_MID_BROWN,
+    LIGHT_BROWN = UI_LIGHT_BROWN,
+
+    DARK_BROWN_COLORS = UI_DARK_BROWN_COLORS,
+    MID_BROWN_COLORS = UI_MID_BROWN_COLORS,
+
+    INVISIBLE_COLORS = UI_INVISIBLE_COLORS,
+    IMAGE_COLORS = UI_IMAGE_COLORS,
+}

@@ -129,7 +129,7 @@ return {
                 {
                     terrainTile = "Fairy Ring",
                     position = "(11.5, 8.5)",
-                    rotation = { 0, 0, 0 },
+                    rotation = { x = 0, y = 0, z = 0 },
                 },
             },
             unfixedTerrain = { "Flower Patches" },

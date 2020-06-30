@@ -1,61 +1,41 @@
-local Util = require("Kdm/Util/Util")
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Settlement")
-local Trie = require("Kdm/Util/Trie")
-local Rules = require("Kdm/Rules")
-local Ui = require("Kdm/Util/Ui")
-local Showdown = require("Kdm/Showdown")
-local EventManager = require("Kdm/Util/EventManager")
-local Archive = require("Kdm/Archive")
-local Location = require("Kdm/Location")
+require("Kdm/Check")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("Settlement")
+local Trie = require("Kdm/Trie")
+local Ui = require("Kdm/Ui")
+local EventManager = require("Kdm/EventManager")
 local Container = require("Kdm/Container")
+local Location = require("Kdm/Location")
+
+local Archive = nil
+local Rules = nil
+local Setup = nil
+local Showdown = nil
 
 -------------------------------------------------------------------------------------------------
 
-local Settlement = {}
+local SETTLEMENT_MAX_TIMELINE_YEARS = 30
+local SETTLEMENT_MAX_MILESTONES = 4
 
-Settlement.MAX_TIMELINE_YEARS = 30
-
-Settlement.RIGHT_MOUSE_BUTTON = "-2"
-
-Settlement.EVENT_TYPE_ICONS = {
+local SETTLEMENT_RIGHT_MOUSE_BUTTON = "-2"
+local SETTLEMENT_EVENT_TYPE_ICONS = {
     ["RulebookEvent"] =  "RulebookEventIcon",
     ["ShowdownEvent"] = "ShowdownEventIcon",
     ["SettlementEvent"] = "SettlementEventIcon",
 }
-
-Settlement.EVENT_TYPE_IMAGES = {
+local SETTLEMENT_EVENT_TYPE_IMAGES = {
     ["RulebookEvent"] = "RulebookEventButton",
     ["ShowdownEvent"] = "ShowdownEventButton",
     ["SettlementEvent"] = "SettlementEventButton",
 }
 
-Settlement.trie = Trie.Create()
+local Settlement_trie = Trie()
+local Settlement_data = {}
+local Settlement_ui = {}
 
-Settlement.survivalLimit = 1
-Settlement.timeline = {}
-for i = 1, Settlement.MAX_TIMELINE_YEARS do
-    Settlement.timeline[i] = {
-        events = {}
-    }
-end
-Settlement.milestones = {}
-Settlement.quarries = {}
+--------------------------------------------------------------------------------------------------
 
-Settlement.panelOpen = false
-Settlement.addTimelineEventUi = {
-    panel = nil,
-    open = false,
-    results = {},
-    customName = nil,
-    year = nil,
-    event = nil,
-    type = "RulebookEvent",
-}
-
----------------------------------------------------------------------------------------------------
-
-function Settlement.NemesisSearchResultName(monster, level)
+local function Settlement_NemesisSearchResultName(monster, level)
     if level then
         local lvl = " Lvl "..string.sub(level, -1)
         if monster and monster != "" then
@@ -70,7 +50,9 @@ function Settlement.NemesisSearchResultName(monster, level)
     end
 end
 
-function Settlement.NemesisTimelineEventName(monster, level)
+---------------------------------------------------------------------------------------------------
+
+local function Settlement_NemesisTimelineEventName(monster, level)
     Log.Debugf("Generating name for %s/%s", monster, level)
     if level then
         local lvl = " Lvl "..string.sub(level, -1)
@@ -93,7 +75,7 @@ local defaultEvents = {
         keywords = { "Unspecified", "Nemesis" },
         event = {
             type = "ShowdownEvent",
-            searchResultName = Settlement.NemesisSearchResultName(nil, nil),
+            searchResultName = Settlement_NemesisSearchResultName(nil, nil),
         },
     },
 }
@@ -103,87 +85,26 @@ for level = 1, 3 do
         keywords = { "Nemesis", "Encounter", "Lvl", "Level", tostring(level) },
         event = {
             type = "ShowdownEvent",
-            searchResultName = Settlement.NemesisSearchResultName(nil, levelStr),
+            searchResultName = Settlement_NemesisSearchResultName(nil, levelStr),
             level = "Level 1",
         },
     })
 end
 for _, event in ipairs(defaultEvents) do
     for _, keyword in ipairs(event.keywords) do
-        Trie.Set(Settlement.trie, keyword, event.event)
+        Settlement_trie:Set(keyword, event.event)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.RegisterExpansion(expansion)
-    for _, rulebook in ipairs(expansion.rulebooks or {}) do
-        for name, page in pairs(rulebook.pages) do
-            if page.timelineEvent then
-                local event = {
-                    name = name,
-                    searchResultName = name,
-                    type = "RulebookEvent",
-                    rulebook = rulebook.name,
-                    state = page.state,
-                    expansion = expansion.name,
-                }
-                for _, keyword in ipairs(page.keywords) do
-                    Trie.Set(Settlement.trie, keyword, event)
-                end
-            end
-        end
-    end
-
-    for _, nemesis in ipairs(expansion.nemeses or {}) do
-        local event = {
-            type = "ShowdownEvent",
-            searchResultName = Settlement.NemesisSearchResultName(nemesis.name, nil),
-            monster = nemesis.name,
-            expansion = expansion.name,
-        }
-        local baseKeywords = Util.Split(nemesis.name, " ")
-        for _, keyword in ipairs(baseKeywords) do
-            Trie.Set(Settlement.trie, keyword, event)
-        end
-        if nemesis.levels > 1 then
-            for level = 1, nemesis.levels do
-                local event = {
-                    type = "ShowdownEvent",
-                    searchResultName = Settlement.NemesisSearchResultName(nemesis.name, level),
-                    monster = nemesis.name,
-                    level = "Level "..level,
-                    expansion = expansion.name,
-                }
-                local keywords = Util.ConcatArrays(baseKeywords, { "Lvl", "Level", tostring(level) })
-                for _, keyword in ipairs(keywords) do
-                    Trie.Set(Settlement.trie, keyword, event)
-                end
-            end
-        end
-    end
-
-    for _, settlementEvent in ipairs(expansion.settlementEvents or {}) do
-        for _, keyword in ipairs(Util.Split(settlementEvent, " ")) do
-            Trie.Set(Settlement.trie, keyword, {
-                name = settlementEvent,
-                searchResultName = settlementEvent,
-                type = "SettlementEvent",
-                expansion = expansion.name,
-            })
-        end
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function Settlement.AddTimelineEvent(year, event, params)
+local function Settlement_AddTimelineEvent(year, event, params)
     assert(CheckNum(year))
 
     -- choose first free event
     if event == nil then
         for i = 1, 5 do
-            if not Settlement.timeline[year].events[i] then
+            if not Settlement_data.timeline[year].events[i] then
                 event = i
                 break
             end
@@ -201,7 +122,7 @@ function Settlement.AddTimelineEvent(year, event, params)
         assert(CheckStr(params.name))
         local rulebook, state = params.rulebook, params.state
         if not rulebook and not params.custom then
-            rulebook, state = Rules.GetRulebookAndState(params.name)
+            rulebook, state = Rules.RulebookAndState(params.name)
         end
         eventData = {
             name = params.name,
@@ -212,7 +133,7 @@ function Settlement.AddTimelineEvent(year, event, params)
         }
 
     elseif type == "ShowdownEvent" then
-        local name = params.custom and params.name or Settlement.NemesisTimelineEventName(params.monster, params.level)
+        local name = params.custom and params.name or Settlement_NemesisTimelineEventName(params.monster, params.level)
         eventData = {
             name = name,
             type = type,
@@ -234,42 +155,42 @@ function Settlement.AddTimelineEvent(year, event, params)
 
     Log.Debugf("Adding event to year %d, event %d: %s", year, event, eventData)
 
-    Settlement.timeline[year].eventButtons[event]:SetImage(Settlement.EVENT_TYPE_IMAGES[type])
-    local text = Settlement.timeline[year].eventTexts[event]
+    Settlement_ui.timeline[year].eventButtons[event]:SetImage(SETTLEMENT_EVENT_TYPE_IMAGES[type])
+    local text = Settlement_ui.timeline[year].eventTexts[event]
     text:Show()
     text:SetText(eventData.name)
 
-    Settlement.timeline[year].events[event] = eventData
+    Settlement_data.timeline[year].events[event] = eventData
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.RemoveTimelineEvent(year, event)
+local function Settlement_RemoveTimelineEvent(year, event)
     Log.Debugf("Removing timeline year %d, event %d", year, event)
 
-    Settlement.timeline[year].eventButtons[event]:SetImage(nil)
+    Settlement_ui.timeline[year].eventButtons[event]:SetImage(nil)
 
-    local text = Settlement.timeline[year].eventTexts[event]
+    local text = Settlement_ui.timeline[year].eventTexts[event]
     text:Hide()
-    text:SetText(nil)
+    text:SetText()
 
-    Settlement.timeline[year].events[event] = nil
+    Settlement_data.timeline[year].events[event] = nil
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.SetMilestones(milestones)
-    Settlement.milestones = {}
+local function Settlement_SetMilestones(milestones)
+    Settlement_data.milestones = {}
     for i, milestone in ipairs(milestones) do
         Log.Debugf("Setting milestone %i to %s/%s", i, milestone.name, milestone.event)
-        Settlement.milestoneCheckboxes[i]:Show()
-        Settlement.milestoneTexts[i]:Show()
-        Settlement.milestoneTexts[i]:SetText(milestone.name)
-        Settlement.milestoneEventButtons[i]:Show()
-        Settlement.milestoneEventTexts[i]:Show()
-        Settlement.milestoneEventTexts[i]:SetText(milestone.event)
+        Settlement_ui.milestoneCheckboxes[i]:Show()
+        Settlement_ui.milestoneTexts[i]:Show()
+        Settlement_ui.milestoneTexts[i]:SetText(milestone.name)
+        Settlement_ui.milestoneEventButtons[i]:Show()
+        Settlement_ui.milestoneEventTexts[i]:Show()
+        Settlement_ui.milestoneEventTexts[i]:SetText(milestone.event)
 
-        Settlement.milestones[i] = {
+        Settlement_data.milestones[i] = {
             name = milestone.name,
             event = milestone.event,
             checked = nil,
@@ -279,44 +200,42 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Settlement.MAX_MILESTONES = 4
+local function Settlement_Reset()
+    Settlement_ui.nameInput:Set()
 
-function Settlement.Reset()
-    Settlement.nameInput:SetText()
+    Settlement_data.survivalLimit = 1
+    Settlement_ui.survivalLimitCounter:Set(1)
 
-    Settlement.survivalLimit = 1,
-    Settlement.survivalLimitText:SetText("1")
+    Settlement_data.departingBonuses = nil
+    Settlement_ui.departingBonusesInput:Set()
 
-    Settlement.departingBonuses = nil
-    Settlement.departingBonusesInput:SetText()
+    Settlement_data.arrivalBonuses = nil
+    Settlement_ui.arrivalBonusesInput:Set()
 
-    Settlement.arrivalBonuses = nil
-    Settlement.arrivalBonusesInput:SetText()
-
-    Settlement.milestones = {}
-    for i = 1, Settlement.MAX_MILESTONES do
-        Settlement.milestoneCheckboxes[i]:Hide()
-        Settlement.milestoneCheckboxes[i]:Check(false)
-        Settlement.milestoneTexts[i]:Hide()
-        Settlement.milestoneTexts[i]:SetText(nil)
-        Settlement.milestoneEventButtons[i]:Hide()
-        Settlement.milestoneEventTexts[i]:Hide()
-        Settlement.milestoneEventTexts[i]:SetText(nil)
+    Settlement_data.milestones = {}
+    for i = 1, SETTLEMENT_MAX_MILESTONES do
+        Settlement_ui.milestoneCheckboxes[i]:Hide()
+        Settlement_ui.milestoneCheckboxes[i]:Set(false)
+        Settlement_ui.milestoneTexts[i]:Hide()
+        Settlement_ui.milestoneTexts[i]:SetText()
+        Settlement_ui.milestoneEventButtons[i]:Hide()
+        Settlement_ui.milestoneEventTexts[i]:Hide()
+        Settlement_ui.milestoneEventTexts[i]:SetText()
     end
 
-    Settlement.quarries = {}
+    Settlement_data.quarries = {}
     for i = 1, 10 do
-        Settlement.quarryInputs[i]:SetText()
+        Settlement_ui.quarryInputs[i]:Set()
     end
 
-    Settlement.notes = nil
-    Settlement.notesInput:SetText()
+    Settlement_data.notes = nil
+    Settlement_ui.notesInput:Set()
 
-    for year, yearData in pairs(Settlement.timeline) do
+    for year, yearData in pairs(Settlement_data.timeline) do
         yearData.checked = nil
-        yearData.yearCheckBox:Check(false)
+        Settlement_ui.timeline[year].yearCheckBox:Set(false)
         for event, eventData in pairs(yearData.events) do
-            Settlement.RemoveTimelineEvent(year, event)
+            Settlement_RemoveTimelineEvent(year, event)
         end
         yearData.events = {}
     end
@@ -324,62 +243,100 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.ShowUi()
-    Log.Debugf("Showing settlement panel")
-    Settlement.panel:Show()
-    Settlement.panelOpen = true
-end
-
-function Settlement.HideUi()
-    Log.Debugf("Hiding settlement panel")
-    Settlement.panel:Hide()
-    Settlement.panelOpen = false
+local function Settlement_ShowUi()
+    Log.Debugf("Showing settlement ui")
+    Settlement_ui.panel:Show()
+    Settlement_ui.open = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.OpenTimelineEventPanel(year, event)
-    if Settlement.addTimelineEventUi.open then
+local function Settlement_HideUi()
+    Log.Debugf("Hiding settlement ui")
+    Settlement_ui.panel:Hide()
+    Settlement_ui.open = false
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Settlement_SetEventSearchResults(results)
+    Settlement_ui.timelineEvent.results = results
+    for i = 1, Util.Min(5, #results) do
+        local result = results[i]
+        Log.Debugf("Setting result %d to %s", i, result)
+
+        local button = Settlement_ui.timelineEvent.resultButtons[i]
+        button:Show()
+
+        local icon = Settlement_ui.timelineEvent.resultIcons[i]
+        icon:Show()
+        icon:SetImage(SETTLEMENT_EVENT_TYPE_ICONS[result.type])
+
+        local text = Settlement_ui.timelineEvent.resultTexts[i]
+        text:Show()
+        text:SetText(result.searchResultName)
+    end
+
+    for i = #results + 1, 5 do
+        local button = Settlement_ui.timelineEvent.resultButtons[i]
+        button:Hide()
+
+        local icon = Settlement_ui.timelineEvent.resultIcons[i]
+        icon:Hide()
+        icon:SetImage(nil)
+
+        local text = Settlement_ui.timelineEvent.resultTexts[i]
+        text:Hide()
+        text:SetText()
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Settlement_OpenTimelineEventPanel(year, event)
+    if Settlement_ui.timelineEvent.open then
         Log.Debugf("Timeline event panel already open")
         return
     end
 
     Log.Debugf("Opening timeline event panel for year %d, event %d", year, event)
-    Settlement.addTimelineEventUi.panel:Show()
-    Settlement.addTimelineEventUi.open = true
-    Settlement.addTimelineEventUi.year = year
-    Settlement.addTimelineEventUi.event = event
-end
-
-function Settlement.CloseTimelineEventPanel()
-    Log.Debugf("Closing Timeline event panel")
-    Settlement.addTimelineEventUi.panel:Hide()
-    Settlement.addTimelineEventUi.open = nil
-    Settlement.addTimelineEventUi.year = nil
-    Settlement.addTimelineEventUi.event = nil
-
-    Settlement.addTimelineEventUi.searchInput:SetText(nil)
-    Settlement.SetEventSearchResults({})
-
-    Settlement.addTimelineEventUi.customName = nil
-    Settlement.addTimelineEventUi.customNameText:SetText(nil)
-
-    Settlement.addTimelineEventUi.type = "RulebookEvent"
-    Settlement.addTimelineEventUi.typeOptions:Select(Settlement.addTimelineEventUi.timelineEventOption)
+    Settlement_ui.timelineEvent.panel:Show()
+    Settlement_ui.timelineEvent.open = true
+    Settlement_ui.timelineEvent.year = year
+    Settlement_ui.timelineEvent.event = event
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.SearchEvents(searchTerms)
+local function Settlement_CloseTimelineEventPanel()
+    Log.Debugf("Closing Timeline event panel")
+    Settlement_ui.timelineEvent.panel:Hide()
+    Settlement_ui.timelineEvent.open = nil
+    Settlement_ui.timelineEvent.year = nil
+    Settlement_ui.timelineEvent.event = nil
+
+    Settlement_ui.timelineEvent.searchInput:Set()
+    Settlement_SetEventSearchResults({})
+
+    Settlement_ui.timelineEvent.customName = nil
+    Settlement_ui.timelineEvent.customNameInput:Set()
+
+    Settlement_ui.timelineEvent.type = "RulebookEvent"
+    Settlement_ui.timelineEvent.typeOptions:Set(Settlement_ui.timelineEvent.rulebookEventOption)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Settlement_SearchEvents(searchTerms)
     if searchTerms == nil or searchTerms == "" then
-        Settlement.SetEventSearchResults({})
+        Settlement_SetEventSearchResults({})
     end
 
     -- only accept results that match all terms
     local matchIndex = {}
     local i = 1
     for term in string.gmatch(searchTerms, "%S+") do
-        local termMatches = Trie.Get(Settlement.trie, term)
+        local termMatches = Settlement_trie:Get(term)
         local termIndex = Util.Index(termMatches, "searchResultName")
 
         matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
@@ -389,56 +346,25 @@ function Settlement.SearchEvents(searchTerms)
     -- sort matches
     local sortedMatches = {}
     for _, m in pairs(matchIndex) do
-        if not m.expansion or Settlement.enabledExpansions[m.expansion] then
+        if not m.expansion or Setup.EnabledExpansions()[m.expansion] then
             table.insert(sortedMatches, m)
         end
     end
     table.sort(sortedMatches, function(x, y) return x.searchResultName < y.searchResultName end)
 
     Log.Debugf("Search results for %s: %s", searchTerms, sortedMatches)
-    Settlement.SetEventSearchResults(sortedMatches)
+    Settlement_SetEventSearchResults(sortedMatches)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.SetEventSearchResults(results)
-    Settlement.addTimelineEventUi.results = results
-    for i = 1, Util.Min(5, #results) do
-        local result = results[i]
-        Log.Debugf("Setting result %d to %s", i, result)
-
-        local button = Settlement.addTimelineEventUi.resultButtons[i]
-        button:Show()
-
-        local icon = Settlement.addTimelineEventUi.resultIcons[i]
-        icon:Show()
-        icon:SetImage(Settlement.EVENT_TYPE_ICONS[result.type])
-
-        local text = Settlement.addTimelineEventUi.resultTexts[i]
-        text:Show()
-        text:SetText(result.searchResultName)
-    end
-
-    for i = #results + 1, 5 do
-        local button = Settlement.addTimelineEventUi.resultButtons[i]
-        button:Hide()
-
-        local icon = Settlement.addTimelineEventUi.resultIcons[i]
-        icon:Hide()
-        icon:SetImage(nil)
-
-        local text = Settlement.addTimelineEventUi.resultTexts[i]
-        text:Hide()
-        text:SetText(nil)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-Settlement.EVENT_TYPE_HANDLERS = {
+local SETTLEMENT_EVENT_TYPE_HANDLERS = {
     ["RulebookEvent"] = function(eventData)
         if not eventData.custom then
-            Settlement.HideUi()
+            Settlement_HideUi()
+            log(eventData)
+            log(Rules)
+            log(Rules.SpawnRules)
             Rules.SpawnRules(eventData.rulebook, eventData.state)
         else
             Log.Debugf("Custom timeline event button, no effect")
@@ -446,9 +372,9 @@ Settlement.EVENT_TYPE_HANDLERS = {
     end,
 
     ["ShowdownEvent"] = function(eventData)
-        Settlement.HideUi()
+        Settlement_HideUi()
         Showdown.ShowUi()
-        -- TTS has no way to scroll the scroll view, so if we select a monster out of the current view, it will be selected but the button won't be visivble
+        -- TTS has no way to scroll the scroll view, so if we select a monster out of the current view, it will be selected but the button won't be visible
         -- this is a bad user experience and worse than just not selecting anything
         -- if eventData.monster then
         --     Showdown.SelectMonster(eventData.monster)
@@ -459,22 +385,16 @@ Settlement.EVENT_TYPE_HANDLERS = {
     end,
 
     ["SettlementEvent"] = function(eventData)
-        Settlement.HideUi()
+        Settlement_HideUi()
 
-        local deck = nil
-        for _, hit in ipairs(Location.RayCast("Settlement Events")) do
-            local obj = hit.hit_object
-            if obj.tag == "Deck" and obj.getGMNotes() == "Settlement Events" then
-                deck = obj
-                break
-            end
-        end
+        local settlementEventsLocation = Location.Get("Settlement Events")
+        local deck = settlementEventsLocation:Find("Settlement Events")
         if deck == nil then
-            deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = "Settlement Events", rotation = Location.FACE_DOWN })
             Log.Broadcastf("Couldn't find Settlement Event deck in the highlighted location, so created a new one.")
+            deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = settlementEventsLocation, rotation = FACE_DOWN })
             Util.Highlight(deck)
         end
-        local card = Container(deck):Take({ name = eventData.name, type = "Settlement Events", location = "Drawn Settlement Events", allowMissing = true })
+        local card = Container(deck):Take({ name = eventData.name, type = "Settlement Events", location = Location.Get("Drawn Settlement Events"), allowMissing = true })
         if not card then
             Log.Broadcastf("Couldn't find the '%s' card in the Settlement Events Deck", eventData.name)
             Util.Highlight(deck)
@@ -492,150 +412,199 @@ Settlement.EVENT_TYPE_HANDLERS = {
     end
 }
 
-function Settlement.EventButtonOnClick(year, event, mouseButton)
+local function Settlement_EventButtonOnClick(year, event, mouseButton)
     Log.Debugf("Year %d, event %d button clicked %d", year, event, mouseButton)
 
-    local eventData = Settlement.timeline[year].events[event]
+    local eventData = Settlement_data.timeline[year].events[event]
     if not eventData then
-        Settlement.OpenTimelineEventPanel(year, event)
+        Settlement_OpenTimelineEventPanel(year, event)
         return
     end
 
-    if mouseButton == Settlement.RIGHT_MOUSE_BUTTON then
+    if mouseButton == SETTLEMENT_RIGHT_MOUSE_BUTTON then
         Log.Debugf("RMB clicked, removing year %d, event %d", year, event)
-        Settlement.RemoveTimelineEvent(year, event)
+        Settlement_RemoveTimelineEvent(year, event)
         return
     end
-
-    local handler = Settlement.EVENT_TYPE_HANDLERS[eventData.type]
-    assert(Check(handler, "Unknown event: %s", eventData))
 
     Log.Debugf("Even button clicked for year %d, event# %d", year, event)
+
+    local handler = SETTLEMENT_EVENT_TYPE_HANDLERS[eventData.type]
+    assert(Check(handler, "Unknown event: %s", eventData))
     handler(eventData)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.Save()
-    local saveData = {
-        name = Settlement.name,
-        survivalLimit = Settlement.survivalLimit,
-        departingBonuses = Settlement.departingBonuses,
-        arrivalBonuses = Settlement.arrivalBonuses,
-        milestones = Settlement.milestones,
-        quarries = Settlement.quarries,
-        notes = Settlement.notes,
-    }
-
-    saveData.timeline = {}
-    for year, yearData in pairs(Settlement.timeline) do
-        saveData.timeline[year] = { checked = yearData.checked, events = {} }
-        for event, eventData in pairs(yearData.events) do
-            saveData.timeline[year].events[event] = eventData
+local function Settlement_RegisterExpansion(expansion)
+    for _, rulebook in ipairs(expansion.rulebooks or {}) do
+        for name, page in pairs(rulebook.pages) do
+            if page.timelineEvent then
+                local event = {
+                    name = name,
+                    searchResultName = name,
+                    type = "RulebookEvent",
+                    rulebook = rulebook.name,
+                    state = page.state,
+                    expansion = expansion.name,
+                }
+                for _, keyword in ipairs(page.keywords) do
+                    Settlement_trie:Set(keyword, event)
+                end
+            end
         end
     end
 
-    return saveData
+    for _, nemesis in ipairs(expansion.nemeses or {}) do
+        local event = {
+            type = "ShowdownEvent",
+            searchResultName = Settlement_NemesisSearchResultName(nemesis.name, nil),
+            monster = nemesis.name,
+            expansion = expansion.name,
+        }
+        local baseKeywords = Util.Split(nemesis.name, " ")
+        for _, keyword in ipairs(baseKeywords) do
+            Settlement_trie:Set(keyword, event)
+        end
+        if nemesis.levels > 1 then
+            for level = 1, nemesis.levels do
+                local event = {
+                    type = "ShowdownEvent",
+                    searchResultName = Settlement_NemesisSearchResultName(nemesis.name, level),
+                    monster = nemesis.name,
+                    level = "Level "..level,
+                    expansion = expansion.name,
+                }
+                local keywords = Util.ConcatArrays(baseKeywords, { "Lvl", "Level", tostring(level) })
+                for _, keyword in ipairs(keywords) do
+                    Settlement_trie:Set(keyword, event)
+                end
+            end
+        end
+    end
+
+    for _, settlementEvent in ipairs(expansion.settlementEvents or {}) do
+        for _, keyword in ipairs(Util.Split(settlementEvent, " ")) do
+            Settlement_trie:Set(keyword, {
+                name = settlementEvent,
+                searchResultName = settlementEvent,
+                type = "SettlementEvent",
+                expansion = expansion.name,
+            })
+        end
+    end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Settlement.Init(saveState, ui)
-    saveState = saveState or {}
+local function Settlement_Init(saveState, expansions, modules, ui)
+    Archive = modules.Archive
+    assert(Archive)
+    Rules = modules.Rules
+    assert(Rules)
+    Showdown = modules.Showdown
+    --assert(Showdown)
+    Setup = modules.Setup
+    assert(Setup)
 
-    Settlement.name = saveState.name
-    Settlement.survivalLimit = saveState.survivalLimit or Settlement.survivalLimit
-    Settlement.departingBonuses = saveState.departingBonuses
-    Settlement.arrivalBonuses = saveState.arrivalBonuses
-    Settlement.milestones = saveState.milestones or {}
-    Settlement.quarries = saveState.quarries or {}
-    Settlement.notes = saveState.notes
-    if saveState.timeline then
-        for year = 1, Settlement.MAX_TIMELINE_YEARS do
-            if saveState.timeline[year] then
-                Settlement.timeline[year].checked = saveState.timeline[year].checked
-                Settlement.timeline[year].events = saveState.timeline[year].events or {}
-            end
-        end
+    for _, expansion in ipairs(expansions) do
+        Settlement_RegisterExpansion(expansion)
     end
 
-    EventManager.AddHandler("onExpansionsChanged", function(enabledExpansions)
-        Settlement.enabledExpansions = enabledExpansions
-    end)
+    saveState = saveState or {}
+
+    Settlement_data.name = saveState.name
+    Settlement_data.survivalLimit = saveState.survivalLimit or 1
+    Settlement_data.departingBonuses = saveState.departingBonuses
+    Settlement_data.arrivalBonuses = saveState.arrivalBonuses
+    Settlement_data.milestones = saveState.milestones or {}
+    Settlement_data.quarries = saveState.quarries or {}
+    Settlement_data.notes = saveState.notes
+    Settlement_data.timeline = {}
+    local saveStateTimeline = saveState.timeline or {}
+    for year = 1, SETTLEMENT_MAX_TIMELINE_YEARS do
+        local saveStateTimelineYear = saveStateTimeline[year] or {}
+        Settlement_data.timeline[year] = {
+            checked = saveStateTimelineYear.checked,
+            events = saveStateTimelineYear.events or {},
+        }
+    end
 
     Ui.ImageButton(ui, { id = "Settlement", rectAlignment = "UpperLeft", x = 80, y = -50, width = 100, height = 30, image = "SettlementButton", onClick = function()
-        if Settlement.panelOpen then
-            Settlement.HideUi()
+        if Settlement_ui.open then
+            Settlement_HideUi()
         else
-            Settlement.ShowUi()
+            Settlement_ShowUi()
         end
     end })
 
     local panel = Ui.Panel(ui, { id = "Settlement", width = 1600, height = 900, active = false })
-    Settlement.panel = panel
+    Settlement_ui.open = false
+    Settlement_ui.panel = panel
+
     Ui.Image(panel, { id = "Settlement", image = "Settlement", width = 1600, height = 900 })
 
-    Settlement.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 520, height = 35, text = Settlement.name, fontSize = 24, onValueChanged = function(value)
+    Settlement_ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 520, height = 35, text = Settlement_data.name, fontSize = 24, onValueChanged = function(value)
         Log.Debugf("Setting settlement name to %s", value)
-        Settlement.name = value
+        Settlement_data.name = value
     end })
 
-    Settlement.survivalLimitText = Ui.DarkText(panel, { id = "SurvivalLimit", x = 902, y = 830, width = 50, height = 50, text = Settlement.survivalLimit, alignment = "MiddleCenter", fontSize = 36 })
-    Ui.InvisibleButton(panel, { id = "SurvivalLimitPlus", x = 952, y = 855,  width = 25, height = 25, onClick = function()
-        Settlement.survivalLimit = Settlement.survivalLimit + 1
-        Log.Debugf("Setting survival limit to %d", Settlement.survivalLimit)
-        Settlement.survivalLimitText:SetText(Settlement.survivalLimit)
-    end })
-    Ui.InvisibleButton(panel, { id = "SurvivalLimitMinus", x = 952, y = 830,  width = 25, height = 25, onClick = function()
-        Settlement.survivalLimit = Settlement.survivalLimit - 1
-        Log.Debugf("Setting survival limit to %d", Settlement.survivalLimit)
-        Settlement.survivalLimitText:SetText(Settlement.survivalLimit)
+    Settlement_ui.survivalLimitCounter = Ui.Counter(panel, { id = "SurvivalLimit", x = 902, y = 830, width = 50, height = 50, value = Settlement_data.survivalLimit, fontSize = 36, onValueChanged = function(delta)
+        local value = Settlement_data.survivalLimit + delta
+        Settlement_data.survivalLimit = value
+        Log.Debugf("Setting survival limit to %d", value)
+        Settlement_ui.survivalLimitCounter:Set(value)
     end })
 
-    Settlement.departingBonusesInput = Ui.DarkInput(panel, { id = "DepartingBonus", x = 1129, y = 865, width = 300, height = 25, text = Settlement.departingBonuses, onValueChanged = function(value)
+    Settlement_ui.departingBonusesInput = Ui.DarkInput(panel, { id = "DepartingBonus", x = 1129, y = 865, width = 300, height = 25, text = Settlement_data.departingBonuses, onValueChanged = function(value)
         Log.Debugf("Setting departing bonuses to %s", value)
-        Settlement.departingBonuses = value
+        Settlement_data.departingBonuses = value
+        Settlement_ui.departingBonusesInput:Set(value)
     end })
-    Settlement.arrivalBonusesInput = Ui.DarkInput(panel, { id = "ArrivalBonus", x = 1129, y = 830, width = 300, height = 25, text = Settlement.arrivalBonuses, onValueChanged = function(value)
+    Settlement_ui.arrivalBonusesInput = Ui.DarkInput(panel, { id = "ArrivalBonus", x = 1129, y = 830, width = 300, height = 25, text = Settlement_data.arrivalBonuses, onValueChanged = function(value)
         Log.Debugf("Setting arrival bonuses to %s", value)
-        Settlement.arrivalBonuses = value
+        Settlement_data.arrivalBonuses = value
+        Settlement_ui.arrivalBonusesInput:Set(value)
     end })
 
     Ui.InvisibleButton(panel, { id = "Close", x = 1556, y = 856,  width = 30, height = 30, onClick = function ()
-        Settlement.HideUi()
+        Settlement_HideUi()
     end })
 
-    Settlement.milestoneCheckboxes = {}
-    Settlement.milestoneTexts = {}
-    Settlement.milestoneEventButtons = {}
-    Settlement.milestoneEventTexts = {}
+    Settlement_ui.milestoneCheckboxes = {}
+    Settlement_ui.milestoneTexts = {}
+    Settlement_ui.milestoneEventButtons = {}
+    Settlement_ui.milestoneEventTexts = {}
     local checkBoxY = 703
     local textY = checkBoxY - 5
     local buttonY = 698
     local dy = 40
-    for i = 1, Settlement.MAX_MILESTONES do
-        local milestone = Settlement.milestones[i]
+    for i = 1, SETTLEMENT_MAX_MILESTONES do
+        local milestone = Settlement_data.milestones[i]
         local active = milestone != nil
+        milestone = milestone or {}
 
-        Settlement.milestoneCheckboxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, checked = milestone and milestone.checked, active = active, onCheck = function(checked)
-            local milestone = Settlement.milestones[i]
+        Settlement_ui.milestoneCheckboxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, checked = milestone.checked, active = active, onClick = function()
+            local milestone = Settlement_data.milestones[i]
             if milestone then
-                Log.Debugf("%s milestone %s", checked and "Checking" or "Unchecking", milestone.name)
-                milestone.checked = checked
+                local value = not milestone.checked
+                Log.Debugf("%s milestone %s", value and "Checking" or "Unchecking", milestone.name)
+                milestone.checked = value
+                Settlement_ui.milestoneCheckboxes[i]:Set(value)
             end
         end })
 
-        Settlement.milestoneTexts[i] = Ui.DarkText(panel, { id = "Milestone"..i, x = 1326, y = textY, width = 86, text = milestone and milestone.name or nil, fontSize = 12, fontStyle = "Bold", active = active })
+        Settlement_ui.milestoneTexts[i] = Ui.DarkText(panel, { id = "Milestone"..i, x = 1326, y = textY, width = 86, text = milestone.name or nil, fontSize = 12, fontStyle = "Bold", active = active })
 
-        Settlement.milestoneEventButtons[i] = Ui.ImageButton(panel, { id = "MilestoneEvent"..i, x = 1417, y = buttonY, width = 145, height = 30, image = "MilestoneButton", active = active, onClick = function()
-            local milestone = Settlement.milestones[i]
+        Settlement_ui.milestoneEventButtons[i] = Ui.ImageButton(panel, { id = "MilestoneEvent"..i, x = 1417, y = buttonY, width = 145, height = 30, image = "MilestoneButton", active = active, onClick = function()
+            local milestone = Settlement_data.milestones[i]
             if milestone then
-                Settlement.HideUi()
-                local rulebook, state = Rules.GetRulebookAndState(milestone.event)
+                Settlement_HideUi()
+                local rulebook, state = Rules.RulebookAndState(milestone.event)
                 Rules.SpawnRules(rulebook, state)
             end
         end })
-        Settlement.milestoneEventTexts[i] = Ui.LightText(panel, { id = "MilestoneEvent"..i, x = 1447, y = buttonY, width = 108, height = 30, text = milestone and milestone.event or nil, fontSize = 12, active = active })
+        Settlement_ui.milestoneEventTexts[i] = Ui.LightText(panel, { id = "MilestoneEvent"..i, x = 1447, y = buttonY, width = 108, height = 30, text = milestone and milestone.event or nil, fontSize = 12, active = active })
 
         checkBoxY = checkBoxY- dy
         textY = textY - dy
@@ -643,19 +612,21 @@ function Settlement.Init(saveState, ui)
     end
 
     local dy = -27
-    Settlement.quarryInputs = {}
+    Settlement_ui.quarryInputs = {}
     for i = 1, 10 do
         local x = (i <= 5) and 1301 or 1437
         local row = (i - 1) % 5
-        Settlement.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 477 + (row * dy), width = 125, height = 25, text = Settlement.quarries[i],  fontSize = 12, onValueChanged = function(value)
+        Settlement_ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 477 + (row * dy), width = 125, height = 25, text = Settlement_data.quarries[i],  fontSize = 12, onValueChanged = function(value)
             Log.Debugf("Setting quarries[%d] to %s", i, value)
-            Settlement.quarries[i] = value
+            Settlement_data.quarries[i] = value
+            Settlement_ui.quarryInputs[i]:Set(value)
         end })
     end
 
-    Settlement.notesInput = Ui.DarkInput(panel, { id = "Notes", x = 1301, y = 38, width = 261, height = 237, lineType = "MultiLineNewLine", text = Settlement.notes, textAlignment = "UpperLeft", onValueChanged = function(value)
+    Settlement_ui.notesInput = Ui.DarkInput(panel, { id = "Notes", x = 1301, y = 38, width = 261, height = 237, lineType = "MultiLineNewLine", text = Settlement_data.notes, textAlignment = "UpperLeft", onValueChanged = function(value)
         Log.Debugf("Setting settlement notes to %s", value)
-        Settlement.notes = value
+        Settlement_data.notes = value
+        Settlement_ui.notesInput:Set(value)
     end })
 
     -----------------------------------------------------------------------------------------------
@@ -670,90 +641,135 @@ function Settlement.Init(saveState, ui)
     local dy = -52
     local offset = 30
 
+    Settlement_ui.timeline = {}
     for year = 1, 30 do
-        local yearData = Settlement.timeline[year]
+        local yearData = Settlement_data.timeline[year]
+
+        local timelineUi = {}
+        Settlement_ui.timeline[year] = timelineUi
+
         local y = 1528 + ((year - 1) * dy)
-        yearData.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, checked = yearData.checked, onCheck = function(checked)
-            Log.Debugf("%s year %d", checked and "Checking" or "Unchecking", year)
-            Settlement.timeline[year].checked = checked
+        timelineUi.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, checked = yearData.checked, onClick = function()
+            local value = not Settlement_data.timeline[year].checked
+            Log.Debugf("%s year %d", value and "Checking" or "Unchecking", year)
+            Settlement_data.timeline[year].checked = value
+            timelineUi.yearCheckBox:Set(value)
         end })
 
-        yearData.eventButtons = {}
-        yearData.eventTexts = {}
+        timelineUi.eventButtons = {}
+        timelineUi.eventTexts = {}
         local y = 1523 + ((year - 1) * dy)
         for event = 1, 6 do
             local id = "Year"..year.."Event"..event
             local x = x1 + ((event - 1) * dx)
             local eventData = yearData.events[event]
             if eventData then
-                local image = Settlement.EVENT_TYPE_IMAGES[eventData.type]
-                yearData.eventButtons[event] = Ui.ImageButton(timelinePanel, { id = id, x = x, y = y, width = width, height = 30, image = image, onClick = function(mouseButton)
-                    Settlement.EventButtonOnClick(year, event, mouseButton)
+                local image = SETTLEMENT_EVENT_TYPE_IMAGES[eventData.type]
+                timelineUi.eventButtons[event] = Ui.ImageButton(timelinePanel, { id = id, x = x, y = y, width = width, height = 30, image = image, onClick = function(mouseButton)
+                    Settlement_EventButtonOnClick(year, event, mouseButton)
                 end })
-                yearData.eventTexts[event] = Ui.LightText(timelinePanel, { id = id, x = x + offset, y = y, width = width - offset, height = 30, text = eventData.name, fontSize = 12 })
+                timelineUi.eventTexts[event] = Ui.LightText(timelinePanel, { id = id, x = x + offset, y = y, width = width - offset, height = 30, text = eventData.name, fontSize = 12 })
             else
-                yearData.eventButtons[event] = Ui.InvisibleButton(timelinePanel, { id = id, x = x, y = y, width = width, height = 30, onClick = function(mouseButton)
-                    Settlement.EventButtonOnClick(year, event, mouseButton)
+                timelineUi.eventButtons[event] = Ui.InvisibleButton(timelinePanel, { id = id, x = x, y = y, width = width, height = 30, onClick = function(mouseButton)
+                    Settlement_EventButtonOnClick(year, event, mouseButton)
                 end })
-                yearData.eventTexts[event] = Ui.LightText(timelinePanel, { id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, active = false })
+                timelineUi.eventTexts[event] = Ui.LightText(timelinePanel, { id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, active = false })
             end
         end
     end
 
     -----------------------------------------------------------------------------------------------
 
+    Settlement_ui.timelineEvent = {}
+
+    Settlement_ui.timelineEvent.open = false
     local addTimelineEventPanel = Ui.Panel(panel, { id = "AddTimelineEvent", width = 376, height = 493, active = false })
-    Settlement.addTimelineEventUi.panel = addTimelineEventPanel
+    Settlement_ui.timelineEvent.panel = addTimelineEventPanel
+
     Ui.Image(addTimelineEventPanel, { id = "AddTimelineEvent", image = "AddTimelineEvent", width = 376, height = 493 })
 
     Ui.InvisibleButton(addTimelineEventPanel, { id = "Close", x = 336, y = 453, width = 30, height = 30, onClick = function()
-        Settlement.CloseTimelineEventPanel()
+        Settlement_CloseTimelineEventPanel()
     end })
 
-    Settlement.addTimelineEventUi.searchInput = Ui.LightInput(addTimelineEventPanel, { id = "Search", x = 13+3, y = 411, width = 350-6, height = 30, placeholder = "search events...", onValueChanged = Settlement.SearchEvents })
+    Settlement_ui.timelineEvent.searchInput = Ui.LightInput(addTimelineEventPanel, { id = "Search", x = 13+3, y = 411, width = 350-6, height = 30, placeholder = "search events...", onValueChanged = Settlement_SearchEvents })
 
-    Settlement.addTimelineEventUi.resultButtons = {}
-    Settlement.addTimelineEventUi.resultIcons = {}
-    Settlement.addTimelineEventUi.resultTexts = {}
+    Settlement_ui.timelineEvent.results = {}
+    Settlement_ui.timelineEvent.resultButtons = {}
+    Settlement_ui.timelineEvent.resultIcons = {}
+    Settlement_ui.timelineEvent.resultTexts = {}
     for i = 1, 5 do
         local y = (246 + 150) - (i * 30)
         local x = 13+3
-        Settlement.addTimelineEventUi.resultButtons[i] = Ui.InvisibleButton(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6, height = 30, active = false, onClick = function()
-            local data = Settlement.addTimelineEventUi
-            Settlement.AddTimelineEvent(data.year, data.event, data.results[i])
-            Settlement.CloseTimelineEventPanel()
+        Settlement_ui.timelineEvent.resultButtons[i] = Ui.InvisibleButton(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6, height = 30, active = false, onClick = function()
+            local data = Settlement_ui.timelineEvent
+            Settlement_AddTimelineEvent(data.year, data.event, data.results[i])
+            Settlement_CloseTimelineEventPanel()
         end })
         x = x + 2   -- 2 padding
-        Settlement.addTimelineEventUi.resultIcons[i] = Ui.Image(addTimelineEventPanel, { id = "SearchResult"..i, rectAlignment = "LowerLeft", x = x, y = y+5, width = 24, height = 20, active = false })
+        Settlement_ui.timelineEvent.resultIcons[i] = Ui.Image(addTimelineEventPanel, { id = "SearchResult"..i, rectAlignment = "LowerLeft", x = x, y = y+5, width = 24, height = 20, active = false })
         x = x + 24 + 3  -- 3 padding
-        Settlement.addTimelineEventUi.resultTexts[i] = Ui.LightText(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6-24-6, height = 30, fontSize = 14, active = false })
+        Settlement_ui.timelineEvent.resultTexts[i] = Ui.LightText(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6-24-6, height = 30, fontSize = 14, active = false })
     end
 
-    Settlement.addTimelineEventUi.customNameText = Ui.LightInput(addTimelineEventPanel, { id = "CustomName", x = 13+3, y = 108, width = 350-6, height = 30, placeholder = "enter event name...", onValueChanged = function(value)
+    Settlement_ui.timelineEvent.customNameInput = Ui.LightInput(addTimelineEventPanel, { id = "CustomName", x = 13+3, y = 108, width = 350-6, height = 30, placeholder = "enter event name...", onValueChanged = function(value)
         Log.Debugf("Setting custom name to %s", value)
-        Settlement.addTimelineEventUi.customName = value
+        Settlement_ui.timelineEvent.customName = value
     end })
 
-    Settlement.addTimelineEventUi.typeOptions = Ui.OptionBoxGroup(addTimelineEventPanel, { id = "Type", onSelect = function(type)
+    Settlement_ui.timelineEvent.type = "RulebookEvent"
+    Settlement_ui.timelineEvent.typeOptions = Ui.OptionBoxGroup(addTimelineEventPanel, { id = "Type", onClick = function(option)
+        local type = option:Value()
         Log.Debugf("Selecting custom event type %s", type)
-        Settlement.addTimelineEventUi.type = type
+        Settlement_ui.timelineEvent.type = type
+        Settlement_ui.timelineEvent.typeOptions:Set(option)
     end })
-    Settlement.addTimelineEventUi.timelineEventOption = Ui.OptionBox(Settlement.addTimelineEventUi.typeOptions, { x = 58, y = 68, width = 20, height = 20, checked = true, value = "RulebookEvent" })
-    Settlement.addTimelineEventUi.showdownOption = Ui.OptionBox(Settlement.addTimelineEventUi.typeOptions, { x = 166, y = 68, width = 20, height = 20, value = "ShowdownEvent" })
-    Settlement.addTimelineEventUi.settlementEventOption = Ui.OptionBox(Settlement.addTimelineEventUi.typeOptions, { x = 270, y = 68, width = 20, height = 20, value = "SettlementEvent" })
+    Settlement_ui.timelineEvent.rulebookEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 58, y = 68, width = 20, height = 20, checked = true, value = "RulebookEvent" })
+    Settlement_ui.timelineEvent.showdownEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 166, y = 68, width = 20, height = 20, value = "ShowdownEvent" })
+    Settlement_ui.timelineEvent.settlementEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 270, y = 68, width = 20, height = 20, value = "SettlementEvent" })
 
     Ui.InvisibleButton(addTimelineEventPanel, { id = "Add", x = 65, y = 13, width = 100, height = 30, onClick = function()
-        local data = Settlement.addTimelineEventUi
+        local data = Settlement_ui.timelineEvent
         if data.customName == nil or data.customName == "" then
             return Log.Broadcastf("Please enter the event's name.")
         end
 
-        Settlement.AddTimelineEvent(data.year, data.event,  { name = data.customName, type = data.type, custom = true })
-        Settlement.CloseTimelineEventPanel()
+        Settlement_AddTimelineEvent(data.year, data.event,  { name = data.customName, type = data.type, custom = true })
+        Settlement_CloseTimelineEventPanel()
     end })
-    Ui.InvisibleButton(addTimelineEventPanel, { id = "Cancel", x = 211, y = 13, width = 100, height = 30, onClick = Settlement.CloseTimelineEventPanel })
+    Ui.InvisibleButton(addTimelineEventPanel, { id = "Cancel", x = 211, y = 13, width = 100, height = 30, onClick = Settlement_CloseTimelineEventPanel })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Settlement
+local function Settlement_Save()
+    local saveData = {
+        name = Settlement_name,
+        survivalLimit = Settlement_survivalLimit,
+        departingBonuses = Settlement_departingBonuses,
+        arrivalBonuses = Settlement_arrivalBonuses,
+        milestones = Settlement_data.milestones,
+        quarries = Settlement_data.quarries,
+        notes = Settlement_data.notes,
+    }
+
+    saveData.timeline = {}
+    for year, yearData in pairs(Settlement_data.timeline) do
+        saveData.timeline[year] = { checked = yearData.checked, events = {} }
+        for event, eventData in pairs(yearData.events) do
+            saveData.timeline[year].events[event] = eventData
+        end
+    end
+
+    return saveData
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Settlement_Init,
+    Save = Settlement_Save,
+    Reset = Settlement_Reset,
+    AddTimelineEvent = Settlement_AddTimelineEvent,
+    SetMilestones = Settlement_SetMilestones,
+}

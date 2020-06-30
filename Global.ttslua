@@ -1,16 +1,25 @@
 local KDM_VERSION = "0.27 Beta"
 
-local Log = require("Kdm/Util/Log").ForPackage("G")
-local Zone = require("Kdm/Util/Zone")
+local Log = require("Kdm/Log").ForPackage("G")
+local Zone = require("Kdm/Zone")
 
 local NamedObject = require("Kdm/NamedObject")
 local Location = require("Kdm/Location")
 local Armor = require("Kdm/Armor")
 local Weapon = require("Kdm/Weapon")
+local Terrain = require("Kdm/Terrain")
 local CharSheet = require("Kdm/CharSheet")
 local PlayerBoard = require("Kdm/PlayerBoard")
+local Archive = require("Kdm/Archive")
+local Action = require("Kdm/Action")
 local Rules = require("Kdm/Rules")
 local RulesNav = require("Kdm/RulesNav")
+local SettlementBoard = require("Kdm/SettlementBoard")
+local PopulationSheet = require("Kdm/PopulationSheet")
+local Settlement = require("Kdm/Settlement")
+local Setup = require("Kdm/Setup")
+local Showdown = require("Kdm/Showdown")
+local Hunt = require("Kdm/Hunt")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -33,10 +42,9 @@ local Sunstalker = require("Kdm/Expansions/Sunstalker")
 function onSave()
     local saveState = {
         PlayerBoard = PlayerBoard.Save(),
-        --Setup = Setup.Save(),
-        --Showdown = Showdown.Save(),
-        --Settlement = Settlement.Save(),
-        --PopulationSheet = PopulationSheet.Save(),
+        Settlement = Settlement.Save(),
+        Setup = Setup.Save(),
+        Showdown = Showdown.Save(),
     }
 
     return JSON.encode(saveState)
@@ -45,46 +53,43 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function onLoad(saveJson)
-    Log.Init()
-    Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
-    Zone.Init()
-
     local saveState = JSON.decode(saveJson) or {}
     local expansions = { Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }
 
+    Log.Init()
+    Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
+    Zone.Init()
+    NamedObject.Init(saveState, expansions)
+    Location.Init(saveState, expansions)
+
     local modules = {
-        ["NamedObject"] = NamedObject,
-        ["Location"] = Location,
         ["Armor"] = Armor,
         ["Weapon"] = Weapon,
+        ["Terrain"] = Terrain,
         ["CharSheet"] = CharSheet,
         ["PlayerBoard"] = PlayerBoard,
-
-        --{ Rules, "Rules" },
-        --{ RulesNav, "RulesNav" },
-
-        --{ Terrain, "Terrain" },
-        --{ DeckBoard, "DeckBoard" },
-        --{ SettlementBoard, "SettlementBoard" },
-        --{ PopulationSheet, "PopulationSheet" },
-        --{ Settlement, "Settlement" },
-        --{ Hunt, "Hunt" },
-        --{ Showdown, "Showdown" },
+        ["Archive"] = Archive,
+        ["Action"] = Action,
+        ["Rules"] =  Rules,
+        ["RulesNav"] = RulesNav,
+        ["SettlementBoard"] = SettlementBoard,
+        ["PopulationSheet"] = PopulationSheet,
+        ["Settlement"] = Settlement,
+        ["Setup"] = Setup,
+        ["Showdown"] = Showdown,
+        ["Hunt"] = Hunt,
         --{ BattleReference, "BattleReference" },
-        --{ Setup, "Setup" },
     }
 
-    local deps = {}
+    local ui = { id = "UI", children = self.UI.getXmlTable() }
     for name, module in pairs(modules) do
         Log.Debugf("Initializing %s", name)
-        module.Init(saveState[name], expansions, deps)
-        deps[name] = module
+        module.Init(saveState[name], expansions, modules, ui)
     end
 
-    -- local ui = { id = "UI", children = self.UI.getXmlTable() }
-    -- if #ui.children > 0 then
-    --     self.UI.setXmlTable(ui.children)
-    -- end
+    if #ui.children > 0 then
+        self.UI.setXmlTable(ui.children)
+    end
 end
 
 ---------------------------------------------------------------------------------------------------

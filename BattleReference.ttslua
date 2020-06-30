@@ -1,12 +1,12 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("BattleReference")
-local Util = require("Kdm/Util/Util")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("BattleReference")
+local Util = require("Kdm/Util")
 local NamedObject = require("Kdm/NamedObject")
-local EventManager = require("Kdm/Util/EventManager")
+local EventManager = require("Kdm/EventManager")
 local PlayerBoard = require("Kdm/PlayerBoard")
 local Showdown = require("Kdm/Showdown")
 local CharSheet = require("Kdm/CharSheet")
-local Ui = require("Kdm/Util/Ui")
+local Ui = require("Kdm/Ui")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -307,7 +307,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_OnMonsterChangeAttribute(attribute, value)
+local function BattleReference_OnMonsterChangeStat(attribute, value)
     if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
         BattleReference_Update()
     end
@@ -340,7 +340,7 @@ function BattleReference.Init(saveState, ui)
     EventManager.AddHandler("onShowdownCleanup", BattleReference_OnShowdownCleanup)
     EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleReference_OnPlayerBoardLinkCharSheet)
     EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", BattleReference_OnPlayerBoardUnlinkCharSheet)
-    EventManager.AddHandler("onMonsterChangeAttribute", BattleReference_OnMonsterChangeAttribute)
+    EventManager.AddHandler("onMonsterChangeStat", BattleReference_OnMonsterChangeStat)
     EventManager.AddHandler("onCharSheetChangeStat", BattleReference_onCharSheetChangeStat)
     EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleReference_OnPlayerBoardLinkWeapon)
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleReference_OnPlayerBoardUnlinkWeapon)

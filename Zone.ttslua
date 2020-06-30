@@ -1,6 +1,6 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Zone")
-local EventManager = require("Kdm/Util/EventManager")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Zone")
+local EventManager = require("Kdm/EventManager")
 
 local Zone_CELL_SIZE = 1
 

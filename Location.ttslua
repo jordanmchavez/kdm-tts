@@ -1,30 +1,26 @@
-require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local Log = require("Kdm/Util/Log").ForPackage("Locations")
+require("Kdm/Check")
+local Util = require("Kdm/Util")
+local Log = require("Kdm/Log").ForPackage("Locations")
+local NamedObject = require("Kdm/NamedObject")
 
-local NamedObject = nil
+LOCATION_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
+LOCATION_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
+LOCATION_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
+LOCATION_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
+LOCATION_GEAR_SIZE = { x = 3, y = 10, z = 3 }
+LOCATION_TOKEN_SIZE = { x = 1.412567, y = 0.1, z = 1.405437 }
 
-Location_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
-Location_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
-Location_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
-Location_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
-Location_GEAR_SIZE = { x = 3, y = 10, z = 3 }
-Location_TOKEN_SIZE = { x = 1.412567, y = 0.1, z = 1.405437 }
+LOCATION_MAX_TERRAIN = 10
+LOCATION_MAX_MISC = 10
+LOCATION_MAX_TRAITS_MOODS = 14
+LOCATION_MAX_MONSTER_TOKENS = 8
 
-Location_MAX_TERRAIN = 10
-Location_MAX_MISC = 10
-Location_MAX_TRAITS_MOODS = 14
-Location_MAX_MONSTER_TOKENS = 8
+LOCATION_MAX_SETTLEMENT_LOCATION_COLS = 10
+LOCATION_MAX_SETTLEMENT_LOCATION_ROWS = 2
 
-Location_MAX_SETTLEMENT_LOCATION_COLS = 10
-Location_MAX_SETTLEMENT_LOCATION_ROWS = 2
+LOCATION_DEFAULT_CAST_HEIGHT = 50
 
-Location_DEFAULT_CAST_HEIGHT = 50
-
-Location_DEFAULT_SPAWN_HEIGHT = 2
-Location_FACE_UP = { 0, 180, 0 }
-Location_FACE_DOWN = { 0, 180, 180 }
-Location_DEFAULT_ROTATION = Location_FACE_UP
+local LOCATION_CLEAN_IGNORE_TAGS = { "Board", "Table" }
 
 local Location_data = require("Kdm/LocationData")
 
@@ -41,6 +37,7 @@ local function Location_Create(params)
 
     local location = {
         tag = "Location",
+        name = params.name,
         object = params.object,
     }
     setmetatable(location, LocationClass)
@@ -96,23 +93,31 @@ end
 
 local function Location_CreateFromObject(object)
     local bounds = object.getBounds()
-    return Location_Create({ center = bounds.center, size = bounds.size })
+    return Location_Create({ name = object.getName(), center = bounds.center, size = bounds.size })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.Name(location)
+    return location.name
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function LocationClass.Center(location)
-    return { x = location.center.x, y = location.center.y, z = location.center.z }
+    local c = location.center
+    -- always return a copy
+    return { x = c.x, y = c.y, z = c.z }
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function LocationClass.Size(location)
-    local topLeft, bottomRight = location.topLeft, location.bottomRight
+    local tl, br = location.topLeft, location.bottomRight
     return {
-        x = math.abs(bottomRight.x - topLeft.x),
-        y = math.abs(bottomRight.y - topLeft.y),
-        z = math.abs(bottomRight.z - topLeft.z),
+        x = math.abs(br.x - tl.x),
+        y = math.abs(br.y - tl.y),
+        z = math.abs(br.z - tl.z),
     }
 end
 
@@ -133,14 +138,14 @@ function LocationClass.BoxCast(location, params)
     params = params or {}
 
     local center = location:Center()
-    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+    center.y = center.y + (params.height or LOCATION_DEFAULT_CAST_HEIGHT)
 
     local size = location:Size()
     size.y = size.x -- doesn't matter, just needs to be > epsilon for a top-down cast
 
     return Physics.cast({
         origin    = center,
-        direction = { 0, -1, 0 },
+        direction = { x = 0, y = -1, z = 0 },
         type      = 3,
         size      = size,
         debug     = params.debug,
@@ -148,12 +153,14 @@ function LocationClass.BoxCast(location, params)
 end
 
 function LocationClass.RayCast(location, params)
+    params = params or {}
+
     local center = location:Center()
-    center.y = center.y + (params.height or Location_DEFAULT_CAST_HEIGHT)
+    center.y = center.y + (params.height or LOCATION_DEFAULT_CAST_HEIGHT)
 
     return Physics.cast({
         origin    = center,
-        direction = { 0, -1, 0 },
+        direction = { x = 0, y = -1, z = 0 },
         type      = 1,
         debug     = params.debug,
     })
@@ -161,33 +168,86 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Add(name, location)
+function LocationClass.Find(location, tag)
+    for _, hit in ipairs(location:RayCast()) do
+        local object = hit.hit_object
+        if object.getGMNotes() == tag then
+            return object
+        end
+    end
+    return nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Matches(obj, tags, types)
+    local matchesTags = tags and Util.ArrayContains(tags, obj.tag)
+    local matchesTypes = types and Util.ArrayContains(types, obj.getGMNotes())
+
+    return matchesTags or matchesTypes
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location_Clean(location, params, castFunc)
+    tags, types, debug = params.tags, params.types, params.debug
+    Log.Debugf("Cleaning %s", location:Name())
+
+    local hits = castFunc(location, { debug = params.debug })
+    local blocking = {}
+    for _, hit in ipairs(hits) do
+        local obj = hit.hit_object
+
+        if Location_Matches(obj, LOCATION_CLEAN_IGNORE_TAGS, params.ignoreTypes) then
+            -- ignore
+
+        elseif Location_Matches(obj, tags, types) then
+            Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
+            obj.destruct()
+
+        else
+            Log.Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
+            table.insert(blocking, obj)
+        end
+    end
+
+    return blocking
+end
+
+function LocationClass.BoxClean(location, params) return Location_Clean(location, params, location.BoxCast) end
+function LocationClass.RayClean(location, params) return Location_Clean(location, params, location.RayCast) end
+
+---------------------------------------------------------------------------------------------------
+
+local function Location_Add(location)
+    local name = location:Name()
     assert(Check(not Location_index[name], "Location %s already registered: %s", name, Location_index[name]))
     Location_index[name] = location
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Get(name)
-    local location = Location_index[name]
-    assert(Check(location, "Unknown location: %s", name))
+local function Location_Get(locationOrName)
+    if type(locationOrName) == "table" then
+        return locationOrName
+    end
+    local location = Location_index[locationOrName]
+    assert(Check(location, "Unknown location: %s", locationOrName))
     return location
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Init(saveState, expansions, deps)
-    NamedObject = deps.NamedObject
-    assert(NamedObject)
-
+local function Location_Init(saveState, expansions, modules)
     -----------------------------------------------------------------------------------------------
     -- Location data
 
     for name, data in pairs(Location_data) do
+        data.name = name
         if data.board then
             data.object = NamedObject.Get(data.board)
         end
-        Location_Add(name, Location_Create(data))
+        Location_Add(Location_Create(data))
     end
 
     -----------------------------------------------------------------------------------------------
@@ -208,22 +268,26 @@ local function Location_Init(saveState, expansions, deps)
             local xHalf = x - (cellWidth / 2)
             local z = gridTop + ((row - 1) * cellHeight)
             local zHalf = z + (cellHeight / 2)
-            Location_Add(string.format("(%d, %d)", col, row), Location_Create({
+            Location_Add(Location_Create({
+                name = string.format("(%d, %d)", col, row),
                 center = { x = x, y = y, z = z},
                 size = size,
                 object = showdownBoard,
             }))
-            Location_Add(string.format("(%d, %d.5)", col, row), Location_Create({
+            Location_Add(Location_Create({
+                name = string.format("(%d, %d.5)", col, row),
                 center = { x = x, y = y, z = zHalf},
                 size = size,
                 object = showdownBoard,
             }))
-            Location_Add(string.format("(%d.5, %d)", col, row), Location_Create({
+            Location_Add(Location_Create({
+                name = string.format("(%d.5, %d)", col, row),
                 center = { x = xHalf, y = y, z = z},
                 size = size,
                 object = showdownBoard,
             }))
-            Location_Add(string.format("(%d.5, %d.5)", col, row), Location_Create({
+            Location_Add(Location_Create({
+                name = string.format("(%d.5, %d.5)", col, row),
                 center = { x = xHalf, y = y, z = zHalf},
                 size = size,
                 object = showdownBoard,
@@ -242,9 +306,10 @@ local function Location_Init(saveState, expansions, deps)
     for col = 1, 10 do
         local x = topLeft.x + (col - 1) * dx
         for row = 1, 2 do
-            Location_Add(string.format("Gear %d %d", col, row), Location_Create({
+            Location_Add(Location_Create({
+                name = string.format("Gear %d %d", col, row),
                 center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
-                size = Location_GEAR_SIZE,
+                size = LOCATION_GEAR_SIZE,
                 object = settlementBoard,
             }))
         end
@@ -258,12 +323,13 @@ local function Location_Init(saveState, expansions, deps)
     local bottomRight = { x = -7.115391, y = 0.595169, z = 6.102203 }
     local dx = (bottomRight.x - topLeft.x) / 9
     local dz = (bottomRight.z - topLeft.z)
-    for col = 1, Location_MAX_SETTLEMENT_LOCATION_COLS do
+    for col = 1, LOCATION_MAX_SETTLEMENT_LOCATION_COLS do
         local x = topLeft.x + (col - 1) * dx
-        for row = 1, Location_MAX_SETTLEMENT_LOCATION_ROWS do
-            Location_Add(string.format("Settlement Location %d %d", col, row), Location_Create({
+        for row = 1, LOCATION_MAX_SETTLEMENT_LOCATION_ROWS do
+            Location_Add(Location_Create({
+                name = string.format("Settlement Location %d %d", col, row),
                 center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
-                size = Location_SETTLEMENT_LOCATION_SIZE,
+                size = LOCATION_SETTLEMENT_LOCATION_SIZE,
                 object = settlementBoard,
             }))
         end
@@ -286,15 +352,17 @@ local function Location_Init(saveState, expansions, deps)
         for col = 1, 8 do
             local x = topLeft.x + (col - 1) * dx
             for row = 1, 2 do
-                Location_Add(string.format("Player %d %s", playerNumber, cards[row][col]), Location_Create({
+                Location_Add(Location_Create({
+                    name = string.format("Player %d %s", playerNumber, cards[row][col]),
                     center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
-                    size = Location_CARD_SIZE,
+                    size = LOCATION_CARD_SIZE,
                     object = playerBoard,
                 }))
             end
         end
 
-        Location_Add(string.format("Player %d Permanent Tokens", playerNumber), Location_Create({
+        Location_Add(Location_Create({
+            name = string.format("Player %d Permanent Tokens", playerNumber),
             p1 = { x = -0.056596, y = 0.113605, z = 0.764381 },
             p2 = { x = -0.811249, y = 0.113605, z = 0.970867 },
             object = playerBoard,
@@ -304,7 +372,7 @@ local function Location_Init(saveState, expansions, deps)
     for _, expansion in ipairs(expansions) do
         for name, locationParams in pairs(expansion.locations or {}) do
             locationParams.object = NamedObject.Get(locationParams.board)
-            Location_Add(name, Location_Create(locationParams))
+            Location_Add(Location_Create(locationParams))
         end
     end
 end
@@ -316,4 +384,19 @@ return {
     Create = Location_Create,
     CreateFromObject = Location_CreateFromObject,
     Get = Location_Get,
+
+    REFERENCE_SIZE = LOCATION_REFERENCE_SIZE,
+    SETTLEMENT_LOCATION_SIZE = LOCATION_SETTLEMENT_LOCATION_SIZE,
+    SETTLEMENT_EVENT_SIZE = LOCATION_SETTLEMENT_EVENT_SIZE,
+    CARD_SIZE = LOCATION_CARD_SIZE,
+    GEAR_SIZE = LOCATION_GEAR_SIZE,
+    TOKEN_SIZE = LOCATION_TOKEN_SIZE,
+
+    MAX_TERRAIN = LOCATION_MAX_TERRAIN,
+    MAX_MISC = LOCATION_MAX_MISC,
+    MAX_TRAITS_MOODS = LOCATION_MAX_TRAITS_MOODS,
+    MAX_MONSTER_TOKENS = LOCATION_MAX_MONSTER_TOKENS,
+
+    MAX_SETTLEMENT_LOCATION_COLS = LOCATION_MAX_SETTLEMENT_LOCATION_COLS,
+    MAX_SETTLEMENT_LOCATION_ROWS = LOCATION_MAX_SETTLEMENT_LOCATION_ROWS,
 }

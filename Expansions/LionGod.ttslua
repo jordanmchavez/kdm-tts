@@ -116,27 +116,27 @@ return {
             huntTrack = { "H", "M", "H", "M", "H", "O", "H", "M", "H", "M", "H" },
             position = "(12, 9)",
             playerPositions = { "(10, 11)", "(10, 7)", "(14, 7)", "(14, 11)" },
-            playerRotations = { { 0, 0, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 } },
+            playerRotations = {{ x = 0, y = 0, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 },{ x = 0, y = 0, z = 0 } },
             fixedTerrain = {
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(2, 6.5)", "(2, 12.5)", "(21, 6.5)", "(21, 11.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "Toppled Pillar",
                     positions = { "(6.5, 9)", "(17.5, 9)" },
-                    rotations = { { 0, 90, 0 }, { 0, -90, 0 } },
+                    rotations = { { x = 0, y = 90, z = 0 }, { x = 0, y = -90, z = 0 } },
                 },
                 {
                     terrain = "Giant Stone Face",
                     positions = { "(12, 4.5)", "(12, 13.5)" },
-                    rotations = { { 0, -90, 0 }, { 0, -90, 0 } },
+                    rotations = { { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 } },
                 },
                 {
                     terrain = "Lion Statue",
                     positions = { "(8.5, 5.5)", "(15.5, 5.5)", "(8.5, 12.5)", "(15.5, 12.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             levels = {

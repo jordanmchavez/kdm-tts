@@ -1,6 +1,6 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("NamedObject")
-local EventManager = require("Kdm/Util/EventManager")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("NamedObject")
+local EventManager = require("Kdm/EventManager")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -44,9 +44,7 @@ local NamedObject_guidNames = {
     ["a8d948"] = "Player 3 Marker",
     ["e00244"] = "Player 4 Marker",
 
-    ["6bc296"] = "Population Sheet",
-
-    ["b07b40"] = "Overlays",
+    ["b07b40"] = "Overlay",
 }
 
 local NamedObject_guids = {}
@@ -131,7 +129,7 @@ local function NamedObject_Init(saveState, expansions)
         "Player 2 Marker",
         "Player 3 Marker",
         "Player 4 Marker",
-        "Overlays",
+        "Overlay",
     }
     for _, name in ipairs(uninteractable) do
         NamedObject_Get(name).interactable = false

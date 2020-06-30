@@ -126,31 +126,31 @@ return {
             legendaryAiDeck = false,
             position = "(11.5, 8.5)",
             playerPositions = { "(8, 12)", "(8, 5)", "(15, 5)", "(15, 12)" },
-            playerRotations = { { 0, 0, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 } },
+            playerRotations = {{ x = 0, y = 0, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 },{ x = 0, y = 0, z = 0 } },
             specialTerrain = {
                 {
                     terrain = "Balcony (Terrain)",
                     terrainTile = "Balcony",
                     position = "(11.5, 1)",
-                    rotation = { 0, 270, 0 },
+                    rotation = { x = 0, y = 270, z = 0 },
                 },
                 {
                     terrain = "Horn (Terrain)",
                     terrainTile = "Horn",
                     position = "(18, 9)",
-                    rotation = { 0, 180, 0 },
+                    rotation = { x = 0, y = 180, z = 0 },
                 },
                 {
                     terrain = "Stage (Terrain)",
                     terrainTile = "Stage",
                     position = "(11.5, 8.5)",
-                    rotation = { 0, 180, 0 },
+                    rotation = { x = 0, y = 180, z = 0 },
                 },
                 {
                     terrain = "Throne (Terrain)",
                     terrainTile = "Throne",
                     position = "(5, 9)",
-                    rotation = { 0, 180, 0 },
+                    rotation = { x = 0, y = 180, z = 0 },
                 },
             },
             levels = {

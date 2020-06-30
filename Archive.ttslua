@@ -1,93 +1,96 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Archive")
-local NamedObject = require("Kdm/NamedObject")
+require("Kdm/Check")
+require("Kdm/Constants")
+local Log = require("Kdm/Log").ForPackage("Archive")
 local Location = require("Kdm/Location")
+local NamedObject = require("Kdm/NamedObject")
 
 ---------------------------------------------------------------------------------------------------
 
-local Archive = {
-    index = {},
+local Archive_index = {}
 
-    reverseIndex = {
-        ["Abilities Archive"] = { { "Abilities", "Abilities" } },
-        ["Fighting Arts Archive"] = { { "Fighting Arts", "Fighting Arts" } },
-        ["Secret Fighting Arts Archive"] = { { "Secret Fighting Arts", "Secret Fighting Arts" } },
-        ["Disorders Archive"] = { { "Disorders", "Disorders" } },
-        ["Severe Injuries Archive"] = { { "Severe Injuries", "Severe Injuries" } },
-        ["Tactics Archive"] = { { "Tactics", "Tactics" } },
-        ["Weapon Proficiencies Archive"] = { { "Weapon Proficiencies", "Weapon Proficiencies" } },
-        ["Armor Sets Archive"] = { { "Armor Sets", "Armor Sets" } },
-        ["Vermin Archive"] = { { "Vermin", "Vermin" } },
-        ["Strange Resources Archive"] = { { "Strange Resources", "Strange Resources" } },
-        ["Basic Resources Archive"] = { { "Basic Resources", "Basic Resources" } },
-        ["Terrain Archive"] = { { "Terrain", "Terrain" } },
-        ["Terrain Tiles Archive"] = { { "Terrain Tiles", "Terrain Tiles" } },
-        ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
-        ["Settlement Events Archive"] = { { "Settlement Events", "Settlement Events" } },
-        ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
-    },
-
-    -- These archives have no intermediate bag...you just pull the object directly
-    singleItemArchives = {
-        ["Abilities Archive"]                        = true,
-        ["Fighting Arts Archive"]                    = true,
-        ["Secret Fighting Arts Archive"]             = true,
-        ["Disorders Archive"]                        = true,
-        ["Severe Injuries Archive"]                  = true,
-        ["Tactics Archive"]                          = true,
-        ["Weapon Proficiencies Archive"] = true,
-        ["Armor Sets Archive"]                       = true,
-        ["Vermin Archive"]                           = true,
-        ["Strange Resources Archive"]                = true,
-        ["Basic Resources Archive"]                  = true,
-        ["Terrain Archive"]                          = true,
-        ["Terrain Tiles Archive"]                    = true,
-        ["Hunt Events Archive"]                      = true,
-        ["Settlement Events Archive"]                = true,
-        ["Rare Gear Archive"]                        = true,
-    },
-
-    bags = {},
-    bagX = -150,
-    bagZ = 120,
+local Archive_reverseIndex = {
+    ["Abilities Archive"] = { { "Abilities", "Abilities" } },
+    ["Fighting Arts Archive"] = { { "Fighting Arts", "Fighting Arts" } },
+    ["Secret Fighting Arts Archive"] = { { "Secret Fighting Arts", "Secret Fighting Arts" } },
+    ["Disorders Archive"] = { { "Disorders", "Disorders" } },
+    ["Severe Injuries Archive"] = { { "Severe Injuries", "Severe Injuries" } },
+    ["Tactics Archive"] = { { "Tactics", "Tactics" } },
+    ["Weapon Proficiencies Archive"] = { { "Weapon Proficiencies", "Weapon Proficiencies" } },
+    ["Armor Sets Archive"] = { { "Armor Sets", "Armor Sets" } },
+    ["Vermin Archive"] = { { "Vermin", "Vermin" } },
+    ["Strange Resources Archive"] = { { "Strange Resources", "Strange Resources" } },
+    ["Basic Resources Archive"] = { { "Basic Resources", "Basic Resources" } },
+    ["Terrain Archive"] = { { "Terrain", "Terrain" } },
+    ["Terrain Tiles Archive"] = { { "Terrain Tiles", "Terrain Tiles" } },
+    ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
+    ["Settlement Events Archive"] = { { "Settlement Events", "Settlement Events" } },
+    ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
 }
 
-for archive, entries in pairs(Archive.reverseIndex) do
+-- These archives have no intermediate bag...you just pull the object directly
+local Archive_singleItemArchives = {
+    ["Abilities Archive"]            = true,
+    ["Fighting Arts Archive"]        = true,
+    ["Secret Fighting Arts Archive"] = true,
+    ["Disorders Archive"]            = true,
+    ["Severe Injuries Archive"]      = true,
+    ["Tactics Archive"]              = true,
+    ["Weapon Proficiencies Archive"] = true,
+    ["Armor Sets Archive"]           = true,
+    ["Vermin Archive"]               = true,
+    ["Strange Resources Archive"]    = true,
+    ["Basic Resources Archive"]      = true,
+    ["Terrain Archive"]              = true,
+    ["Terrain Tiles Archive"]        = true,
+    ["Hunt Events Archive"]          = true,
+    ["Settlement Events Archive"]    = true,
+    ["Rare Gear Archive"]            = true,
+}
+
+local Archive_bags = {}
+local Archive_bagX = -150
+local Archive_bagZ = 120
+
+for archive, entries in pairs(Archive_reverseIndex) do
     for _, entry in ipairs(entries) do
         local name, type = entry[1], entry[2]
-        if not Archive.index[type] then
-            Archive.index[type] = {}
+        if not Archive_index[type] then
+            Archive_index[type] = {}
         end
-        Archive.index[type][name] = archive
+        Archive_index[type][name] = archive
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.RegisterExpansion(expansion)
-    Archive.RegisterArchiveEntries(expansion.archiveEntries, false)
-end
-
-function Archive.RegisterArchiveEntries(archiveEntries, allowOverrides)
+local function Archive_RegisterEntries(archiveEntries, allowOverrides)
     if not archiveEntries then
         return
     end
     archive = archiveEntries.archive
     for _, entry in ipairs(archiveEntries.entries) do
         local name, type = entry[1], entry[2]
-        if not Archive.index[type] then
-            Archive.index[type] = {}
+        if not Archive_index[type] then
+            Archive_index[type] = {}
         end
         if not allowOverrides then
-            assert(Check(Archive.index[type][name] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive.index[type][name]))
+            assert(Check(Archive_index[type][name] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive_index[type][name]))
         end
-        Archive.index[type][name] = archive
+        Archive_index[type][name] = archive
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.FindInContainer(name, type, container)
+local function Archive_Init(saveState, expansions, modules)
+    for _, expansion in ipairs(expansions) do
+        Archive_RegisterEntries(expansion.archiveEntries, false)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Archive_FindInContainer(name, type, container)
     for _, entry in ipairs(container.getObjects()) do
         if entry.name == name and entry.gm_notes == type then
             return entry.guid
@@ -98,29 +101,24 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.Take(params)
-    local name, type, location, height, rotation, spawnFunc = params.name, params.type, params.location, params.height, params.rotation, params.spawnFunc
+local function Archive_Take(params)
+    local name, type, height, location, rotation, spawnFunc = params.name, params.type, params.height or DEFAULT_SPAWN_HEIGHT, Location.Get(params.location), params.rotation or FACE_UP, params.spawnFunc
     assert(CheckStr(name))
     assert(CheckStr(type))
-    assert(CheckStr(location))
-    assert(CheckNumOrNil(height))
     assert(CheckVec3OrNil(rotation))
     assert(CheckFuncOrNil(spawnFunc))
 
-    rotation = rotation or Location.DEFAULT_ROTATION
-    height = height or Location.DEFAULT_SPAWN_HEIGHT
-
-    local position = Location.WorldCenter(location)
+    local position = location:Center()
     position.y = position.y + height
 
-    local typeIndex = Archive.index[type]
+    local typeIndex = Archive_index[type]
     assert(Check(typeIndex, "Unknown type %s", type))
     local archive = typeIndex[name]
     assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
-    Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location, height)
+    Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
 
-    if Archive.singleItemArchives[archive] then
+    if Archive_singleItemArchives[archive] then
         -- for single item archives no need to pull intermediate bag
         Log.Debugf("Using single-item archive %s for %s (%s)", archive, name, type)
         return NamedObject.Get(archive).takeObject({
@@ -131,33 +129,33 @@ function Archive.Take(params)
         })
     end
 
-    local bag = Archive.bags[archive]
+    local bag = Archive_bags[archive]
     if bag then
         Log.Debugf("Re-using already-spawned archive bag %s (%s) for %s (%s)", bag.getName(), bag.getGUID(), name, type)
     else
         -- spawn new bag and cache
         bag = NamedObject.Get(archive).takeObject({
-            position = { x = Archive.bagX, y = 15, z = Archive.bagZ },
+            position = { x = Archive_bagX, y = 15, z = Archive_bagZ },
             smooth = false,
         })
         assert(Check(bag, "Couldn't take from %s", archive))
-        Log.Debugf("Spawned archive bag %s (%s) at (%f, %f) for %s (%s)", bag.getName(), bag.getGUID(), Archive.bagX, Archive.bagZ, name, type)
+        Log.Debugf("Spawned archive bag %s (%s) at (%f, %f) for %s (%s)", bag.getName(), bag.getGUID(), Archive_bagX, Archive_bagZ, name, type)
 
         bag.setLock(true)
-        Archive.bags[archive] = bag
+        Archive_bags[archive] = bag
 
-        Archive.bagX = Archive.bagX + 10
-        if Archive.bagX > 150 then
-            Archive.bagX = -150
-            Archive.bagZ = Archive.bagZ - 10
-            if Archive.bagZ < 70 then
-                Archive.bagZ = 120
+        Archive_bagX = Archive_bagX + 10
+        if Archive_bagX > 150 then
+            Archive_bagX = -150
+            Archive_bagZ = Archive_bagZ - 10
+            if Archive_bagZ < 70 then
+                Archive_bagZ = 120
             end
         end
     end
 
     local object = bag.takeObject({
-        guid = Archive.FindInContainer(name, type, bag),
+        guid = Archive_FindInContainer(name, type, bag),
         position = position,
         rotation = rotation,
         smooth = false,
@@ -172,17 +170,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.CleanupBags()
-    for _, bag in pairs(Archive.bags) do
+local function Archive_CleanupBags()
+    for _, bag in pairs(Archive_bags) do
         Log.Debugf("Destroying archive bag %s (%s)", bag.getName(), bag.getGUID())
         bag.destruct()
     end
 
     local hits = Physics.cast({
-        origin    = { 0, 100, 95 },
-        direction = { 0, -1, 0 },
+        origin    = { x = 0, y = 100, z = 95 },
+        direction = { x = 0, y = -1, z = 0 },
         type      = 3,
-        size      = { 350, 50, 100 },
+        size      = { x = 350, y = 50, z = 100 },
     })
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
@@ -192,12 +190,16 @@ function Archive.CleanupBags()
         end
     end
 
-    Archive.bags = {}
-    Archive.bagX = -150
-    Archive.bagZ = 120
+    Archive_bags = {}
+    Archive_bagX = -150
+    Archive_bagZ = 120
 end
 
 ---------------------------------------------------------------------------------------------------
 
-
-return Archive
+return {
+    Init = Archive_Init,
+    RegisterEntries = Archive_RegisterEntries,
+    Take = Archive_Take,
+    CleanupBags = Archive_CleanupBags,
+}

@@ -1,8 +1,8 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Ui3d")
-local Util = require("Kdm/Util/Util")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Ui3d")
+local Util = require("Kdm/Util")
 
-local UI_HEIGHT = -10.5
+local UI_DEFAULT_HEIGHT = -10.5
 local UI_ROTATION = "0 0 180"
 local UI_SCALE = 0.1
 local UI_SCALE_STR = "0.1 0.1 0.1"
@@ -58,13 +58,13 @@ function Ui_Input(parent, params)
         tag = "InputField",
         attributes = {
             id = id,
-            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width,
             height = height,
             text = params.value,
-            placeholder = params.placeholder,
+            placeholder = params.placeholder or " ",
             textColor = params.textColor or UI_DARK_BROWN,
             colors = UI_INVISIBLE_COLORS,
             fontSize = params.fontSize,
@@ -104,7 +104,6 @@ function Ui_Counter(parent, params)
     local counter = {
         textId = textId,
         object = params.object or self,
-        fontSizes = params.fontSizes,
         onValueChanged = params.onValueChanged,
     }
     setmetatable(counter, Ui_CounterClass)
@@ -118,7 +117,7 @@ function Ui_Counter(parent, params)
         tag = "Text",
         attributes = {
             id = textId,
-            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width,
@@ -142,7 +141,7 @@ function Ui_Counter(parent, params)
         tag = "Button",
         attributes = {
             id = minusId,
-            position = minusX.." "..centerY.." "..UI_HEIGHT,
+            position = minusX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width / 2,
@@ -163,7 +162,7 @@ function Ui_Counter(parent, params)
         tag = "Button",
         attributes = {
             id = plusId,
-            position = plusX.." "..centerY.." "..UI_HEIGHT,
+            position = plusX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width / 2,
@@ -184,7 +183,7 @@ local Ui_CheckBoxClass = {
         Log.Debugf("Changing %s to %s", checkBox.id, tostring(value))
         if value then
             checkBox.object.UI.setAttributes(checkBox.id, {
-                image = "CheckBoxFilled",
+                image = checkBox.image,
                 colors = UI_IMAGE_COLORS,
             })
         else
@@ -210,6 +209,7 @@ function Ui_CheckBox(parent, params)
     local checkBox = {
         id = id,
         object = params.object or self,
+        image = params.image or "CheckBoxFilled",
         onClick = onClick,
     }
     setmetatable(checkBox, Ui_CheckBoxClass)
@@ -226,12 +226,12 @@ function Ui_CheckBox(parent, params)
         tag = "Button",
         attributes = {
             id = id,
-            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width,
             height = height,
-            image = params.value and "CheckBoxFilled" or nil,
+            image = params.value and checkBox.image or nil,
             colors = params.value and UI_IMAGE_COLORS or UI_INVISIBLE_COLORS,
             onClick = "Global/"..onClick,
         }
@@ -266,11 +266,12 @@ function Ui_Button(parent, params)
     self.setVar(onClick, function()
         button.onClick()
     end)
+    local pos = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT)
     table.insert(parent.children, {
         tag = "Button",
         attributes = {
             id = id,
-            position = centerX.." "..centerY.." "..UI_HEIGHT,
+            position = pos,
             rotation = UI_ROTATION,
             scale = UI_SCALE,
             width = width,

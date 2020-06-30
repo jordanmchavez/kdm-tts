@@ -131,7 +131,7 @@ return {
                 {
                     terrain = "2 Tall Grass",
                     positions = { "(8.5, 5.5)", "(13.5, 10.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 2,

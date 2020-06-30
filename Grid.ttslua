@@ -1,4 +1,4 @@
-require("Kdm/Util/Check")
+require("Kdm/Check")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -6,7 +6,7 @@ local GridClass = {}
 GridClass.__index = GridClass
 
 local function Grid_Create(params)
-    local object, left, right, top, bottom, cols, rows, colSize, rowSize = params.object, params.left, params.right, params.top, params.bottom, params.cols, params.rows, params.colSize, params.rowSize
+    local object, left, right, top, bottom, cols, rows = params.object, params.left, params.right, params.top, params.bottom, params.cols, params.rows
     assert(CheckObj(object))
     assert(CheckNum(left))
     assert(CheckNum(right))
@@ -14,8 +14,6 @@ local function Grid_Create(params)
     assert(CheckNum(bottom))
     assert(CheckNum(cols))
     assert(CheckNum(rows))
-    assert(CheckNum(colSize))
-    assert(CheckNum(rowSize))
 
     local grid = {
         tag = "Grid",
@@ -75,9 +73,9 @@ function GridClass.Snap(grid, object, size)
         width, height = height, width
     end
 
-    local position = object.getPosition()
-
-    local col, row = grid:ColRow(grid.object.positionToLocal(wpos))
+    local wpos = object.getPosition()
+    local lpos = grid.object.positionToLocal(wpos)
+    local col, row = grid:ColRow(lpos)
 
     -- even size, snap to grid intersections (0.5, 1.5, 2.5, ...)
     -- odd size, snap to grid cell centers (1.0, 2.0, 3.0, ...)
@@ -92,20 +90,18 @@ function GridClass.Snap(grid, object, size)
         (snapCol + wradius) >= grid.cols + epsilon or
         (snapRow - hradius) < -0.5 - epsilon or
         (snapRow + hradius) >= grid.rows + epsilon then
-        return position
+        return wpos
     end
 
     local snapX, snapZ = grid:XZ(snapCol, snapRow)
 
     return grid.object.positionToWorld({
         x = snapX,
-        y = position.y,
+        y = lpos.y,
         z = snapZ,
     })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return {
-    Create = Grid_Create,
-}
+return Grid_Create

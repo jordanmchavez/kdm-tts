@@ -259,12 +259,12 @@ return {
                 {
                     terrain = "Toppled Pillar",
                     positions = { "(4.5, 3)", "(18.5, 14)" },
-                    rotations = { { 0, 90, 0 }, { 0, -90, 0 } },
+                    rotations = { { x = 0, y = 90, z = 0 }, { x = 0, y = -90, z = 0 } },
                 },
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(15.5, 2)", "(5, 11.5)", "(8.5, 15)" },
-                    rotations = { { 0, -90, 0 }, { 0, 180, 0 }, { 0, 90, 0 } },
+                    rotations = { { x = 0, y = -90, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 } },
                 },
             },
             levels = {
@@ -339,12 +339,12 @@ return {
                             {
                                 terrain = "Toppled Pillar",
                                 positions = { "(4, 3.5)", "(19, 3.5)" },
-                                rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                             },
                             {
                                 terrain = "3 Stone Columns",
                                 positions = { "(7, 5.5)", "(5.5, 11)", "(9.5, 14)", "(16, 5.5)", "(17.5, 11)", "(13.5, 14)" },
-                                rotations = { { 0, 180, 0 }, { 0, 90, 0 }, { 0, 90, 0 }, { 0, 180, 0 }, { 0, -90, 0 }, { 0, -90, 0 } },
+                                rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 90, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 } },
                             },
                         },
                     },
@@ -356,7 +356,7 @@ return {
             resourcesDeck = false,
             position = "(11.5, 8.5)",
             playerPositions = { "(8, 5)", "(15, 5)", "(8, 11)", "(15, 11)" },
-            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            playerRotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } },
             specialTerrain = {
                 {
                     terrain = "Gate",

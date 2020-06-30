@@ -87,12 +87,12 @@ return {
             resourcesDeck = false,
             position = "(11, 8)",
             playerPositions = { "(10, 13)", "(11, 14)", "(12, 14)", "(13, 14)" },
-            playerRotations = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            playerRotations = {{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } },
             fixedTerrain = {
                 {
                     terrain = "2 Tall Grass",
                     positions = { "(4.5, 1.5)", "(17.5, 1.5)", "(4.5, 14.5)", "(17.5, 14.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             miscObject = { name = "Lonely Fruit", type = "Terrain Tiles" },

@@ -1,64 +1,47 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("Terrain")
-local Grid = require("Kdm/Grid")
-local EventManager = require("Kdm/Util/EventManager")
-
-local Terrain = {
-    terrainData = {},
-    terrainTileSizes = {},
-}
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Terrain")
 
 ---------------------------------------------------------------------------------------------------
 
-function Terrain.RegisterExpansion(expansion)
-    for terrain, data in pairs(expansion.terrain or {}) do
-        assert(Check(Terrain.terrainData[terrain] == nil, "Terrain %s is already registered", terrain))
-        Terrain.terrainData[terrain] = data
-    end
+local Terrain_data = {}
+local Terrain_tileSizes = {}
 
-    for terrainTile, size in pairs(expansion.terrainTileSizes or {}) do
-        assert(Check(Terrain.terrainTileSizes[terrainTile] == nil, "Terrain tile %s is already registered", terrainTile))
-        Terrain.terrainTileSizes[terrainTile] = size
+---------------------------------------------------------------------------------------------------
+
+local function Terrain_Init(saveState, expansions)
+    for _, expansion in ipairs(expansions) do
+        for terrain, data in pairs(expansion.terrain or {}) do
+            assert(Check(Terrain_data[terrain] == nil, "Terrain %s is already registered with data %s", terrain, Terrain_data[terrain]))
+            Terrain_data[terrain] = data
+        end
+
+        for terrainTile, size in pairs(expansion.terrainTileSizes or {}) do
+            assert(Check(Terrain_tileSizes[terrainTile] == nil, "Terrain tile %s is already registered with size %s", terrainTile, Terrain_tileSizes[terrainTile]))
+            Terrain_tileSizes[terrainTile] = size
+        end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Terrain.GetData(terrain)
-    assert(CheckStr(terrain))
-    local data = Terrain.terrainData[terrain]
-    assert(Check(data, "No data for terrain %s", terrain))
+local function Terrain_Data(terrain)
+    local data = Terrain_data[terrain]
+    assert(Check(data, "Unrecognized terrain '%s", terrain))
     return data
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Terrain_OnObjectDrop(_, object)
-    if object.getGMNotes() != "Terrain Tiles" then
-        return
-    end
-
-    local size = Terrain.terrainTileSizes[object.getName()]
-    if not size then
-        Log.Debugf("TerrainTile %s (%s) has no registered size", object.getName(), object.getGUID())
-        return
-    end
-
-    Log.Debugf("TerrainTile %s (%s) dropped", object.getName(), object.getGUID())
-
-    object.setPositionSmooth(
-        Grid.Snap(object, size),
-        false,  -- collide
-        true   -- smooth
-    )
+local function Terrain_TileSize(terrainTile)
+    local tileSize = Terrain_tileSizes[terrainTile]
+    assert(Check(tileSize, "Unrecognized terrain tile '%s", terrainTile))
+    return tileSize
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Terrain.Init()
-    EventManager.AddHandler("onObjectDrop", Terrain_OnObjectDrop)
-end
-
----------------------------------------------------------------------------------------------------
-
-return Terrain
+return {
+    Init = Terrain_Init,
+    Data = Terrain_Data,
+    TileSize = Terrain_TileSize,
+}

@@ -840,7 +840,7 @@ return {
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(3, 3.5)", "(20, 3.5)", "(3, 11.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 1,
@@ -900,7 +900,7 @@ return {
             resourcesDeck = false,
             position = "(11.5, 8.5)",
             playerPositions = { "(8, 5)", "(15, 5)", "(8, 12)", "(15, 12)" },
-            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            playerRotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } },
             randomTerrain = 3,
             levels = {
                 {
@@ -930,7 +930,7 @@ return {
                 {
                     terrain = "3 Stone Columns",
                     positions = { "(10, 6.5)", "(11.5, 4)", "(13, 6.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 270, 0 }, { 0, 180, 0} },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 270, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 2,
@@ -1002,7 +1002,7 @@ return {
                 {
                     terrain = "Nightmare Tree",
                     positions = { "(12, 9)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 2,
@@ -1094,29 +1094,29 @@ return {
             rules = { "Core Rules", 88 },
             huntTrack = { "M", "H", "M", "H", "H", "O", "M", "H", "M", "H", "H" },
             position = "(11.5, 8.5)",
-            rotation = { 0, 90, 0 },
+            rotation = { x = 0, y = 90, z = 0 },
             playerPositions = { "(22, 7)", "(22, 8)", "(22, 9)", "(22, 10)" },
-            playerRotations = { { 0, -90, 0 }, { 0, -90, 0 }, { 0, -90, 0 }, { 0, -90, 0 } },
+            playerRotations = { { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 }, { x = 0, y = -90, z = 0 } },
             fixedTerrain = {
                 {
                     terrain = "2 Acanthus Plants",
                     positions = { "(14, 6)", "(14, 11)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "2 Acanthus Plants",
                     positions = { "(15, 7)", "(15, 10)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "2 Acanthus Plants",
                     positions = { "(16, 8)", "(16, 9)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
                 {
                     terrain = "Bug Patch",
                     positions = { "(12, 14)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 2,
@@ -1210,7 +1210,7 @@ return {
                 {
                     terrain = "Giant Stone Face",
                     positions = { "(11.5, 9)" },
-                    rotations = { { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 } },
                 },
             },
             unfixedTerrain = { "3 Stone Columns" },
@@ -1277,7 +1277,7 @@ return {
             legendaryAiDeck = false,
             position = "(11.5, 8.5)",
             playerPositions = { "(7, 4)", "(16, 4)", "(7, 13)", "(16, 13)" },
-            playerRotations = { { 0, 180, 0 }, { 0, 180, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+            playerRotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } },
             levels = {
                 {
                     name = "Level 1",
@@ -1360,7 +1360,7 @@ return {
                 {
                     terrain = "2 Tall Grass",
                     positions = { "(9.5, 6.5)", "(13.5, 10.5)" },
-                    rotations = { { 0, 180, 0 }, { 0, 180, 0 } },
+                    rotations = { { x = 0, y = 180, z = 0 }, { x = 0, y = 180, z = 0 } },
                 },
             },
             randomTerrain = 2,

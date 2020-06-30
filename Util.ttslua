@@ -172,14 +172,14 @@ end
 function Util.Highlight(object, seconds)
     seconds = seconds or 10
 
-    object.highlightOn({ 1, 0, 0.5 }, seconds)
+    object.highlightOn({ r = 1, g = 0, b = 0.5 }, seconds)
     local pos = object.getPosition()
     local size = object.getBounds().size
     Physics.cast({
-        origin    = { pos[1], pos[2] + 5, pos[3] },
-        direction = { 0, -1, 0 },
+        origin    = { x = pos.x, y = pos.y + 5, z = pos.z },
+        direction = { x = 0, y = -1, z = 0 },
         type      = 3,
-        size      = { size[1] * 2, size[2] * 2, size[3] * 2 },
+        size      = { x = size.x * 2, y = size.y * 2, z = size.z * 2 },
         debug     = true,
     })
 end

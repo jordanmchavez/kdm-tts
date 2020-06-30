@@ -1,13 +1,3 @@
-static init
-pre-init: receives save state, depends on objects being loaded, but not on any other subsystems
-register expansions
-init: depends on other subsystems (event management, guids), receive dependencies, fire events, build uis
-
-PreInit(saveState)
-Init(dependencies)
-PostInit(ui)
-
-
 * Added version printed at the start of game
 * Fixed hunt not spawning monster resources
 * Shrunk size of quarry text so longer names will fit (Screaming Antelope / DBK were getting truncated)
@@ -27,15 +17,19 @@ PostInit(ui)
     * Clearly labelled ai/hl and discard decks
     * player boards tighter
     * player boards closer to showdown board
+* Better battle reference
+    * Full survivor stats
+    * Ability to show/hide F&T and founding stone, or any piece
+    * Show/hiude buttons with tooltips and "show all"
+*
 -------------------------------------------------------------------------
 
-redo sizes
-monster reset button
-wound stack in ai row
-unused hl to hl row
-replace unused hl with misc ai
-* Fix brain light injury on char sheet to align
+
+* misc combat stuff: monster claw, twilight sword, weapon profs
+* don't save stuff in periodic save
+* re-enable non-nemesis monsters in showdown event search
 * Add suirvival actions to settlement sheet
+redo sizes
 
 * Constellation Tracker
 
@@ -54,14 +48,7 @@ replace unused hl with misc ai
     * Terrain Grid Snapping
 
 * Large notes field on back of char sheet
-* Better battle reference
-    * Full survivor stats
-    * Ability to show/hide F&T and founding stone, or any piece
-    * Show/hiude buttons with tooltips and "show all"
-* Location abstraction that's independent of position
-    * Spatial Index and Dropzone should interact with it directly
 * Menus should be mutually exclusive: clicking on one should close the others
-* Dependency injection to avoid circular requires()
 * Fix broken multi-line notes        
 * two armor sets keep one forever
 

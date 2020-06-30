@@ -1,59 +1,67 @@
--- local NamedObject = require("Kdm/NamedObject")
--- local Rules = require("Kdm/Rules")
---
--- ---------------------------------------------------------------------------------------------------
---
--- local RulesNav = {}
---
--- function RulesNav.Init()
---     local rulesNavObj = NamedObject.Get("Rules Navigation Board")
---
---     local x1 = -7.229591
---     local x13 = 7.226013
---     local dx = (x13 - x1) / 12
---     local z1 = -0.172199
---     local z2 = 0.615168
---     local dz = z2 - z1
---
---     local createButton = function(name, col, row, clickFunc)
---         local x = x1 + ((col - 1) * dx)
---         local z = z1 + ((row - 1) * dz)
---
---         UiButton.Create({
---             object = rulesNavObj,
---             name = name,
---             position = { x, 0.105, z },
---             width = 2600,
---             height = 1150,
--- --            backgroundColor = { 1, 0, 0.5, 0.9 },
---             clickFunc = clickFunc,
---         })
---     end
---
---     local buttons = {
---         { "Core Rules", 1, 1 },
---         { "Dragon King Rules", 2, 1 },
---         { "Dung Beetle Knight Rules", 3, 1 },
---         { "Flower Knight Rules", 4, 1 },
---         { "Gorm Rules", 5, 1 },
---         { "Lion God Rules", 6, 1 },
---         { "Lion Knight Rules", 7, 1 },
---         { "Lonely Tree Rules", 8, 1 },
---         { "Manhunter Rules", 9, 1 },
---         { "Slenderman Rules", 10, 1 },
---         { "Spidicules Rules", 11, 1 },
---         { "Sunstalker Rules", 12, 1 },
---         { "White Gigalion Rules", 13, 1 },
---     }
---     for _, button in ipairs(buttons) do
---         createButton(button[1], button[2], button[3], function() Rules.SpawnRules(button[1], 1) end)
---     end
---
---     createButton("Back", 6, 2, Rules.Back)
---     createButton("Previous Page", 7, 2, Rules.PreviousPage)
---     createButton("Next Page", 8, 2, Rules.NextPage)
--- end
---
--- ---------------------------------------------------------------------------------------------------
---
--- return RulesNav
+local Ui = require("Kdm/Ui3d")
+local NamedObject = require("Kdm/NamedObject")
+
+local Rules = nil
+
+local RULES_NAV_UI_HEIGHT = 0.11
+
+---------------------------------------------------------------------------------------------------
+
+local function RulesNav_Init(saveState, expansions, modules, ui)
+    local Rules = modules.Rules
+    assert(Rules)
+
+    local rulesNavBoard = NamedObject.Get("Rules Navigation Board")
+    local ui = { id = "RulesNav", children = rulesNavBoard.UI.getXmlTable() }
+
+    local x1 = 7.762758
+    local x1End = 6.705129
+    local width = x1End - x1
+
+    local x13 = -6.702875
+    local dx = (x13 - x1) / 12
+
+    local y1 = -0.401185
+    local y1End = 0.047924
+    local height = y1End - y1
+
+    local y2 = 0.392804
+    local dy = y2 - y1
+
+    local createButton = function(name, col, row, onClick)
+        local topLeft = { x =  x1 + ((col - 1) * dx), y = y1 + ((row - 1) * dy) }
+        local bottomRight = { x = topLeft.x + width, y = topLeft.y + height }
+        Ui.Button(ui, { object = rulesNavBoard, id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick })
+    end
+
+    local buttons = {
+        { "Core Rules", 1, 1 },
+        { "Dragon King Rules", 2, 1 },
+        { "Dung Beetle Knight Rules", 3, 1 },
+        { "Flower Knight Rules", 4, 1 },
+        { "Gorm Rules", 5, 1 },
+        { "Lion God Rules", 6, 1 },
+        { "Lion Knight Rules", 7, 1 },
+        { "Lonely Tree Rules", 8, 1 },
+        { "Manhunter Rules", 9, 1 },
+        { "Slenderman Rules", 10, 1 },
+        { "Spidicules Rules", 11, 1 },
+        { "Sunstalker Rules", 12, 1 },
+        { "White Gigalion Rules", 13, 1 },
+    }
+    for _, button in ipairs(buttons) do
+        createButton(button[1], button[2], button[3], function() Rules.SpawnRules(button[1], 1) end)
+    end
+
+    createButton("Back", 6, 2, Rules.Back)
+    createButton("Previous Page", 7, 2, Rules.PreviousPage)
+    createButton("Next Page", 8, 2, Rules.NextPage)
+
+    rulesNavBoard.UI.setXmlTable(ui.children)
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = RulesNav_Init,
+}

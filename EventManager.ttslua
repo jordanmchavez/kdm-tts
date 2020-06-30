@@ -1,5 +1,5 @@
-require("Kdm/Util/Check")
-local Log = require("Kdm/Util/Log").ForPackage("EventManager")
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("EventManager")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -11,8 +11,8 @@ local eventManager_globalHandlers = {}
 ---------------------------------------------------------------------------------------------------
 
 function EventManager.AddHandler(event, handler)
-    assert(CheckStr(event, "event"))
-    assert(CheckFunc(handler, "handler"))
+    assert(CheckStr(event))
+    assert(CheckFunc(handler))
 
     local handlers = eventManager_handlers[event]
     if handlers then
