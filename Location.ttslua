@@ -9,6 +9,7 @@ LOCATION_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
 LOCATION_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
 LOCATION_GEAR_SIZE = { x = 3, y = 10, z = 3 }
 LOCATION_TOKEN_SIZE = { x = 1.412567, y = 0.1, z = 1.405437 }
+LOCATION_SURVIVAL_TOKEN_SIZE = { x = 2.7, y = 0.1, z = 2.7 }
 
 LOCATION_MAX_TERRAIN = 10
 LOCATION_MAX_MISC = 10
@@ -18,7 +19,7 @@ LOCATION_MAX_MONSTER_TOKENS = 8
 LOCATION_MAX_SETTLEMENT_LOCATION_COLS = 10
 LOCATION_MAX_SETTLEMENT_LOCATION_ROWS = 2
 
-LOCATION_DEFAULT_CAST_HEIGHT = 50
+LOCATION_DEFAULT_CAST_HEIGHT = 20
 
 local LOCATION_CLEAN_IGNORE_TAGS = { "Board", "Table" }
 
@@ -168,14 +169,27 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Find(location, tag)
-    for _, hit in ipairs(location:RayCast()) do
+function LocationClass.FindFirst(location, tag)
+    for _, hit in ipairs(location:BoxCast()) do
         local object = hit.hit_object
         if object.getGMNotes() == tag then
             return object
         end
     end
     return nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.FindAll(location, tag)
+    local results = {}
+    for _, hit in ipairs(location:BoxCast()) do
+        local object = hit.hit_object
+        if object.getGMNotes() == tag then
+            table.insert(results, object)
+        end
+    end
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -347,13 +361,46 @@ local function Location_Init(saveState, expansions, modules)
     local dx = (bottomRight.x - topLeft.x) / 7
     local dz = (bottomRight.z - topLeft.z)
     for playerNumber = 1, 4 do
-        local playerBoard = NamedObject.Get("Player "..playerNumber.." Board")
+        local prefix = "Player "..playerNumber
+        local playerBoard = NamedObject.Get(prefix.." Board")
+
+        Location_Add(Location_Create({
+            name = prefix.." Cards",
+            p1 = { x = 0.863623, y = 0.219046, z = 0.010613 },
+            p2 = { x = -0.863623, y = 0.150000, z = 0.564581 },
+            object = playerBoard,
+        }))
+
+        local x1 = -0.227844
+        local dx = (-0.663261 - x1) / 2
+        local z1 = -0.637769
+        local dz = (-0.203442 - z1) / 2
+        local width = -0.424703 - x1
+        local height = -0.440021 - z1
+        for col = 1, 3 do
+            for row = 1, 3 do
+                local x = x1 + (col - 1) * dx
+                local z = z1 + (row - 1) * dz
+                Location_Add(Location_Create({
+                    name = prefix.." Gear "..col.." "..row,
+                    p1 = { x = x,         y = 0.150000, z = z },
+                    p2 = { x = x + width, y = 0.150000, z = z + height },
+                    object = playerBoard,
+                }))
+            end
+        end
+        Location_Add(Location_Create({
+            name = prefix.." Fist & Tooth",
+            p1 = { x = -0.010514,         y = 0.150000, z = -0.203541 },
+            p2 = { x = -0.010514 + width, y = 0.150000, z = -0.203541 + height },
+            object = playerBoard,
+        }))
 
         for col = 1, 8 do
             local x = topLeft.x + (col - 1) * dx
             for row = 1, 2 do
                 Location_Add(Location_Create({
-                    name = string.format("Player %d %s", playerNumber, cards[row][col]),
+                    name = prefix.." "..cards[row][col],
                     center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
                     size = LOCATION_CARD_SIZE,
                     object = playerBoard,
@@ -362,18 +409,49 @@ local function Location_Init(saveState, expansions, modules)
         end
 
         Location_Add(Location_Create({
-            name = string.format("Player %d Permanent Tokens", playerNumber),
+            name = prefix.." Temporary Tokens",
+            p1 = { x = 0.808707, y = 0.150000, z = 0.761845 },
+            p2 = { x = 0.055022, y = 0.150002, z = 0.969368 },
+            object = playerBoard,
+        }))
+
+        Location_Add(Location_Create({
+            name = prefix.." Permanent Tokens",
             p1 = { x = -0.056596, y = 0.113605, z = 0.764381 },
             p2 = { x = -0.811249, y = 0.113605, z = 0.970867 },
             object = playerBoard,
         }))
-    end
 
-    for _, expansion in ipairs(expansions) do
-        for name, locationParams in pairs(expansion.locations or {}) do
-            locationParams.object = NamedObject.Get(locationParams.board)
-            Location_Add(Location_Create(locationParams))
+        for _, expansion in ipairs(expansions) do
+            for name, locationParams in pairs(expansion.locations or {}) do
+                locationParams.object = NamedObject.Get(locationParams.board)
+                Location_Add(Location_Create(locationParams))
+            end
         end
+
+        local survivalTokenPositions = {
+            { x = -0.313189, y = 0.046961, z = -1.216332 },
+            { x = -0.415026, y = 0.045997, z = -1.318238 },
+            { x = -0.516932, y = 0.046962, z = -1.216401 },
+            { x = -0.618769, y = 0.045997, z = -1.318307 },
+            { x = -0.720674, y = 0.046924, z = -1.216470 },
+            { x = -0.415095, y = 0.047887, z = -1.114495 },
+            { x = -0.618838, y = 0.047849, z = -1.114564 },
+        }
+        for i, pos in ipairs(survivalTokenPositions) do
+            Location_Add(Location_Create({
+                name = string.format("%s Survival Token %d", prefix, i),
+                center = pos,
+                size = LOCATION_SURVIVAL_TOKEN_SIZE,
+                object = playerBoard,
+            }))
+        end
+        Location_Add(Location_Create({
+            name = prefix.." Survival Tokens",
+            p1 = { x = -0.194693, y = 0.048755, z = -1.416569 },
+            p2 = { x = -0.825567, y = 0.123307, z = -1.021933 },
+            object = playerBoard,
+        }))
     end
 end
 

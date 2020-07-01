@@ -1,6 +1,0 @@
-local function Menu_Init()
-end
-
-return {
-    Init = Menu_Init,
-}

@@ -3,16 +3,15 @@ local Log = require("Kdm/Log").ForPackage("BattleReference")
 local Util = require("Kdm/Util")
 local NamedObject = require("Kdm/NamedObject")
 local EventManager = require("Kdm/EventManager")
-local PlayerBoard = require("Kdm/PlayerBoard")
-local Showdown = require("Kdm/Showdown")
-local CharSheet = require("Kdm/CharSheet")
 local Ui = require("Kdm/Ui")
+local Location = require("Kdm/Location")
+
+local PlayerBoard = nil
+local Showdown = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local BattleReference = {
-    panelShown = true
-}
+local BattleReference_ui = {}
 
 local BATTLE_UI_RELEVANT_ATTRIBUTES = {
     name = true,
@@ -24,331 +23,323 @@ local BATTLE_UI_RELEVANT_ATTRIBUTES = {
     luck = true,
 }
 
-local BATTLE_UI_PANEL_ID = "BattleReferencePanel"
-
-local BATTLE_UI_PADDING = 5
-local BATTLE_UI_WEAPON_WIDTH = 150
-local BATTLE_UI_STAT_WIDTH = 50
-local BATTLE_UI_TEXT_HEIGHT = 25
-local BATTLE_UI_PANEL_SPACING = 10
-local BATTLE_UI_PANEL_WIDTH = BATTLE_UI_PADDING + (BATTLE_UI_STAT_WIDTH * 4) + BATTLE_UI_WEAPON_WIDTH
-local BATTLE_UI_MAX_ROWS = 6
+local BATTLE_REFERENCE_MAX_WEAPONS = 3
 
 ---------------------------------------------------------------------------------------------------
 
-local function AddText(xml, id, x, y, width, text, alignment, color)
-    table.insert(xml, {
-        tag = "Text",
-        attributes = {
-            id = id,
-            rectAlignment = "UpperLeft",
-            offsetXY = string.format("%d %d", x, y),
-            width = width,
-            height = BATTLE_UI_TEXT_HEIGHT,
-            alignment = alignment,
-            color = color or "#ffffff",
-        },
-        value = text,
-    })
+local function BattleReference_CalcWeapons(playerBoard, charSheet)
+    -- dedup and consolidate weapons
+    local hiddenWeapons = charSheet:HiddenWeapons()
+    local weapons = {}
+    local weaponCounts = {}
+    setmetatable(weaponCounts, {  __index = function() return 0 end })
+    for _, weapon in pairs(playerBoard:Weapons()) do
+        local name = weapon.name
+        if not hiddenWeapons[name] then
+            local count = weaponCounts[name]
+            weaponCounts[name] = count + 1
+            if count == 0 then
+                table.insert(weapons, weapon)
+            end
+        end
+    end
+    table.sort(weapons, function(w1, w2) return w1.name < w2.name end)
+
+    local charSpeed = charSheet:Speed()
+    local charAccuracy = charSheet:Accuracy()
+    local charStrength = charSheet:Strength()
+    local charLuck = charSheet:Luck()
+    local monsterEvasion = Showdown.MonsterEvasion()
+    local monsterToughness = Showdown.MonsterToughness()
+    local monsterLuck = Showdown.MonsterLuck()
+
+    local results = {}
+    for _, weapon in ipairs(weapons) do
+        local name, stats = weapon.name, weapon.stats
+
+        local speed = stats.speed + charSpeed
+        -- accuracy goes the opposite way
+        local accuracy = stats.accuracy - charAccuracy
+        local strength = stats.strength + charStrength
+        local luck = (stats.deadly or 0) + charLuck
+
+        for _, modifier in ipairs(weapon.modifiers) do
+            if modifier.stat == "speed" then
+                speed = speed + modifier.value
+            elseif modifier.stat == "accuracy" then
+                -- accuracy goes the opposite way
+                accuracy = accuracy - modifier.value
+            elseif modifier.stat == "strength" then
+                strength = strength + modifier.value
+            elseif modifier.stat == "luck" then
+                luck = luck + modifier.value
+            end
+        end
+
+        hit = Util.Clamp(accuracy - monsterEvasion, 2, 10)
+        wound = Util.Clamp(monsterToughness - strength, 2, 10)
+        crit = Util.Max(2, 10 - luck - monsterLuck) -- impossible crits are allowed, so no clamping to 10
+
+        if stats.paired and weaponCounts[name] > 1 then
+            speed = speed + stats.speed
+        end
+        if stats.slow then
+            speed = 1
+        end
+
+        table.insert(results, {
+            name = name,
+            speed = speed,
+            hit = hit,
+            wound = wound,
+            strength = strength,
+            crit = crit,
+        })
+    end
+
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------
 
-WIDTH = 396
-HEIGHT = 244
-function BattleReference_BuildUi(ui)
-    local panel = Ui.Panel(ui, { id = "BattleReference", rectAlignment = "MiddleLeft", x = 70, y = -100, width = WIDTH, height = HEIGHT })
-    Ui.Image(panel, { id = "BattleReference", image = "BattleReference", width = WIDTH, height = HEIGHT })
-
-    -- local mainPanelChildren = {}
-    --
-    -- Ui.ImageButton(ui, { id = "Swords", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "SwordsButton", onClick = function()
-    --     if BattleReference.panelShown then
-    --         BattleReference.Hide()
-    --     else
-    --         BattleReference.Show()
-    --     end
-    -- end })
-    --
-    -- local panelY = 0
-    -- for playerNumber = 1, 4 do
-    --     local playerBoard = PlayerBoard.GetPlayerBoard(playerNumber)
-    --
-    --     local playerId = "BattleReference_Player"..playerNumber
-    --     local playerPanelElements = {}
-    --
-    --     local x = BATTLE_UI_PADDING
-    --     local y = -BATTLE_UI_PADDING
-    --
-    --     table.insert(playerPanelElements, {
-    --         tag = "Text",
-    --         attributes = {
-    --             id = playerId.."NameText",
-    --             rectAlignment = "UpperLeft",
-    --             offsetXY = x.." "..y,
-    --             width = BATTLE_UI_WEAPON_WIDTH,
-    --             height = BATTLE_UI_TEXT_HEIGHT,
-    --             alignment = "MiddleLeft",
-    --             color = Util.ColorUiString(PlayerBoard.GetColor(playerBoard)),
-    --             fontStyle = "Bold",
-    --         }
-    --     })
-    --
-    --     x = x + BATTLE_UI_WEAPON_WIDTH
-    --     AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Spd", "MiddleCenter")
-    --     x = x + BATTLE_UI_STAT_WIDTH
-    --     AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Hit", "MiddleCenter")
-    --     x = x + BATTLE_UI_STAT_WIDTH
-    --     AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Wnd", "MiddleCenter")
-    --     x = x + BATTLE_UI_STAT_WIDTH
-    --     AddText(playerPanelElements, nil, x, y, BATTLE_UI_STAT_WIDTH, "Crit", "MiddleCenter")
-    --
-    --     for weaponNumber = 1, BATTLE_UI_MAX_ROWS do
-    --         local weaponId = playerId.."Weapon"..weaponNumber
-    --         x = BATTLE_UI_PADDING
-    --         y = y - BATTLE_UI_TEXT_HEIGHT
-    --
-    --         AddText(playerPanelElements, weaponId.."NameText", x, y, BATTLE_UI_WEAPON_WIDTH, "", "MiddleLeft")
-    --         x = x + BATTLE_UI_WEAPON_WIDTH
-    --         AddText(playerPanelElements, weaponId.."SpeedText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
-    --         x = x + BATTLE_UI_STAT_WIDTH
-    --         AddText(playerPanelElements, weaponId.."HitText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
-    --         x = x + BATTLE_UI_STAT_WIDTH
-    --         AddText(playerPanelElements, weaponId.."WoundText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
-    --         x = x + BATTLE_UI_STAT_WIDTH
-    --         AddText(playerPanelElements, weaponId.."CritText", x, y, BATTLE_UI_STAT_WIDTH, "", "MiddleCenter")
-    --     end
-    --
-    --     local panelHeight = (BATTLE_UI_TEXT_HEIGHT * (BATTLE_UI_MAX_ROWS + 1)) + BATTLE_UI_PADDING
-    --     table.insert(mainPanelChildren, {
-    --         tag = "Panel",
-    --         attributes = {
-    --             id = playerId.."Panel",
-    --             rectAlignment = "UpperRight",
-    --             offsetXY = "0 "..panelY,
-    --             width = BATTLE_UI_PANEL_WIDTH,
-    --             height = panelHeight,
-    --             color = "rgba(0, 0, 0, 0.9)",
-    --         },
-    --         children = playerPanelElements,
-    --     })
-    --     panelY = panelY - panelHeight - BATTLE_UI_PANEL_SPACING
-    -- end
-    --
-    -- table.insert(mainPanelChildren, {
-    --     tag = "Button",
-    --     attributes = {
-    --         id = "BattleReference_CloseBattleReferenceButton",
-    --         rectAlignment = "UpperLeft",
-    --         offsetXY="0 30",
-    --         width = "30",
-    --         height = "30",
-    --         text = "X",
-    --         colors = "#000000ee|#222222ee|#111111ee|#00000000",
-    --         fontSize = "16",
-    --         textColor = "#ffffff",
-    --         onClick = "BattleReference_CloseBattleReferenceButton_OnClick",
-    --     }
-    -- })
-    --
-    -- table.insert(ui.children, {
-    --     tag = "Panel",
-    --     attributes = {
-    --         id = BATTLE_UI_PANEL_ID,
-    --         rectAlignment = "MiddleLeft",
-    --         offsetXY = "70 0",
-    --         width = BATTLE_UI_PANEL_WIDTH,
-    --         height = -panelY,
-    --         color = "#00000000",
-    --         allowDragging = true,
-    --         returnToOriginalPositionWhenReleased = false,
-    --         active = true,
-    --     },
-    --     children = mainPanelChildren,
-    -- })
+local function BattleReference_UpdatePositions()
+    local y = 0
+    for i = 1, 4 do
+        local player = BattleReference_ui.players[i]
+        player.panel:SetOffsetXY("0 "..y)
+        if player.open then
+            y = y - BattleReference_ui.players[i].height - 16
+        end
+    end
+    BattleReference_ui.panel:SetHeight(-y - 16)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleReference_Update()
-    -- local panelY = 0
-    -- for playerNumber = 1, 4 do
-    --     local playerBoard = PlayerBoard.GetPlayerBoard(playerNumber)
-    --     local playerNumber = playerBoard.playerNumber
-    --     local playerId = "BattleReference_Player"..playerNumber
-    --
-    --     local charSheet = PlayerBoard.GetCharSheet(playerBoard)
-    --     if not charSheet then
-    --         self.UI.hide(playerId.."Panel")
-    --
-    --     else
-    --         self.UI.show(playerId.."Panel")
-    --
-    --         self.UI.setAttribute(playerId.."NameText", "text", CharSheet.GetNameOrUnnamed(charSheet))
-    --
-    --         local monsterEvasion = Showdown.GetEvasion()
-    --         local monsterToughness = Showdown.GetToughness()
-    --         local monsterLuck = Showdown.GetLuck()
-    --
-    --         local playerSpeed = CharSheet.GetSpeed(charSheet)
-    --         local playerAccuracy = CharSheet.GetAccuracy(charSheet)
-    --         local playerStrength = CharSheet.GetStrength(charSheet)
-    --         local playerLuck = CharSheet.GetLuck(charSheet)
-    --
-    --         local weaponCounts = {}
-    --         local weapons = {}
-    --         for weaponObj, weaponStats in pairs(PlayerBoard.GetWeapons(playerBoard)) do
-    --             local name = weaponObj.getName()
-    --             if weaponCounts[name] then
-    --                 weaponCounts[name] = weaponCounts[name] + 1
-    --             else
-    --                 table.insert(weapons, { name, weaponStats })
-    --                 weaponCounts[name] = 1
-    --             end
-    --         end
-    --         table.sort(weapons, function(w1, w2) return w1[1] < w2[1] end)
-    --
-    --         local weaponRow = 1
-    --         for _, weapon in ipairs(weapons) do
-    --             if weaponRow >= BATTLE_UI_MAX_ROWS then
-    --                 break
-    --             end
-    --
-    --             local weaponName, weaponStats = weapon[1], weapon[2]
-    --             local weaponId = playerId.."Weapon"..weaponRow
-    --             self.UI.setAttribute(weaponId.."NameText", "text", weaponName)
-    --
-    --             local speed = weaponStats.speed + playerSpeed
-    --             if weaponStats.paired and weaponCounts[weaponName] > 1 then
-    --                 speed = speed + weaponStats.speed
-    --             end
-    --             if weaponStats.slow then
-    --                 speed = 1
-    --             end
-    --             self.UI.setAttribute(weaponId.."SpeedText", "text", speed)
-    --
-    --             local hit = Util.Max(2, weaponStats.accuracy - playerAccuracy + monsterEvasion)
-    --             self.UI.setAttribute(weaponId.."HitText", "text", hit.."+")
-    --
-    --             local wound = Util.Max(2, monsterToughness - weaponStats.strength - playerStrength)
-    --             self.UI.setAttribute(weaponId.."WoundText", "text", wound.."+")
-    --
-    --             local crit = Util.Max(2, 10 - (weaponStats.deadly or 0) - playerLuck + monsterLuck)
-    --             self.UI.setAttribute(weaponId.."CritText", "text", crit <= 10 and crit.."+" or "---")
-    --
-    --             weaponRow = weaponRow + 1
-    --         end
-    --         for i = weaponRow, BATTLE_UI_MAX_ROWS do
-    --             local weaponId = playerId.."Weapon"..i
-    --             self.UI.setAttribute(weaponId.."NameText", "text", "")
-    --             self.UI.setAttribute(weaponId.."SpeedText", "text", "")
-    --             self.UI.setAttribute(weaponId.."HitText", "text", "")
-    --             self.UI.setAttribute(weaponId.."WoundText", "text", "")
-    --             self.UI.setAttribute(weaponId.."CritText", "text", "")
-    --         end
-    --
-    --         local panelId = playerId.."Panel"
-    --         local panelHeight = (BATTLE_UI_TEXT_HEIGHT * weaponRow) + BATTLE_UI_PADDING
-    --         self.UI.setAttributes(panelId, {
-    --             height = panelHeight,
-    --             offsetXY = "0 "..panelY,
-    --         })
-    --         panelY = panelY - panelHeight - BATTLE_UI_PANEL_SPACING
-    --     end
-    -- end
-    -- self.UI.setAttribute(BATTLE_UI_PANEL_ID, "height", -panelY)
+local function BattleReference_UpdatePlayerInternal(playerBoard)
+    local player = BattleReference_ui.players[playerBoard:Number()]
+
+    local charSheet = playerBoard:CharSheet()
+    if not charSheet then
+        player.open = false
+        player.height = 0
+        player.panel:Hide()
+        return
+    end
+
+    player.open = true
+    player.panel:Show()
+
+    player.nameText:SetText(charSheet:NameOrUnnamed())
+    player.showWeaponsButton:Show()
+    local weapons = BattleReference_CalcWeapons(playerBoard, charSheet)
+    local numShownWeapons = Util.Min(#weapons, BATTLE_REFERENCE_MAX_WEAPONS)
+    for i = 1, numShownWeapons do
+        local weapon = weapons[i]
+        player.weaponImages[i]:Show()
+        player.weaponShowWeaponsButtons[i]:Show()
+        player.weaponNameTexts[i]:Show()
+        player.weaponNameTexts[i]:SetText(weapon.name)
+        player.weaponSpeedTexts[i]:Show()
+        player.weaponSpeedTexts[i]:SetText(weapon.speed)
+        player.weaponHitTexts[i]:Show()
+        player.weaponHitTexts[i]:SetText(weapon.hit)
+        player.weaponWoundTexts[i]:Show()
+        player.weaponWoundTexts[i]:SetText(string.format("%d (%s%d)", weapon.wound, weapon.strength > 0 and "+" or "", weapon.strength))
+        player.weaponCritTexts[i]:Show()
+        player.weaponCritTexts[i]:SetText(weapon.crit)
+    end
+    for i = numShownWeapons + 1, BATTLE_REFERENCE_MAX_WEAPONS do
+        player.weaponImages[i]:Hide()
+        player.weaponShowWeaponsButtons[i]:Hide()
+        player.weaponNameTexts[i]:Hide()
+        player.weaponSpeedTexts[i]:Hide()
+        player.weaponHitTexts[i]:Hide()
+        player.weaponWoundTexts[i]:Hide()
+        player.weaponCritTexts[i]:Hide()
+    end
+    player.height = 8 + (numShownWeapons + 1) * 33
+    player.panel:SetHeight(player.height)
+end
+
+local function BattleReference_UpdatePlayer(playerBoard)
+    BattleReference_UpdatePlayerInternal(playerBoard)
+    BattleReference_UpdatePositions()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleReference.Show()
+local function BattleReference_Update()
+    for i = 1, 4 do
+        BattleReference_UpdatePlayerInternal(PlayerBoard.ForPlayer(i))
+    end
+    BattleReference_UpdatePositions()
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function BattleReference_Show()
     Log.Debugf("Showing battle reference")
-    self.UI.show(BATTLE_UI_PANEL_ID)
-    BattleReference.panelShown = true
+    BattleReference_ui.panel:Show()
+    BattleReference_ui.open = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleReference.Hide()
+local function BattleReference_Hide()
     Log.Debugf("Hiding battle reference")
-    self.UI.hide(BATTLE_UI_PANEL_ID)
-    BattleReference.panelShown = false
+    BattleReference_ui.panel:Hide()
+    BattleReference_ui.open = false
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleReference_CloseBattleReferenceButton_OnClick()
-    BattleReference.Hide()
-end
+local function BattleReference_Init(saveState, expansions, modules, ui)
+    PlayerBoard = modules.PlayerBoard
+    Showdown = modules.Showdown
 
----------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------
 
-local function BattleReference_OnShowdownStart()
-    BattleReference.Show()
-end
+    local TEXT_COLOR = "#ffffffdc"
+    local DISABLED_TEXT_COLOR = "#ffffff60"
 
----------------------------------------------------------------------------------------------------
+    local DARK_COLORS = "#00000000|#ffffff10|#ffffff20|#ffffffff"
+    local DARK_SELECTED_COLORS = "#ffffff20|#ffffff30|#ffffff40|#ffffffff"
 
-local function BattleReference_OnShowdownCleanup()
-    BattleReference.Hide()
-end
+    Ui.Image(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "BattleUi" })
+    Ui.Button(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+        if BattleReference_ui.open then
+            BattleReference_Hide()
+        else
+            BattleReference_Show()
+        end
+    end })
 
----------------------------------------------------------------------------------------------------
+    Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
+    Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+        for i = 1, 4 do
+            Log.Printf("Resetting survival actions")
+            local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):FindAll("Survival Token")
+            for _, token in ipairs(survivalTokens) do
+                rot = token.getRotation()
+                if rot.z >= 15 and rot.z <= 345    then
+                    token.flip()
+                end
+            end
+        end
 
-local function BattleReference_OnPlayerBoardLinkCharSheet(playerBoard, charSheet)
-    BattleReference_Update()
-end
+        Log.Printf("Resetting player turns")
+        for i = 1, 4 do
+            local player = BattleReference_ui.players[i]
+            player.turnEnded = false
+            player.nameText:SetColor(TEXT_COLOR)
+            player.nameText:SetFontStyle("Normal")
+            player.endTurnButton:SetColors(DARK_COLORS)
+        end
+    end })
 
----------------------------------------------------------------------------------------------------
+    BattleReference_ui.open = true
+    BattleReference_ui.panel = Ui.Panel(ui, { id = "BattleReference", rectAlignment = "MiddleLeft", x = 80, y = 70, width = 436, height = 608, color = "#00000000", active = BattleReference_ui.open })
+    BattleReference_ui.panel.attributes.allowDragging = true
+    BattleReference_ui.panel.attributes.returnToOriginalPositionWhenReleased = false
 
-local function BattleReference_OnPlayerBoardUnlinkCharSheet(playerBoard)
-    BattleReference_Update()
-end
+    BattleReference_ui.players = {}
+    for playerNumber = 1, 4 do
+        local playerBoard = PlayerBoard.ForPlayer(playerNumber)
+        local player = { height = 140 }
+        BattleReference_ui.players[playerNumber] = player
 
----------------------------------------------------------------------------------------------------
+        player.open = true
+        player.panel = Ui.Panel(BattleReference_ui.panel, { id = "Player"..playerNumber, rectAlignment = "UpperLeft", x = 0, y = -(player.height + 16) * (playerNumber - 1), width = 436, height = player.height, color = "#121212ff" })
+        local playerCircleImages = {
+            "RedCircle",
+            "GreenCircle",
+            "BlueCircle",
+            "WhiteCircle",
+        }
+        player.playerCircleImage = Ui.Image(player.panel, { id = "PlayerCircle", rectAlignment = "UpperLeft", x = 8, y = -8, width = 25, height = 25, image = playerCircleImages[playerNumber] })
+        player.nameText = Ui.Text(player.panel, { id = "Name", rectAlignment = "UpperLeft", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = TEXT_COLOR, text = "Survivor with a very long name" })
 
-local function BattleReference_OnMonsterChangeStat(attribute, value)
-    if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
-        BattleReference_Update()
+        player.turnEnded = false
+        Ui.Image(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324, y = -8, width = 48, height = 25, image = "BR_Sleep" })
+        player.endTurnButton = Ui.Button(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            player.turnEnded = not player.turnEnded
+            if player.turnEnded then
+                Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                player.nameText:SetColor(DISABLED_TEXT_COLOR)
+                player.nameText:SetFontStyle("Italic")
+                player.endTurnButton:SetColors(DARK_SELECTED_COLORS)
+            else
+                Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                player.nameText:SetColor(TEXT_COLOR)
+                player.nameText:SetFontStyle("Normal")
+                player.endTurnButton:SetColors(DARK_COLORS)
+            end
+        end})
+
+        player.showWeaponsImage = Ui.Image(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380, y = -8, width = 48, height = 25, image = "BR_Show" })
+        player.showWeaponsButton = Ui.Button(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            local charSheet = playerBoard:CharSheet()
+            Log.Printf("Showing all weapons for %s", charSheet:NameOrUnnamed())
+            charSheet:ShowAllWeapons()
+            BattleReference_UpdatePlayer(playerBoard)
+        end})
+
+        player.weaponImages = {}
+        player.weaponShowWeaponsButtons = {}
+        player.weaponNameTexts = {}
+        player.weaponSpeedTexts = {}
+        player.weaponHitTexts = {}
+        player.weaponWoundTexts = {}
+        player.weaponCritTexts = {}
+        local y = -41
+        for i = 1, BATTLE_REFERENCE_MAX_WEAPONS do
+            player.weaponImages[i] = Ui.Image(player.panel, { id = "Weapon"..i, rectAlignment = "UpperLeft", x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
+            player.weaponShowWeaponsButtons[i] = Ui.Button(player.panel, { id = "WeaponName"..i, rectAlignment = "UpperLeft", x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+                local weaponName = player.weaponNameTexts[i]:Text()
+                local charSheet = playerBoard:CharSheet()
+                Log.Printf("Hiding %s for %s", weaponName, charSheet:NameOrUnnamed())
+                charSheet:HideWeapon(weaponName)
+                BattleReference_UpdatePlayer(playerBoard)
+            end })
+            player.weaponNameTexts[i]  = Ui.Text(player.panel, { id = "WeaponName"..i,  rectAlignment = "UpperLeft", x =  43, y = y, width = 172, height = 25, color = TEXT_COLOR, fontSize = 14, text = "Calcified Juggernaut Blade" })
+            player.weaponSpeedTexts[i] = Ui.Text(player.panel, { id = "WeaponSpeed"..i, rectAlignment = "UpperLeft", x = 243, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            player.weaponHitTexts[i]   = Ui.Text(player.panel, { id = "WeaponHit"..i,   rectAlignment = "UpperLeft", x = 288, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            player.weaponWoundTexts[i] = Ui.Text(player.panel, { id = "WeaponWound"..i, rectAlignment = "UpperLeft", x = 334, y = y, width = 55, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
+            player.weaponCritTexts[i]  = Ui.Text(player.panel, { id = "WeaponCrit"..i,  rectAlignment = "UpperLeft", x = 407, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            y = y - 33
+        end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_onCharSheetChangeStat(charSheet, attribute, value)
-    if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
-        BattleReference_Update()
-    end
-end
+local function BattleReference_PostInit()
+    EventManager.AddHandler("onShowdownStart", BattleReference_Show)
+    EventManager.AddHandler("onShowdownCleanup", BattleReference_Hide)
+    EventManager.AddHandler("onPlayerBoardLinkCharSheet", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onMonsterChangeStat", function(attribute)
+        if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
+            BattleReference_Update()
+        end
+    end)
+    EventManager.AddHandler("onCharSheetChangeStat", function(charSheet, attribute)
+        if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
+            BattleReference_Update()
+        end
+    end)
+    EventManager.AddHandler("onPlayerBoardLinkWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUpdateWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
 
----------------------------------------------------------------------------------------------------
-
-local function BattleReference_OnPlayerBoardLinkWeapon(playerBoard, weaponObj, weaponStats)
     BattleReference_Update()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_OnPlayerBoardUnlinkWeapon(playerBoard, weaponObj)
-    BattleReference_Update()
-end
-
----------------------------------------------------------------------------------------------------
-
-function BattleReference.Init(saveState, ui)
-    EventManager.AddHandler("onShowdownStart", BattleReference_OnShowdownStart)
-    EventManager.AddHandler("onShowdownCleanup", BattleReference_OnShowdownCleanup)
-    EventManager.AddHandler("onPlayerBoardLinkCharSheet", BattleReference_OnPlayerBoardLinkCharSheet)
-    EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", BattleReference_OnPlayerBoardUnlinkCharSheet)
-    EventManager.AddHandler("onMonsterChangeStat", BattleReference_OnMonsterChangeStat)
-    EventManager.AddHandler("onCharSheetChangeStat", BattleReference_onCharSheetChangeStat)
-    EventManager.AddHandler("onPlayerBoardLinkWeapon", BattleReference_OnPlayerBoardLinkWeapon)
-    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", BattleReference_OnPlayerBoardUnlinkWeapon)
-
---    BattleReference_BuildUi(ui)
---    Wait.frames(BattleReference_Update, 5)   -- really only need 1, but 5 to be safe
-end
-
----------------------------------------------------------------------------------------------------
-
-return BattleReference
+return {
+    Init = BattleReference_Init,
+    PostInit = BattleReference_PostInit,
+    Update = BattleReference_Update,
+}

@@ -24,7 +24,7 @@ return {
         ["Horn"] = { x = 1, y = 1 },
         ["Throne"] = { x = 1, y = 1 },
         ["Stage"] = { x = 4, y = 4 },
-        ["Balcony"] = { x = 2, y = 1 }
+        ["Balcony"] = { x = 1, y = 2 }
     },
 
     armorStats = {

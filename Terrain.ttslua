@@ -33,9 +33,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Terrain_TileSize(terrainTile)
-    local tileSize = Terrain_tileSizes[terrainTile]
-    assert(Check(tileSize, "Unrecognized terrain tile '%s", terrainTile))
-    return tileSize
+    return Terrain_tileSizes[terrainTile]
 end
 
 ---------------------------------------------------------------------------------------------------

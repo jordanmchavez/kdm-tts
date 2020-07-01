@@ -48,27 +48,26 @@ local NamedObject_guidNames = {
 }
 
 local NamedObject_guids = {}
-
-local namedObjects_index = {}
+local NamedObjects_index = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function NamedObject_Add(name, guid)
+local function NamedObject_Set(name, guid)
     local object = getObjectFromGUID(guid)
     assert(Check(object != nil, "Couldn't find critical component '%s' with guid %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
-    local existing = namedObjects_index[name]
+    local existing = NamedObjects_index[name]
     if existing then
         assert(CheckFail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
     end
 
-    namedObjects_index[name] = object
+    NamedObjects_index[name] = object
     NamedObject_guids[guid] = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
 local function NamedObject_Get(name)
-    local object = namedObjects_index[name]
+    local object = NamedObjects_index[name]
     assert(Check(object, "Unknown object '%s'", name))
 
     return object
@@ -101,12 +100,12 @@ end
 
 local function NamedObject_Init(saveState, expansions)
     for guid, name in pairs(NamedObject_guidNames) do
-        NamedObject_Add(name, guid)
+        NamedObject_Set(name, guid)
     end
 
     for _, expansion in ipairs(expansions) do
         for guid, name in pairs(expansion.guidNames or {}) do
-            NamedObject_Add(name, guid)
+            NamedObject_Set(name, guid)
         end
     end
 
@@ -142,7 +141,6 @@ end
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Add = NamedObject_Add,
-    Get = NamedObject_Get,
     Init = NamedObject_Init,
+    Get = NamedObject_Get,
 }

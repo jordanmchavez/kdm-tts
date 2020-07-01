@@ -23,6 +23,7 @@ local UI_LEFT_MOUSE_BUTTON = "-1"   -- yes, this really is a string
 local Ui_InputClass = {
     Set = function(input, value)
         Log.Debugf("Changing %s to %s", input.id, value)
+        value = value or ""   -- nil will not actually clear the text
         input.object.UI.setAttribute(input.id, "text", value)
     end,
 }

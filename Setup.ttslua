@@ -101,6 +101,7 @@ local function Setup_SetupTimeline(campaign, expansions)
         end
     end
 
+    Settlement.SetSurvivalActions(campaign.survivalActions)
     Settlement.SetMilestones(campaign.milestones)
 end
 

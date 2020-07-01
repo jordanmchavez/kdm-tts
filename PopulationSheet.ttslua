@@ -119,7 +119,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PopulationSheet_Init(saveState)
+local function PopulationSheet_Init()
     for _, object in ipairs(getAllObjects()) do
         if object.getGMNotes() == "Population Sheet" then
             local charSheet = PopulationSheet_Create(object)

@@ -57,27 +57,24 @@ local function Zone_Add(params)
     end
 
     if dropHandler then
-        -- the wait is a hack to avoid triggering UI updates in the same frame where we create the UI itself via setXmlTable()
-        Wait.frames(function()
-            local center = location:Center()
-            local hits = Physics.cast({
-                origin    = { x = center.x, y = center.y + 50, z = center.z },
-                direction = { x = 0, y = -1, z = 0 },
-                type      = 3,
-                size      = location:Size(),
-            })
-            for _, hit in ipairs(hits) do
-                local hitObject = hit.hit_object
-                Log.Debugf("Object %s (%s) started in %s", hitObject.getName(), hitObject.getGUID(), name)
-                dropHandler(hitObject)
+        local center = location:Center()
+        local hits = Physics.cast({
+            origin    = { x = center.x, y = center.y + 50, z = center.z },
+            direction = { x = 0, y = -1, z = 0 },
+            type      = 3,
+            size      = location:Size(),
+        })
+        for _, hit in ipairs(hits) do
+            local hitObject = hit.hit_object
+            Log.Debugf("Object %s (%s) started in %s", hitObject.getName(), hitObject.getGUID(), name)
+            dropHandler(hitObject)
 
-                if not Zone_objectZones[hitObject] then
-                    Zone_objectZones[hitObject] = { zone }
-                else
-                    table.insert(Zone_objectZones[hitObject], zone)
-                end
+            if not Zone_objectZones[hitObject] then
+                Zone_objectZones[hitObject] = { zone }
+            else
+                table.insert(Zone_objectZones[hitObject], zone)
             end
-        end, 3)
+        end
     end
 end
 

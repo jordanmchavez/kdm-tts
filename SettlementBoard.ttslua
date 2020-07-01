@@ -22,7 +22,7 @@ local function SettlementBoard_ResetSlocGear(col, row)
 
     local slocLocation = Location.Get(string.format("Settlement Location %d %d", col, row))
 
-    local slocObject = slocLocation:Find("Settlement Locations")
+    local slocObject = slocLocation:FindFirst("Settlement Locations")
     if slocObject == nil then
         return Log.Debugf("No settlement location in this slot to reset gear for.")
     end
@@ -41,7 +41,7 @@ end
 
 local function SettlementBoard_ResetGear(gear, locationName)
     assert(CheckStr(gear))
-    assert(CheckStr(location))
+    assert(CheckStr(locationName))
 
     Log.Debugf("Resetting gear %s at %s", gear, locationName)
 

@@ -12,6 +12,9 @@ local UI_MID_BROWN_COLORS = "#7f7059|#655741|#655741|#ffffff"
 local UI_INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
 local UI_IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
 
+-- local UI_INVISIBLE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
+-- local UI_IMAGE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
+
 local UI_LEFT_MOUSE_BUTTON = "-1"
 
 ---------------------------------------------------------------------------------------------------
@@ -27,9 +30,22 @@ local Ui_BaseClass = {
         elem.object.UI.setAttribute(elem.id, "active", false)
     end,
 
+    SetOffsetXY = function(elem, offsetXY)
+        Log.Debugf("Moving %s to %s", elem.id, offsetXY)
+        elem.object.UI.setAttribute(elem.id, "offsetXY", offsetXY)
+    end,
+
+    Width = function(elem)
+        return elem.object.UI.getAttribute(elem.id, "width")
+    end,
+
     SetWidth = function(elem, width)
         Log.Debugf("Setting %s width to %d", elem.id, width)
         elem.object.UI.setAttribute(elem.id, "width", width)
+    end,
+
+    Height = function(elem)
+        return elem.object.UI.getAttribute(elem.id, "height")
     end,
 
     SetHeight = function(elem, height)
@@ -51,11 +67,6 @@ local function Ui_Panel(parent, params)
         id = id,
         object = params.object or self,
         children = {},
-    }
-    setmetatable(panel, Ui_BaseClass)
-
-    local elem = {
-        tag = "Panel",
         attributes = {
             id = id,
             rectAlignment = params.rectAlignment or "MiddleCenter",
@@ -65,6 +76,12 @@ local function Ui_Panel(parent, params)
             color = params.color or "#00000000",
             active = params.active,
         },
+    }
+    setmetatable(panel, Ui_BaseClass)
+
+    local elem = {
+        tag = "Panel",
+        attributes = panel.attributes,
         children = panel.children,
     }
     table.insert(parent.children, elem)
@@ -75,6 +92,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local Ui_TextClass = {
+    Text = function(elem)
+        return elem.object.UI.getAttribute(elem.id, "text")
+    end,
     SetText = function(elem, text)
         text = text or ""   -- nil will not actually clear the text
         Log.Debugf("Setting text for %s to '%s'", elem.id, text)
@@ -82,7 +102,16 @@ local Ui_TextClass = {
             text = text,
             color = elem.color, -- color is required otherwise TTS will reset it to black
         })
-    end
+    end,
+    SetColor = function(elem, color)
+        Log.Debugf("Setting text color for %s to %s", elem.id, color)
+        elem.object.UI.setAttribute(elem.id, "color", color)
+        elem.color = color  -- must track this for future SetText() invocations
+    end,
+    SetFontStyle = function(elem, fontStyle)
+        Log.Debugf("Setting font style for %s to %s", elem.id, fontStyle)
+        elem.object.UI.setAttribute(elem.id, "fontStyle", fontStyle)
+    end,
 }
 Ui_TextClass.__index = Ui_TextClass
 setmetatable(Ui_TextClass, { __index = Ui_BaseClass })
@@ -104,7 +133,7 @@ local function Ui_Text(parent, params)
         tag = "Text",
         attributes = {
             id = id,
-            rectAlignment = "LowerLeft",
+            rectAlignment = params.rectAlignment or "LowerLeft",
             offsetXY = params.x.." "..params.y,
             width = params.width,
             height = params.height or 30,
@@ -162,6 +191,8 @@ local function Ui_Image(parent, params)
             width = params.width,
             height = params.height,
             active = params.active,
+            horizontalOverflow = "Overflow",
+            verticalOverflow = "Overflow",
         },
     })
 
@@ -172,7 +203,7 @@ end
 
 local Ui_InputClass = {
     Set = function(elem, value)
-        text = value or ""   -- nil will not actually clear the text
+        value = value or ""   -- nil will not actually clear the text
         Log.Debugf("Setting text for %s to '%s'", elem.id, value)
         elem.object.UI.setAttributes(elem.id, {
             text = value,
@@ -269,6 +300,10 @@ local Ui_ButtonClass = {
             })
         end
     end,
+    SetColors = function(elem, colors)
+        Log.Debugf("Setting color for %s to %s", elem.id, colors)
+        elem.object.UI.setAttribute(elem.id, "colors", colors)
+    end,
 }
 Ui_ButtonClass.__index = Ui_ButtonClass
 setmetatable(Ui_ButtonClass, { __index = Ui_BaseClass })
@@ -287,29 +322,23 @@ local function Ui_Button(parent, params)
         object = params.object or self,
         textColor = textColor,
         onClick = params.onClick,
+        attributes = params,
     }
     setmetatable(button, Ui_ButtonClass)
 
     local onClick = id.."_OnClick"
     button.object.setVar(onClick, function(_, mouseButton) button.onClick(mouseButton) end)
 
+    params.id = id
+    params.rectAlignment = params.rectAlignment or "LowerLeft"
+    params.offsetXY = params.x.." "..params.y
+    params.fontSize = params.fontSize or 12
+    params.textAlignment = params.textAlignment or "MiddleLeft"
+    params.onClick = onClick
+
     table.insert(parent.children, {
         tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            text = params.text,
-            colors = params.colors,
-            textColor = textColor,
-            fontSize = params.fontSize or 12,
-            image = params.image,
-            textAlignment = params.textAlignment or "MiddleLeft",
-            onClick = onClick,
-            active = params.active,
-        },
+        attributes = params,
     })
 
     return button
@@ -378,7 +407,7 @@ local function Ui_CheckButton(parent, params)
             width = params.width,
             height = params.height,
             text = params.text,
-            colors = params.checked and checkButton.selectedColors or checkButton.unselectedColors,
+            colors = params.value and checkButton.selectedColors or checkButton.unselectedColors,
             textColor = checkButton.textColor,
             fontSize = params.fontSize,
             textAlignment = "MiddleCenter",
@@ -393,7 +422,7 @@ end
 
 local Ui_CheckBoxClass = {
     Set = function(checkBox, value)
-        checkBox.object.UI.setAttribute(checkBox.id, "image", value and "CheckBoxFilled" or "CheckBoxEmpty")
+        checkBox.object.UI.setAttribute(checkBox.id, "image", value and checkBox.filledImage or checkBox.emptyImage)
     end,
 }
 Ui_CheckBoxClass.__index = Ui_CheckBoxClass
@@ -409,6 +438,8 @@ local function Ui_CheckBox(parent, params)
     local checkBox = {
         id = id,
         object = params.object or self,
+        emptyImage = params.emptyImage or "CheckBoxEmpty",
+        filledImage = params.filledImage or "CheckBoxFilled",
         onClick = params.onClick,
     }
     setmetatable(checkBox, Ui_CheckBoxClass)
@@ -427,7 +458,7 @@ local function Ui_CheckBox(parent, params)
             width = params.width or 30,
             height = params.height or 30,
             colors = UI_IMAGE_COLORS,
-            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
+            image = params.value and checkBox.filledImage or checkBox.emptyImage,
             active = params.active,
             onClick = onClick,
         },
@@ -617,7 +648,7 @@ local function Ui_OptionBox(group, params)
             width = params.width or 30,
             height = params.height or 30,
             colors = UI_IMAGE_COLORS,
-            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
+            image = params.value and "CheckBoxFilled" or "CheckBoxEmpty",
             onClick = onClick,
         },
     })

@@ -151,6 +151,19 @@ function CharSheetClass.SetWeaponProficiencyRank(charSheet, value) CharSheet_Set
 
 ---------------------------------------------------------------------------------------------------
 
+function CharSheetClass.HiddenWeapons(charSheet) return charSheet.hiddenWeapons end
+function CharSheetClass.HideWeapon(charSheet, weaponName)
+    assert(CheckStr(weaponName))
+    charSheet.hiddenWeapons[weaponName] = true
+    charSheet:Save()
+end
+function CharSheetClass.ShowAllWeapons(charSheet)
+    charSheet.hiddenWeapons = {}
+    charSheet:Save()
+end
+
+---------------------------------------------------------------------------------------------------
+
 function CharSheetClass.PackedData(charSheet)
     return charSheet.packedBag, charSheet.packedCards
 end
@@ -276,6 +289,7 @@ function CharSheetClass.Save(charSheet)
         understanding = charSheet.understanding,
         weaponProficiencyType = charSheet.weaponProficiencyType,
         weaponProficiencyRank = charSheet.weaponProficiencyRank,
+        hiddenWeapons = charSheet.hiddenWeapons,
     }
     if charSheet.packedCards then
         saveState.packedCards = charSheet.packedCards
@@ -358,6 +372,8 @@ local function CharSheet_Create(object)
         weaponProficiencyType = saveState.weaponProficiencyType,
         weaponProficiencyRank = saveState.weaponProficiencyRank or 0,
 
+        hiddenWeapons = saveState.hiddenWeapons or {},
+
         movementTemporary = 0,
         movementPermanent = 0,
 
@@ -394,23 +410,28 @@ local function CharSheet_Create(object)
         charSheet:SetInsanity(charSheet.insanity + value)
     end })
 
-    local stats = { "movement", "speed", "accuracy", "strength", "evasion", "luck" }
-    local tl0 = { x =  0.318231, y = -0.937371 }
-    local br0 = { x =  0.146146, y = -0.764668 }
-    local tl1 = { x = -0.146148, y = -0.631487}
-    local dx = (tl1.x - tl0.x) / 2
-    local dy = (tl1.y - tl0.y) / 1
+    local stats = {
+        { stat = "movement", col = 0, row = 0 },
+        { stat = "speed",    col = 1, row = 0 },
+        { stat = "accuracy", col = 2, row = 0 },
+        { stat = "strength", col = 0, row = 1 },
+        { stat = "evasion",  col = 1, row = 1 },
+        { stat = "luck",     col = 2, row = 1 },
+    }
+    local x1 = 0.318231
+    local y1 = -0.937371
+    local width = 0.146146 - x1
+    local height = -0.764668 - y1
+    local dx = (-0.146148 - x1) / 2
+    local dy = -0.631487 - y1
     local i = 1
-    for col = 0, 2 do
-        for row = 0, 1 do
-            local tl = { x = tl0.x + dx * col, y = tl0.y + dy * row }
-            local br = { x = br0.x + dx * col, y = br0.y + dy * row }
-            local stat = stats[i]
-            charSheet[stat.."Counter"] = Ui3d.Counter(ui, { object = object, id = Util.Capitalize(stat), topLeft = tl, bottomRight = br, fontSize = 150, value = CharSheet_GetModified(charSheet, stat), onValueChanged = function(value)
-                CharSheet_SetModified(charSheet, stat, charSheet[stat] + value)
-            end })
-            i = i + 1
-        end
+    for _, data in ipairs(stats) do
+        local stat = data.stat
+        local tl = { x = x1 + data.col * dx, y = y1 + data.row * dy }
+        local br = { x = tl.x + width, y = tl.y + height }
+        charSheet[stat.."Counter"] = Ui3d.Counter(ui, { object = object, id = Util.Capitalize(stat), topLeft = tl, bottomRight = br, fontSize = 150, value = CharSheet_GetModified(charSheet, stat), onValueChanged = function(value)
+            CharSheet_SetModified(charSheet, stat, charSheet[stat] + value)
+        end })
     end
 
     local topLeft = { x = 0.585221, y = -0.26 }
@@ -520,7 +541,11 @@ local function CharSheet_Init()
             local charSheet = CharSheet_Create(object)
         end
     end
+end
 
+---------------------------------------------------------------------------------------------------
+
+local function CharSheet_PostInit()
     EventManager.AddHandler("onObjectSpawn", CharSheet_OnObjectSpawn)
     EventManager.AddHandler("onObjectDestroy", CharSheet_OnObjectDestroy)
 end
@@ -529,5 +554,6 @@ end
 
 return {
     Init = CharSheet_Init,
+    PostInit = CharSheet_PostInit,
     ForObject = CharSheet_ForObject,
 }

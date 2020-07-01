@@ -78,7 +78,7 @@ return {
     },
 
     monsterSizes = {
-        ["Lonely Tree"] = { x = 2, y = 2 },
+        ["Lonely Tree"] = { x = 3, y = 3 },
     },
 
     setups = {

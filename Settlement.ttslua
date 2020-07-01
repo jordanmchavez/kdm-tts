@@ -15,7 +15,10 @@ local Showdown = nil
 -------------------------------------------------------------------------------------------------
 
 local SETTLEMENT_MAX_TIMELINE_YEARS = 30
+local SETTLEMENT_MAX_SURVIVAL_ACTIONS = 6
 local SETTLEMENT_MAX_MILESTONES = 4
+local SETTLEMENT_MAX_QUARRIES = 10
+local SETTLEMENT_MAX_NOTES = 6
 
 local SETTLEMENT_RIGHT_MOUSE_BUTTON = "-2"
 local SETTLEMENT_EVENT_TYPE_ICONS = {
@@ -179,11 +182,27 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local function Settlement_SetSurvivalActions(survivalActions)
+    for i, survivalAction in ipairs(survivalActions) do
+        Log.Debugf("Setting survival action %i to %s", i, survivalAction)
+        Settlement_ui.survivalActionCheckBoxes[i]:Show()
+        Settlement_ui.survivalActionTexts[i]:Show()
+        Settlement_ui.survivalActionTexts[i]:SetText(survivalAction)
+
+        Settlement_data.survivalActions[i] = {
+            name = survivalAction,
+            checked = nil,
+        }
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 local function Settlement_SetMilestones(milestones)
     Settlement_data.milestones = {}
     for i, milestone in ipairs(milestones) do
         Log.Debugf("Setting milestone %i to %s/%s", i, milestone.name, milestone.event)
-        Settlement_ui.milestoneCheckboxes[i]:Show()
+        Settlement_ui.milestoneCheckBoxes[i]:Show()
         Settlement_ui.milestoneTexts[i]:Show()
         Settlement_ui.milestoneTexts[i]:SetText(milestone.name)
         Settlement_ui.milestoneEventButtons[i]:Show()
@@ -212,10 +231,18 @@ local function Settlement_Reset()
     Settlement_data.arrivalBonuses = nil
     Settlement_ui.arrivalBonusesInput:Set()
 
+    Settlement_data.survivalActions = {}
+    for i = 1, SETTLEMENT_MAX_SURVIVAL_ACTIONS do
+        Settlement_ui.survivalActionCheckBoxes[i]:Hide()
+        Settlement_ui.survivalActionCheckBoxes[i]:Set(false)
+        Settlement_ui.survivalActionTexts[i]:Hide()
+        Settlement_ui.survivalActionTexts[i]:SetText()
+    end
+
     Settlement_data.milestones = {}
     for i = 1, SETTLEMENT_MAX_MILESTONES do
-        Settlement_ui.milestoneCheckboxes[i]:Hide()
-        Settlement_ui.milestoneCheckboxes[i]:Set(false)
+        Settlement_ui.milestoneCheckBoxes[i]:Hide()
+        Settlement_ui.milestoneCheckBoxes[i]:Set(false)
         Settlement_ui.milestoneTexts[i]:Hide()
         Settlement_ui.milestoneTexts[i]:SetText()
         Settlement_ui.milestoneEventButtons[i]:Hide()
@@ -224,12 +251,14 @@ local function Settlement_Reset()
     end
 
     Settlement_data.quarries = {}
-    for i = 1, 10 do
+    for i = 1, SETTLEMENT_MAX_QUARRIES do
         Settlement_ui.quarryInputs[i]:Set()
     end
 
-    Settlement_data.notes = nil
-    Settlement_ui.notesInput:Set()
+    Settlement_data.notes = {}
+    for i = 1, SETTLEMENT_MAX_NOTES do
+        Settlement_ui.notesInputs[i]:Set()
+    end
 
     for year, yearData in pairs(Settlement_data.timeline) do
         yearData.checked = nil
@@ -388,7 +417,7 @@ local SETTLEMENT_EVENT_TYPE_HANDLERS = {
         Settlement_HideUi()
 
         local settlementEventsLocation = Location.Get("Settlement Events")
-        local deck = settlementEventsLocation:Find("Settlement Events")
+        local deck = settlementEventsLocation:FindFirst("Settlement Events")
         if deck == nil then
             Log.Broadcastf("Couldn't find Settlement Event deck in the highlighted location, so created a new one.")
             deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = settlementEventsLocation, rotation = FACE_DOWN })
@@ -503,7 +532,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
     Rules = modules.Rules
     assert(Rules)
     Showdown = modules.Showdown
-    --assert(Showdown)
+    assert(Showdown)
     Setup = modules.Setup
     assert(Setup)
 
@@ -517,9 +546,10 @@ local function Settlement_Init(saveState, expansions, modules, ui)
     Settlement_data.survivalLimit = saveState.survivalLimit or 1
     Settlement_data.departingBonuses = saveState.departingBonuses
     Settlement_data.arrivalBonuses = saveState.arrivalBonuses
+    Settlement_data.survivalActions = saveState.survivalActions or {}
     Settlement_data.milestones = saveState.milestones or {}
     Settlement_data.quarries = saveState.quarries or {}
-    Settlement_data.notes = saveState.notes
+    Settlement_data.notes = saveState.notes or {}
     Settlement_data.timeline = {}
     local saveStateTimeline = saveState.timeline or {}
     for year = 1, SETTLEMENT_MAX_TIMELINE_YEARS do
@@ -538,64 +568,89 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         end
     end })
 
-    local panel = Ui.Panel(ui, { id = "Settlement", width = 1600, height = 900, active = false })
+    local panel = Ui.Panel(ui, { id = "Settlement", width = 1600, height = 935, active = false })
     Settlement_ui.open = false
     Settlement_ui.panel = panel
+    Ui.Image(panel, { id = "Settlement", image = "Settlement", width = 1600, height = 935 })
 
-    Ui.Image(panel, { id = "Settlement", image = "Settlement", width = 1600, height = 900 })
+    Ui.InvisibleButton(panel, { id = "Close", x = 1570, y = 905,  width = 30, height = 30, onClick = function ()
+        Settlement_HideUi()
+    end })
 
-    Settlement_ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 520, height = 35, text = Settlement_data.name, fontSize = 24, onValueChanged = function(value)
+    Settlement_ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 482, height = 35, text = Settlement_data.name, fontSize = 24, onValueChanged = function(value)
         Log.Debugf("Setting settlement name to %s", value)
         Settlement_data.name = value
     end })
 
-    Settlement_ui.survivalLimitCounter = Ui.Counter(panel, { id = "SurvivalLimit", x = 902, y = 830, width = 50, height = 50, value = Settlement_data.survivalLimit, fontSize = 36, onValueChanged = function(delta)
+    Settlement_ui.survivalLimitCounter = Ui.Counter(panel, { id = "SurvivalLimit", x = 793, y = 830, width = 50, height = 50, value = Settlement_data.survivalLimit, fontSize = 36, onValueChanged = function(delta)
         local value = Settlement_data.survivalLimit + delta
         Settlement_data.survivalLimit = value
         Log.Debugf("Setting survival limit to %d", value)
         Settlement_ui.survivalLimitCounter:Set(value)
     end })
 
-    Settlement_ui.departingBonusesInput = Ui.DarkInput(panel, { id = "DepartingBonus", x = 1129, y = 865, width = 300, height = 25, text = Settlement_data.departingBonuses, onValueChanged = function(value)
+    Settlement_ui.departingBonusesInput = Ui.DarkInput(panel, { id = "DepartingBonus", x = 980, y = 865, width = 288, height = 25, text = Settlement_data.departingBonuses, onValueChanged = function(value)
         Log.Debugf("Setting departing bonuses to %s", value)
         Settlement_data.departingBonuses = value
         Settlement_ui.departingBonusesInput:Set(value)
     end })
-    Settlement_ui.arrivalBonusesInput = Ui.DarkInput(panel, { id = "ArrivalBonus", x = 1129, y = 830, width = 300, height = 25, text = Settlement_data.arrivalBonuses, onValueChanged = function(value)
+    Settlement_ui.arrivalBonusesInput = Ui.DarkInput(panel, { id = "ArrivalBonus", x = 980, y = 830, width = 288, height = 25, text = Settlement_data.arrivalBonuses, onValueChanged = function(value)
         Log.Debugf("Setting arrival bonuses to %s", value)
         Settlement_data.arrivalBonuses = value
         Settlement_ui.arrivalBonusesInput:Set(value)
     end })
 
-    Ui.InvisibleButton(panel, { id = "Close", x = 1556, y = 856,  width = 30, height = 30, onClick = function ()
-        Settlement_HideUi()
-    end })
+    Settlement_ui.survivalActionCheckBoxes = {}
+    Settlement_ui.survivalActionTexts = {}
+    local coords = {
+        { x = 1301, y = 803 },
+        { x = 1301, y = 773 },
+        { x = 1301, y = 743 },
+        { x = 1435, y = 803 },
+        { x = 1435, y = 773 },
+        { x = 1435, y = 743 },
+    }
+    for i = 1, SETTLEMENT_MAX_SURVIVAL_ACTIONS do
+        local survivalAction = Settlement_data.survivalActions[i]
+        local active = survivalAction != nil
+        survivalAction = survivalAction or {}
 
-    Settlement_ui.milestoneCheckboxes = {}
+        local x, y = coords[i].x, coords[i].y
+        Settlement_ui.survivalActionCheckBoxes[i] = Ui.CheckBox(panel, { id = "SurvivalAction"..i, x = x, y = y, width = 20, height = 20, value = survivalAction.checked, active = active, onClick = function()
+            local survivalAction = Settlement_data.survivalActions[i]
+            if survivalAction then
+                local value = not survivalAction.checked
+                Log.Debugf("%s survival action %s", value and "Checking" or "Unchecking", survivalAction.name)
+                survivalAction.checked = value
+                Settlement_ui.survivalActionCheckBoxes[i]:Set(value)
+            end
+        end })
+        Settlement_ui.survivalActionTexts[i] = Ui.DarkText(panel, { id = "SurvivalAction"..i, x = x+26, y = y-5, width = 100, height = 30, text = survivalAction.name, fontSize = 12, fontStyle = "Bold", active = active })
+    end
+
+    Settlement_ui.milestoneCheckBoxes = {}
     Settlement_ui.milestoneTexts = {}
     Settlement_ui.milestoneEventButtons = {}
     Settlement_ui.milestoneEventTexts = {}
-    local checkBoxY = 703
+    local checkBoxY = 638
     local textY = checkBoxY - 5
-    local buttonY = 698
+    local buttonY = 633
     local dy = 40
     for i = 1, SETTLEMENT_MAX_MILESTONES do
         local milestone = Settlement_data.milestones[i]
         local active = milestone != nil
         milestone = milestone or {}
 
-        Settlement_ui.milestoneCheckboxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, checked = milestone.checked, active = active, onClick = function()
+        Settlement_ui.milestoneCheckBoxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, value = milestone.checked, active = active, onClick = function()
             local milestone = Settlement_data.milestones[i]
             if milestone then
                 local value = not milestone.checked
                 Log.Debugf("%s milestone %s", value and "Checking" or "Unchecking", milestone.name)
                 milestone.checked = value
-                Settlement_ui.milestoneCheckboxes[i]:Set(value)
+                Settlement_ui.milestoneCheckBoxes[i]:Set(value)
             end
         end })
-
-        Settlement_ui.milestoneTexts[i] = Ui.DarkText(panel, { id = "Milestone"..i, x = 1326, y = textY, width = 86, text = milestone.name or nil, fontSize = 12, fontStyle = "Bold", active = active })
-
+        Settlement_ui.milestoneTexts[i] = Ui.DarkText(panel, { id = "Milestone"..i, x = 1326, y = textY, width = 86, text = milestone.name, fontSize = 12, fontStyle = "Bold", active = active })
         Settlement_ui.milestoneEventButtons[i] = Ui.ImageButton(panel, { id = "MilestoneEvent"..i, x = 1417, y = buttonY, width = 145, height = 30, image = "MilestoneButton", active = active, onClick = function()
             local milestone = Settlement_data.milestones[i]
             if milestone then
@@ -611,23 +666,27 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         buttonY = buttonY - dy
     end
 
-    local dy = -27
+    local dy = 27
     Settlement_ui.quarryInputs = {}
-    for i = 1, 10 do
+    for i = 1, SETTLEMENT_MAX_QUARRIES do
         local x = (i <= 5) and 1301 or 1437
         local row = (i - 1) % 5
-        Settlement_ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 477 + (row * dy), width = 125, height = 25, text = Settlement_data.quarries[i],  fontSize = 12, onValueChanged = function(value)
+        Settlement_ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 412.000 - (row * dy), width = 125, height = 25, text = Settlement_data.quarries[i],  fontSize = 12, onValueChanged = function(value)
             Log.Debugf("Setting quarries[%d] to %s", i, value)
             Settlement_data.quarries[i] = value
             Settlement_ui.quarryInputs[i]:Set(value)
         end })
     end
 
-    Settlement_ui.notesInput = Ui.DarkInput(panel, { id = "Notes", x = 1301, y = 38, width = 261, height = 237, lineType = "MultiLineNewLine", text = Settlement_data.notes, textAlignment = "UpperLeft", onValueChanged = function(value)
-        Log.Debugf("Setting settlement notes to %s", value)
-        Settlement_data.notes = value
-        Settlement_ui.notesInput:Set(value)
-    end })
+    Settlement_ui.notesInputs = {}
+    local dy = 27
+    for i = 1, SETTLEMENT_MAX_NOTES do
+        Settlement_ui.notesInputs[i] = Ui.DarkInput(panel, { id = "Notes"..i, x = 1301, y = 192 - (i - 1) * dy, width = 261, height = 25, text = Settlement_data.notes[i], onValueChanged = function(value)
+            Log.Debugf("Setting settlement notes %d to %s", i, value)
+            Settlement_data.notes[i] = value
+            Settlement_ui.notesInputs[i]:Set(value)
+        end })
+    end
 
     -----------------------------------------------------------------------------------------------
 
@@ -649,7 +708,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         Settlement_ui.timeline[year] = timelineUi
 
         local y = 1528 + ((year - 1) * dy)
-        timelineUi.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, checked = yearData.checked, onClick = function()
+        timelineUi.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, value = yearData.checked, onClick = function()
             local value = not Settlement_data.timeline[year].checked
             Log.Debugf("%s year %d", value and "Checking" or "Unchecking", year)
             Settlement_data.timeline[year].checked = value
@@ -724,7 +783,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         Settlement_ui.timelineEvent.type = type
         Settlement_ui.timelineEvent.typeOptions:Set(option)
     end })
-    Settlement_ui.timelineEvent.rulebookEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 58, y = 68, width = 20, height = 20, checked = true, value = "RulebookEvent" })
+    Settlement_ui.timelineEvent.rulebookEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 58, y = 68, width = 20, height = 20, value = true, value = "RulebookEvent" })
     Settlement_ui.timelineEvent.showdownEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 166, y = 68, width = 20, height = 20, value = "ShowdownEvent" })
     Settlement_ui.timelineEvent.settlementEventOption = Ui.OptionBox(Settlement_ui.timelineEvent.typeOptions, { x = 270, y = 68, width = 20, height = 20, value = "SettlementEvent" })
 
@@ -748,6 +807,7 @@ local function Settlement_Save()
         survivalLimit = Settlement_survivalLimit,
         departingBonuses = Settlement_departingBonuses,
         arrivalBonuses = Settlement_arrivalBonuses,
+        survivalActions = Settlement_data.survivalActions,
         milestones = Settlement_data.milestones,
         quarries = Settlement_data.quarries,
         notes = Settlement_data.notes,
@@ -766,10 +826,18 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local function Settlement_SurvivalActions()
+    return Settlement_data.survivalActions
+end
+
+---------------------------------------------------------------------------------------------------
+
 return {
     Init = Settlement_Init,
     Save = Settlement_Save,
     Reset = Settlement_Reset,
     AddTimelineEvent = Settlement_AddTimelineEvent,
+    SetSurvivalActions = Settlement_SetSurvivalActions,
     SetMilestones = Settlement_SetMilestones,
+    SurvivalActions = Settlement_SurvivalActions,
 }

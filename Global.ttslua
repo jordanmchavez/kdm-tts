@@ -20,6 +20,7 @@ local Settlement = require("Kdm/Settlement")
 local Setup = require("Kdm/Setup")
 local Showdown = require("Kdm/Showdown")
 local Hunt = require("Kdm/Hunt")
+local BattleReference = require("Kdm/BattleReference")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -78,7 +79,7 @@ function onLoad(saveJson)
         ["Setup"] = Setup,
         ["Showdown"] = Showdown,
         ["Hunt"] = Hunt,
-        --{ BattleReference, "BattleReference" },
+        ["BattleReference"] = BattleReference,
     }
 
     local ui = { id = "UI", children = self.UI.getXmlTable() }
@@ -90,6 +91,16 @@ function onLoad(saveJson)
     if #ui.children > 0 then
         self.UI.setXmlTable(ui.children)
     end
+
+    Wait.frames(function()
+        for name, module in pairs(modules) do
+            if module.PostInit then
+                Log.Debugf("Post-Initializing %s", name)
+                module.PostInit()
+            end
+        end
+    end, 5)
+
 end
 
 ---------------------------------------------------------------------------------------------------

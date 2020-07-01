@@ -49,6 +49,14 @@ local Showdown_overlay = nil
 
 ---------------------------------------------------------------------------------------------------
 
+local function Showdown_MonsterMovement() return Showdown_stats.movement end
+local function Showdown_MonsterToughness() return Showdown_stats.toughness end
+local function Showdown_MonsterDamage() return Showdown_stats.damage end
+local function Showdown_MonsterSpeed() return Showdown_stats.speed end
+local function Showdown_MonsterAccuracy() return Showdown_stats.accuracy end
+local function Showdown_MonsterEvasion() return Showdown_stats.evasion end
+local function Showdown_MonsterLuck() return Showdown_stats.luck end
+
 local function Showdown_SetStat(stat, value)
     assert(CheckStr(stat))
     assert(CheckNum(value))
@@ -550,7 +558,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-
 local function Showdown_OnObjectDrop(_, object)
     local type = object.getGMNotes()
     if type == "Monster Figurine" then
@@ -747,20 +754,26 @@ local function Showdown_Init(saveState, expansions, modules, ui)
 
     -----------------------------------------------------------------------------------------------
 
--- 6.0777295, -2.86238375
--- -5.73516825, 5.527284
---
--- 6.333094+5.825358+6.335069+5.817397
--- -3.122330-3.125683-2.600588-2.600934
--- -5.476737-5.989639-5.987252-5.487045
--- 5.268574+5.268807+5.784858+5.786897
+    local showdownBoard = NamedObject.Get("Showdown Board")
+    local left = 6.363780
+    local top = -3.159184
+    local right = -6.015290
+    local bottom = 5.837886
+    local width = right - left
+    local cellWidth = width / 21
+    local height = bottom - top
+    local cellHeight = height / 15
 
     Showdown_grid = Grid({
         object = showdownBoard,
-        left = 6.0777295,
-        top = -2.86238375,
-        right = -5.73516825,
-        bottom = 5.527284,
+        left = left + cellWidth / 2,
+        right = right - cellWidth / 2,
+        top = top + cellHeight / 2,
+        bottom = bottom - cellHeight / 2,
+        -- left = 6.0777295,
+        -- top = -2.86238375,
+        -- right = -5.73516825,
+        -- bottom = 5.527284,
         cols = 22,
         rows = 16,
     })
@@ -769,7 +782,11 @@ local function Showdown_Init(saveState, expansions, modules, ui)
         grid = Showdown_grid,
         height = 10.75,
     })
+end
 
+---------------------------------------------------------------------------------------------------
+
+local function Showdown_PostInit()
     EventManager.AddHandler("onObjectPickUp", Showdown_OnObjectPickUp)
     EventManager.AddHandler("onObjectDrop", Showdown_OnObjectDrop)
 end
@@ -784,5 +801,13 @@ end
 
 return {
     Init = Showdown_Init,
+    PostInit = Showdown_PostInit,
     Save = Showdown_Save,
+    MonsterMovement = Showdown_MonsterMovement,
+    MonsterToughness = Showdown_MonsterToughness,
+    MonsterDamage = Showdown_MonsterDamage,
+    MonsterSpeed = Showdown_MonsterSpeed,
+    MonsterAccuracy = Showdown_MonsterAccuracy,
+    MonsterEvasion = Showdown_MonsterEvasion,
+    MonsterLuck = Showdown_MonsterLuck,
 }

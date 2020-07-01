@@ -81,7 +81,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Rules_GetCurrentRules()
-    return Location.Get("Rules Board"):Find("Rulebook")
+    return Location.Get("Rules Board"):FindFirst("Rulebook")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ local function Rules_SetSearchResults(results)
         local button = Rules_searchResultButtons[i]
         button:Show()
         button:SetOnClick(function()
-            Rules_searchInput:SetText(nil)
+            Rules_searchInput:Set(nil)
             Rules_SetSearchResults({})
             Rules_SpawnRules(result.rulebook, result.state)
         end)
@@ -254,7 +254,7 @@ local function Rules_Init(saveState, expansions, modules, ui)
     end })
     Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
         Rules_SetSearchResults({})
-        Rules_searchInput:SetText(nil)
+        Rules_searchInput:Set(nil)
     end })
     Rules_searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = -90, width = 300, height = 160, color = "#00000088", active = false })
 

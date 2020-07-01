@@ -1,13 +1,8 @@
-require("Kdm/Check")
-local Util = require("Kdm/Util")
-
----------------------------------------------------------------------------------------------------
-
 local CircularArrayClass = {}
 CircularArrayClass.__index = CircularArrayClass
 
 local function CircularArray_Create(capacity)
-    assert(Check(capacity > 0))
+    assert(capacity > 0)
 
     local circularArray = {
         tag = "CircularArray",
@@ -33,7 +28,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArrayClass.Top(ca)
-    assert(Check(ca.head != ca.tail, "Circular array is empty"))
+    assert(ca.head != ca.tail, "Circular array is empty")
     if ca.head > 1 then
         return ca.array[ca.head - 1]
     else
@@ -63,7 +58,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function CircularArrayClass.Pop(ca)
-    assert(Check(ca.head != ca.tail, "Circular array is empty"))
+    assert(ca.head != ca.tail, "Circular array is empty")
 
     ca.head = ca.head - 1
     if ca.head == 0 then

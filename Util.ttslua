@@ -162,6 +162,18 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Util.Clamp(x, lo, hi)
+    if x < lo then
+        return lo
+    elseif x > hi then
+        return hi
+    else
+        return x
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Util.RemoveUnordered(array, index)
     array[index] = array[#array]
     array[#array] = nil

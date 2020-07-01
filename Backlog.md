@@ -21,18 +21,32 @@
     * Full survivor stats
     * Ability to show/hide F&T and founding stone, or any piece
     * Show/hiude buttons with tooltips and "show all"
-*
+* battle reference overhaul
+* tokens on weapons
+* survival action token reposition
+* fixed settlement notes
+* redid UI
+
 -------------------------------------------------------------------------
 
-
+* final lantern second state size
+* prevent negative counters?
+* dice
+* new models
+* settlement survival actions: one should be default, spawn that token.
 * misc combat stuff: monster claw, twilight sword, weapon profs
 * don't save stuff in periodic save
 * re-enable non-nemesis monsters in showdown event search
 * Add suirvival actions to settlement sheet
 redo sizes
+onSubmit
 
+spiderlings/lonely fruit/shades are not snapping
 * Constellation Tracker
 
+* redo 2d UI buttons to have correct highlights now that we understand it
+
+* depart/arrive bonuses
 * Config menu
     * Lock/unlock boards
     * Player movement overlays
@@ -47,6 +61,7 @@ redo sizes
     * Monster Grid Snapping
     * Terrain Grid Snapping
 
+* male/female checkboxes fucked up
 * Large notes field on back of char sheet
 * Menus should be mutually exclusive: clicking on one should close the others
 * Fix broken multi-line notes        

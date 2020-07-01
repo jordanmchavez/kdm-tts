@@ -93,6 +93,7 @@ return {
                 { year = 28, type = "ShowdownEvent", monster = "King's Man", level = "Level 3" },
                 { year = 30, type = "ShowdownEvent", monster = "Gold Smoke Knight" },
             },
+            survivalActions = { "Dodge", "Encourage", "Dash", "Surge", "Endure" },
             milestones = {
                 { name = "First Birth", event = "Principle: New Life" },
                 { name = "First Death", event = "Principle: Death" },

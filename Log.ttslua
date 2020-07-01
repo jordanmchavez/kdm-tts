@@ -8,13 +8,17 @@ local Log = {
 }
 
 Log.debugPackages = {
-    ["G"] = true,
-    ["Action"] = true,
-    ["Locations"] = true,
-    ["Showdown"] = true,
-    ["Hunt"] = true,
-    ["Grid"] = true,
-    ["Overlay"] = true,
+    --["G"] = true,
+    ["BattleReference"] = true,
+    ["PlayerBoard"] = true,
+    -- ["CharSheet"] = true,
+    --["Zone"] = true,
+    -- ["Action"] = true,
+    -- ["Locations"] = true,
+    -- ["Showdown"] = true,
+    -- ["Hunt"] = true,
+    -- ["Grid"] = true,
+    -- ["Overlay"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

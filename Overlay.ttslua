@@ -52,7 +52,7 @@ local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local squareSize = 2730
     overlay.object.createButton({
         function_owner = self,
-        position = { x = -l[1], y = l[2], z = l[3] },
+        position = { x = -l.x, y = l.y, z = -l.z },
         scale = { x = 0.1, y = 0.1, z = 0.1 },
         width = squareSize * width,
         height = squareSize * height,
