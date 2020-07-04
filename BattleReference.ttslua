@@ -215,10 +215,17 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
         end
     end })
 
+    local playerCircleImages = {
+        "RedCircle",
+        "GreenCircle",
+        "BlueCircle",
+        "WhiteCircle",
+    }
+
     Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
     Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+        Log.Printf("Resetting survival actions")
         for i = 1, 4 do
-            Log.Printf("Resetting survival actions")
             local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):FindAll("Survival Token")
             for _, token in ipairs(survivalTokens) do
                 rot = token.getRotation()
@@ -232,13 +239,14 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
         for i = 1, 4 do
             local player = BattleReference_ui.players[i]
             player.turnEnded = false
+            player.playerCircleImage:SetImage(playerCircleImages[i])
             player.nameText:SetColor(TEXT_COLOR)
             player.nameText:SetFontStyle("Normal")
             player.endTurnButton:SetColors(DARK_COLORS)
         end
     end })
 
-    BattleReference_ui.open = true
+    BattleReference_ui.open = false
     BattleReference_ui.panel = Ui.Panel(ui, { id = "BattleReference", rectAlignment = "MiddleLeft", x = 80, y = 70, width = 436, height = 608, color = "#00000000", active = BattleReference_ui.open })
     BattleReference_ui.panel.attributes.allowDragging = true
     BattleReference_ui.panel.attributes.returnToOriginalPositionWhenReleased = false
@@ -251,12 +259,6 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
 
         player.open = true
         player.panel = Ui.Panel(BattleReference_ui.panel, { id = "Player"..playerNumber, rectAlignment = "UpperLeft", x = 0, y = -(player.height + 16) * (playerNumber - 1), width = 436, height = player.height, color = "#121212ff" })
-        local playerCircleImages = {
-            "RedCircle",
-            "GreenCircle",
-            "BlueCircle",
-            "WhiteCircle",
-        }
         player.playerCircleImage = Ui.Image(player.panel, { id = "PlayerCircle", rectAlignment = "UpperLeft", x = 8, y = -8, width = 25, height = 25, image = playerCircleImages[playerNumber] })
         player.nameText = Ui.Text(player.panel, { id = "Name", rectAlignment = "UpperLeft", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = TEXT_COLOR, text = "Survivor with a very long name" })
 
@@ -266,11 +268,13 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
             player.turnEnded = not player.turnEnded
             if player.turnEnded then
                 Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                player.playerCircleImage:SetImage("GreyCircle")
                 player.nameText:SetColor(DISABLED_TEXT_COLOR)
                 player.nameText:SetFontStyle("Italic")
                 player.endTurnButton:SetColors(DARK_SELECTED_COLORS)
             else
                 Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                player.playerCircleImage:SetImage(playerCircleImages[playerNumber])
                 player.nameText:SetColor(TEXT_COLOR)
                 player.nameText:SetFontStyle("Normal")
                 player.endTurnButton:SetColors(DARK_COLORS)
@@ -334,6 +338,7 @@ local function BattleReference_PostInit()
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
 
     BattleReference_Update()
+--    BattleReference_Show()
 end
 
 ---------------------------------------------------------------------------------------------------

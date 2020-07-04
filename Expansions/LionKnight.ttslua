@@ -11,8 +11,6 @@ return {
         ["Rare Gear"] = "Lion Knight Rare Gear",
     },
 
-    monsters = { "Lion Knight" },
-
     timelineEvents = {
         { year = 6, name = "An Uninvited Guest", type = "RulebookEvent" },
         { year = 8, name = "Places, Everyone!", type = "RulebookEvent" },
@@ -115,12 +113,11 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Lion Knight"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Lion Knight"] = {
+    monsters = {
+        {
+            name = "Lion Knight",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Lion Knight Rules", 5 },
             resourcesDeck = false,
             legendaryAiDeck = false,

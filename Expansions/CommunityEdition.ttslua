@@ -106,7 +106,7 @@ return {
         ["Muramasa (CE)"] = { speed = 6, accuracy = 6, strength = 6, sharp = true, deadly = 2 },
         ["Thunder Maul (CE)"] = { speed = 2, accuracy = 6, strength = 10},
         ["Rawhide Whip (CE)"] = { speed = 3, accuracy = 7, strength = 1 },
-        ["Beast Knuckle (CE)"] = { speed = 2, accuracy = 5, strength = 4 },
+        ["Beast Knuckle (CE)"] = { speed = 2, accuracy = 5, strength = 4, paired = true },
         ["Lance of Longinus (CE)"] = { speed = 2, accuracy = 6, strength = 9 },
         ["Counterweighted Axe (CE)"] = { speed = 2, accuracy = 6, strength = 4 },
         ["Rainbow Katana (CE)"] = { speed = 4, accuracy = 4, strength = 4 },

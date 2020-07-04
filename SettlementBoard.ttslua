@@ -11,31 +11,7 @@ local Archive = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local SETTLEMENT_BOARD_UI_HEIGHT = -59
 local SettlementBoard_settlementLocationGear = {}
-
----------------------------------------------------------------------------------------------------
-
-local function SettlementBoard_ResetSlocGear(col, row)
-    assert(CheckNum(col))
-    assert(CheckNum(row))
-
-    local slocLocation = Location.Get(string.format("Settlement Location %d %d", col, row))
-
-    local slocObject = slocLocation:FindFirst("Settlement Locations")
-    if slocObject == nil then
-        return Log.Debugf("No settlement location in this slot to reset gear for.")
-    end
-
-    Log.Debugf("Found candidadate settlement location %s (%s)", slocObject.getName(), slocObject.getGUID())
-
-    local gear = SettlementBoard_settlementLocationGear[slocObject.getName()]
-    if not gear then
-        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
-    end
-
-    SettlementBoard_ResetGear(gear, string.format("Gear %d %d", col, row))
-end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -60,6 +36,29 @@ local function SettlementBoard_ResetGear(gear, locationName)
         rotation = FACE_DOWN,
     })
     Archive.CleanupBags()
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function SettlementBoard_ResetSlocGear(col, row)
+    assert(CheckNum(col))
+    assert(CheckNum(row))
+
+    local slocLocation = Location.Get(string.format("Settlement Location %d %d", col, row))
+
+    local slocObject = slocLocation:FindFirst("Settlement Locations")
+    if slocObject == nil then
+        return Log.Debugf("No settlement location in this slot to reset gear for.")
+    end
+
+    Log.Debugf("Found candidadate settlement location %s (%s)", slocObject.getName(), slocObject.getGUID())
+
+    local gear = SettlementBoard_settlementLocationGear[slocObject.getName()]
+    if not gear then
+        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
+    end
+
+    SettlementBoard_ResetGear(gear, string.format("Gear %d %d", col, row))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -109,14 +108,13 @@ local function SettlementBoard_Init(saveState, expansions, modules)
     end
 
     settlementBoard = NamedObject.Get("Settlement Board")
-    local ui = { id = "SettlementBoard", children = settlementBoard.UI.getXmlTable() }
 
     local width = -0.21765
     local height = 0.644982
     local createButton = function(name, x, y, onClick)
         local topLeft = { x =  x, y = y }
         local bottomRight = { x = topLeft.x + width, y = topLeft.y + height }
-        Ui.Button(ui, { object = settlementBoard, id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick, height = SETTLEMENT_BOARD_UI_HEIGHT })
+        Ui.Button({ object = settlementBoard, id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick, y = 0.59 })
     end
 
     local x = 7.031489
@@ -138,21 +136,28 @@ local function SettlementBoard_Init(saveState, expansions, modules)
         for row = 1, 2 do
             local name = string.format("Reset Settlement Location Gear %s %s", col, row)
             createButton(name, x1 + (col - 1) * dx, y1 + (row - 1)* dy, function() SettlementBoard_ResetSlocGear(col, row) end)
+        end
+    end
+end
 
+---------------------------------------------------------------------------------------------------
+
+function Settlement_PostInit()
+    for col = 1, 10 do
+        for row = 1, 2 do
             Zone.Add({
-                name = name,
+                name = string.format("Reset Settlement Location Gear %s %s", col, row),
                 location = Location.Get(string.format("Settlement Location %d %d", col, row)),
                 dropHandler = function(object) SettlementBoard_OnDrop(col, row, object) end,
                 pickUpHandler = function(object) SettlementBoard_OnPickUp(col, row, object) end,
             })
         end
     end
-
-    settlementBoard.UI.setXmlTable(ui.children)
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
     Init = SettlementBoard_Init,
+    PostInit = Settlement_PostInit,
 }

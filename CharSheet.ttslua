@@ -2,7 +2,7 @@ require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("CharSheet")
 local Util = require("Kdm/Util")
 local EventManager = require("Kdm/EventManager")
-local Ui3d = require("Kdm/Ui3d")
+local Ui = require("Kdm/Ui3d")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@ local function CharSheet_SetStr(charSheet, stat, value)
     assert(CheckStr(value))
     Log.Debugf("Setting %s %s to %s", charSheet.object.getGUID(), stat, value)
     charSheet[stat] = value
-    charSheet[stat.."Text"]:Set(value)
+    --charSheet[stat.."Text"]:Set(value)    -- not needed for classic UI
     charSheet:Save()
     EventManager.FireEvent("onCharSheetChangeStat", charSheet, stat, value)
 end
@@ -396,17 +396,15 @@ local function CharSheet_Create(object)
 
     CharSheet_LoadPackedData(charSheet, saveState)
 
-    local ui = { id = "CharSheet"..charSheet.id, children = object.UI.getXmlTable() }
-
     local topLeft = { x = 0.734, y = -0.816 }
     local bottomRight = { x = 0.472, y = -0.554 }
-    charSheet.survivalCounter = Ui3d.Counter(ui, { object = object, id = "Survival", topLeft = topLeft, bottomRight = bottomRight, fontSize = 200, value = charSheet:Survival(), onValueChanged = function(value)
+    charSheet.survivalCounter = Ui.Counter({ object = object, id = "Survival", topLeft = topLeft, bottomRight = bottomRight, scale = 0.15, value = charSheet:Survival(), onValueChanged = function(value)
         charSheet:SetSurvival(charSheet.survival + value)
     end })
 
     local topLeft = { x = -0.472, y = -0.816 }
     local bottomRight = { x = -0.734, y = -0.554 }
-    charSheet.insanityCounter = Ui3d.Counter(ui, { object = object, id = "Insanity", topLeft = topLeft, bottomRight = bottomRight, fontSize = 200, value = charSheet:Insanity(), onValueChanged = function(value)
+    charSheet.insanityCounter = Ui.Counter({ object = object, id = "Insanity", topLeft = topLeft, bottomRight = bottomRight, scale = 0.15, value = charSheet:Insanity(), onValueChanged = function(value)
         charSheet:SetInsanity(charSheet.insanity + value)
     end })
 
@@ -418,37 +416,37 @@ local function CharSheet_Create(object)
         { stat = "evasion",  col = 1, row = 1 },
         { stat = "luck",     col = 2, row = 1 },
     }
-    local x1 = 0.318231
-    local y1 = -0.937371
-    local width = 0.146146 - x1
-    local height = -0.764668 - y1
-    local dx = (-0.146148 - x1) / 2
-    local dy = -0.631487 - y1
+    local x1 = 0.320650
+    local y1 = -0.939756
+    local width = 0.140598 - x1
+    local height = -0.758830 - y1
+    local dx = (-0.140660 - x1) / 2
+    local dy = -0.635 - y1
     local i = 1
     for _, data in ipairs(stats) do
         local stat = data.stat
         local tl = { x = x1 + data.col * dx, y = y1 + data.row * dy }
         local br = { x = tl.x + width, y = tl.y + height }
-        charSheet[stat.."Counter"] = Ui3d.Counter(ui, { object = object, id = Util.Capitalize(stat), topLeft = tl, bottomRight = br, fontSize = 150, value = CharSheet_GetModified(charSheet, stat), onValueChanged = function(value)
+        charSheet[stat.."Counter"] = Ui.Counter({ object = object, id = Util.Capitalize(stat), topLeft = tl, bottomRight = br, scale = 0.09, value = CharSheet_GetModified(charSheet, stat), onValueChanged = function(value)
             CharSheet_SetModified(charSheet, stat, charSheet[stat] + value)
         end })
     end
 
-    local topLeft = { x = 0.585221, y = -0.26 }
-    local bottomRight = { x = -0.489548, y = -0.172231 }
-    charSheet.nameText = Ui3d.Input(ui, { object = object, id = "Name", topLeft = topLeft, bottomRight = bottomRight, fontSize = 60, value = charSheet:Name(), placeholder = "Enter name...", onValueChanged = function(value)
+    local topLeft = { x = 0.55, y = -0.245 }
+    local bottomRight = { x = -0.489548, y = -0.157231 }
+    charSheet.nameText = Ui.Input({ object = object, id = "Name", topLeft = topLeft, bottomRight = bottomRight, scale = 0.045, value = charSheet:Name(), label = "Enter name...", onValueChanged = function(value)
         charSheet:SetName(value)
     end })
 
-    local topLeft = { x = -0.079274, y = 0.666878 }
-    local bottomRight = { x = -0.688625, y = 0.748076 }
-    charSheet.weaponProficiencyTypeText = Ui3d.Input(ui, { object = object, id = "WeaponProficiencyType", topLeft = topLeft, bottomRight = bottomRight, fontSize = 60, value = charSheet:WeaponProficiencyType(), placeholder = "Enter weapon type...", onValueChanged = function(value)
+    local topLeft = { x = -0.085, y = 0.666878 }
+    local bottomRight = { x = -0.675, y = 0.755 }
+    charSheet.weaponProficiencyTypeText = Ui.Input({ object = object, id = "WeaponProficiencyType", topLeft = topLeft, bottomRight = bottomRight, scale = 0.045, value = charSheet:WeaponProficiencyType(), onValueChanged = function(value)
         charSheet:SetWeaponProficiencyType(value)
     end })
 
     local topLeft = { x = -0.549952, y = -0.943896 }
     local bottomRight = { x = -0.658285, y = -0.834634 }
-    charSheet.brainInjuryCheckBox = Ui3d.CheckBox(ui, { object = object, id = "BrainInjury", topLeft = topLeft, bottomRight = bottomRight, value = charSheet.brainInjury, onClick = function()
+    charSheet.brainInjuryCheckBox = Ui.CheckBox({ object = object, id = "BrainInjury", topLeft = topLeft, bottomRight = bottomRight, scale = 0.15, checked = charSheet.brainInjury, onClick = function()
         charSheet:SetBrainInjury(not charSheet.brainInjury)
     end })
 
@@ -464,7 +462,7 @@ local function CharSheet_Create(object)
         local stat, topLeft = smallCheckBox.stat, smallCheckBox.topLeft
         local bottomRight = { x = topLeft.x - SMALL_CHECK_BOX_SIZE, y = topLeft.y + SMALL_CHECK_BOX_SIZE }
         local Stat = Util.Capitalize(stat)
-        charSheet[stat.."CheckBox"] = Ui3d.CheckBox(ui, { object = object, id = Stat, topLeft = topLeft, bottomRight = bottomRight, value = charSheet[stat], onClick = function()
+        charSheet[stat.."CheckBox"] = Ui.CheckBox({ object = object, id = Stat, topLeft = topLeft, bottomRight = bottomRight, scale = 0.075, checked = charSheet[stat], onClick = function()
             charSheet["Set"..Stat](charSheet, not charSheet[stat])
         end })
     end
@@ -486,7 +484,7 @@ local function CharSheet_Create(object)
             local Stat = Util.Capitalize(stat)
             local topLeft = { x = x1 + ((i - 1) * dx), y = y }
             local bottomRight = { x = topLeft.x - SMALL_CHECK_BOX_SIZE, y = y + SMALL_CHECK_BOX_SIZE }
-            charSheet[stat..i.."CheckBox"] = Ui3d.CheckBox(ui, { object = object, id = Stat..i, topLeft = topLeft, bottomRight = bottomRight, value = value >= i, onClick = function()
+            charSheet[stat..i.."CheckBox"] = Ui.CheckBox({ object = object, id = Stat..i, topLeft = topLeft, bottomRight = bottomRight, scale = 0.075, checked = value >= i, onClick = function()
                 local value = i
                 if charSheet[stat] >= i then
                     value = value - 1
@@ -495,14 +493,6 @@ local function CharSheet_Create(object)
             end })
         end
     end
-
-    object.UI.setCustomAssets({
-        {
-            name = "CheckBoxFilled",
-            url = "http://cloud-3.steamusercontent.com/ugc/1189461526463396506/7C8173ABCCC39B1FB8EB5FF188FAC0B5CF5A3F69/",
-        },
-    })
-    object.UI.setXmlTable(ui.children)
 
     CharSheet_charSheetsByObject[object] = charSheet
 

@@ -17,14 +17,6 @@ return {
         { year = 6, name = "It's Already Here", type = "RulebookEvent" },
     },
 
-    monsters = {
-        "Slenderman",
-    },
-
-    nemeses = {
-        { name = "Slenderman", levels = 3 },
-    },
-
     settlementEvents = {
         "Slender Blight",
         "Phantom",
@@ -108,12 +100,11 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Slenderman"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Slenderman"] = {
+    monsters = {
+        {
+            name = "Slenderman",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Slenderman Rules", 5 },
             resourcesDeck = false,
             position = "(11.5, 8.5)",

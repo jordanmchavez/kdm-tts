@@ -15,8 +15,6 @@ return {
         ["Rare Gear"] = "Dung Beetle Knight Rare Gear",
     },
 
-    monsters = { "Dung Beetle Knight" },
-
     timelineEvents = {
         { year = 8, name = "Rumbling in the Dark", type = "RulebookEvent"  },
     },
@@ -133,12 +131,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Dung Beetle Knight"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Dung Beetle Knight"] = {
+    monsters = {
+        {
+            name = "Dung Beetle Knight",
+            size = { x = 2, y = 2 },
             rules = { "Dung Beetle Knight Rules", 6 },
             huntTrack = { "H", "M", "M", "H", "H", "O", "M", "H", "H", "M", "H" },
             position = "(11.5, 8.5)",

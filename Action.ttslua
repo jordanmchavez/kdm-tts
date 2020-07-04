@@ -77,7 +77,7 @@ local function Action_Clone(params)
 
     local clonedObject = object.clone({ position =  position })
     if rotation then
-        clonedObject.setRotation(rotation)
+        Wait.frames(function() clonedObject.setRotation(rotation) end, 2)
     end
 
     return clonedObject

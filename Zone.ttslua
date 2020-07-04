@@ -1,8 +1,9 @@
 require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("Zone")
+local Util = require("Kdm/Util")
 local EventManager = require("Kdm/EventManager")
 
-local Zone_CELL_SIZE = 1
+local ZONE_CELL_SIZE = 1
 
 local Zone_cells = {}
 local Zone_objectZones = {}
@@ -10,8 +11,8 @@ local Zone_objectZones = {}
 ---------------------------------------------------------------------------------------------------
 
 local function Zone_ColRow(x, z)
-    local col = math.floor(x / Zone_CELL_SIZE)
-    local row = math.floor(z / Zone_CELL_SIZE)
+    local col = math.floor(x / ZONE_CELL_SIZE)
+    local row = math.floor(z / ZONE_CELL_SIZE)
     return col, row
 end
 
@@ -87,12 +88,16 @@ local function Zone_Get(position)
     local col, row = Zone_ColRow(x, z)
     for _, zone in ipairs(Zone_cells[Zone_Index(col, row)] or {}) do
         if x >= zone.left and x <= zone.right and z >= zone.top and z <= zone.bottom then
-            Log.Debugf("Zone %s contains (%f, %f)", zone.name, x, z)
+            Log.Debugf("Zone %s contains (%f, %f)", zone, x, z)
             table.insert(results, zone)
         end
     end
 
     return results
+end
+
+local function Zone_GetNames(position)
+    return Util.Map(Zone_Get(position), function(z) return z.name end)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -156,5 +161,5 @@ end
 return {
     Init = Zone_Init,
     Add = Zone_Add,
-    Get = Zone_Get,
+    Get = Zone_GetNames,
 }

@@ -11,8 +11,6 @@ return {
         ["Rare Gear"] = "Flower Knight Rare Gear",
     },
 
-    monsters = { "Flower Knight" },
-
     timelineEvents = {
         { year = 5, name = "A Crone's Tale", type = "RulebookEvent" },
     },
@@ -115,12 +113,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Flower Knight"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Flower Knight"] = {
+    monsters = {
+        {
+            name = "Flower Knight",
+            size = { x = 2, y = 2 },
             rules = { "Flower Knight Rules", 6 },
             huntTrack = { "H", "H", "H", "H", "H", "F", "M", "M", "M", "M", "M" },
             position = "(11.5, 8.5)",

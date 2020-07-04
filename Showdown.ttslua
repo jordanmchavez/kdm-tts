@@ -10,6 +10,7 @@ local Ui = require("Kdm/Ui")
 local Ui3d = require("Kdm/Ui3d")
 local Location = require("Kdm/Location")
 local NamedObject = require("Kdm/NamedObject")
+local Zone = require("Kdm/Zone")
 
 local PlayerBoard = nil
 local Terrain = nil
@@ -22,8 +23,6 @@ local Rules = nil
 
 local SHOWDOWN_STATS = { "movement", "toughness", "damage", "speed", "accuracy", "evasion", "luck" }
 
-local SHOWDOWN_UI_HEIGHT = -1073.9
-
 local SHOWDOWN_NEEDS_SHUFFLE = {
     ["Fighting Arts"] = true,
     ["Disorders"] = true,
@@ -35,8 +34,9 @@ local SHOWDOWN_NEEDS_SHUFFLE = {
 }
 
 local Showdown_stats = {}
+local Showdown_tokenStats = {}
 local Showdown_statCounters = {}
-local Showdown_setups = {}
+local Showdown_monsters = {}
 local Showdown_monsterSizes = {}
 local Showdown_monsterExpansions = {}
 
@@ -44,20 +44,25 @@ local Showdown_ui = {}
 
 local Showdown_settingUp = false
 
+local Showdown_linkedTokens = {}
+
 local Showdown_grid = nil
 local Showdown_overlay = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local function Showdown_MonsterMovement() return Showdown_stats.movement end
-local function Showdown_MonsterToughness() return Showdown_stats.toughness end
-local function Showdown_MonsterDamage() return Showdown_stats.damage end
-local function Showdown_MonsterSpeed() return Showdown_stats.speed end
-local function Showdown_MonsterAccuracy() return Showdown_stats.accuracy end
-local function Showdown_MonsterEvasion() return Showdown_stats.evasion end
-local function Showdown_MonsterLuck() return Showdown_stats.luck end
+local function Showdown_MonsterStat(stat)  return Showdown_stats[stat] + Showdown_tokenStats[stat] end
+local function Showdown_MonsterMovement()  return Showdown_MonsterStat("movement") end
+local function Showdown_MonsterToughness() return Showdown_MonsterStat("toughness") end
+local function Showdown_MonsterDamage()    return Showdown_MonsterStat("damage") end
+local function Showdown_MonsterSpeed()     return Showdown_MonsterStat("speed") end
+local function Showdown_MonsterAccuracy()  return Showdown_MonsterStat("accuracy") end
+local function Showdown_MonsterEvasion()   return Showdown_MonsterStat("evasion") end
+local function Showdown_MonsterLuck()      return Showdown_MonsterStat("luck") end
 
-local function Showdown_SetStat(stat, value)
+---------------------------------------------------------------------------------------------------
+
+local function Showdown_SetMonsterStat(stat, value)
     assert(CheckStr(stat))
     assert(CheckNum(value))
 
@@ -66,9 +71,28 @@ local function Showdown_SetStat(stat, value)
     local oldValue = Showdown_stats[stat]
     if oldValue != value then
         Showdown_stats[stat] = value
-        Showdown_statCounters[stat]:Set(value)
-        EventManager.FireEvent("onMonsterChangeStat", stat, value)
+        Showdown_statCounters[stat]:Set(value + Showdown_tokenStats[stat])
+        EventManager.FireEvent("onMonsterChangeStat", stat, value + Showdown_tokenStats[stat])
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Showdown_UpdateMonsterTokenStat(stat)
+    assert(CheckStr(stat))
+
+    Log.Debugf("Updating monster stat %s", stat)
+
+    local total = 0
+    for _, token in pairs(Showdown_linkedTokens) do
+        if token.stat == stat then
+            total = total + token.value
+        end
+    end
+
+    Showdown_tokenStats[stat] = total
+    Showdown_statCounters[stat]:Set(Showdown_stats[stat] + total)
+    EventManager.FireEvent("onMonsterChangeStat", stat, Showdown_stats[stat] + total)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -104,7 +128,7 @@ local function Showdown_Cleanup()
     Showdown_CleanupInternal()
 
     for _, stat in ipairs({ "movement", "toughness", "speed", "damage", "accuracy", "evasion", "luck" }) do
-        Showdown_SetStat(stat, 0)
+        Showdown_SetMonsterStat(stat, 0)
     end
 
     Log.Printf("Cleaned up showdown.")
@@ -114,14 +138,14 @@ end
 
 -------------------------------------------------------------------------------------------------
 
-local function Showdown_Setup(monsterSetup, levelSetup)
+local function Showdown_Setup(monster, level)
     if Showdown_settingUp then
         Log.Errorf("Showdown setup currently in progress, please wait until finished before setting up another hunt. If the showdown appears to be stuck, click 'Cleanup Showdown' from the 'Cleanup' menu to reset.")
         return
     end
 
-    local showdownSetup = levelSetup.showdown
-    assert(Check(showdownSetup, "No showdown setup for %s, %s", monster, level))
+    local showdownSetup = level.showdown
+    assert(Check(showdownSetup, "No showdown setup for %s, %s", monster.name, level.name))
 
     local blocking = Showdown_CleanupInternal()
     if #blocking > 0 then
@@ -130,21 +154,21 @@ local function Showdown_Setup(monsterSetup, levelSetup)
         return
     end
 
-    Log.Printf("Setting up showdown against %s %s...", monsterSetup.monster, levelSetup.name)
+    Log.Printf("Setting up showdown against %s %s...", monster.name, level.name)
 
     Showdown_settingUp = true
 
     -----------------------------------------------------------------------------------------------
     -- Rules
 
-    local rules = showdownSetup.rules or monsterSetup.rules
+    local rules = showdownSetup.rules or monster.rules
     Rules.SpawnRules(rules[1], rules[2])
 
     -----------------------------------------------------------------------------------------------
     -- Resources
 
     local monsterResourcesLocation = Location.Get("Monster Resources")
-    if not monsterSetup.resourcesDeck then
+    if not monster.resourcesDeck then
         monsterResourcesLocation:BoxClean({ types = { "Monster Resources" } })
 
     else
@@ -153,7 +177,7 @@ local function Showdown_Setup(monsterSetup, levelSetup)
         for _, hit in ipairs(hits) do
             local obj = hit.hit_object
             if obj.getGMNotes() == "Monster Resources" then
-                if obj.getName() == monsterSetup.resourcesDeck then
+                if obj.getName() == monster.resourcesDeck then
                     Log.Debugf("Found monster resources: %s (%s), skipping spawn", obj.getName(), obj.getGUID())
                     monsterResourcesAlreadyExist = true
                     break
@@ -165,7 +189,7 @@ local function Showdown_Setup(monsterSetup, levelSetup)
         end
 
         if not monsterResourcesAlreadyExist then
-            local monsterResourcesDeck = Archive.Take({ name = monsterSetup.resourcesDeck, type = "Monster Resources", location = monsterResourcesLocation, rotation = FACE_DOWN})
+            local monsterResourcesDeck = Archive.Take({ name = monster.resourcesDeck, type = "Monster Resources", location = monsterResourcesLocation, rotation = FACE_DOWN})
             monsterResourcesDeck.shuffle()
         end
     end
@@ -173,25 +197,25 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     -----------------------------------------------------------------------------------------------
     -- AI
 
-    Archive.Take({ name = monsterSetup.info, type = "AI", location = "Monster Info" })
-    Archive.Take({ name = monsterSetup.basicAction, type = "AI", location = "Basic Action" })
+    Archive.Take({ name = monster.info, type = "AI", location = "Monster Info" })
+    Archive.Take({ name = monster.basicAction, type = "AI", location = "Basic Action" })
 
-    local basicAiDeck = Container(Archive.Take({ name = monsterSetup.basicAiDeck, type = "AI", location = "Unused Basic AI", rotation = FACE_DOWN }))
+    local basicAiDeck = Container(Archive.Take({ name = monster.basicAiDeck, type = "AI", location = "Unused Basic AI", rotation = FACE_DOWN }))
     basicAiDeck:Shuffle()
 
     local advancedAiDeck
-    if monsterSetup.advancedAiDeck then
-        advancedAiDeck = Container(Archive.Take({ name = monsterSetup.advancedAiDeck, type = "AI", location = "Unused Advanced AI", rotation = FACE_DOWN }))
+    if monster.advancedAiDeck then
+        advancedAiDeck = Container(Archive.Take({ name = monster.advancedAiDeck, type = "AI", location = "Unused Advanced AI", rotation = FACE_DOWN }))
         advancedAiDeck:Shuffle()
     end
 
     local legendaryAiDeck
-    if monsterSetup.legendaryAiDeck then
-        legendaryAiDeck = Container(Archive.Take({ name = monsterSetup.legendaryAiDeck, type = "AI", location = "Unused Legendary AI", rotation = FACE_DOWN }))
+    if monster.legendaryAiDeck then
+        legendaryAiDeck = Container(Archive.Take({ name = monster.legendaryAiDeck, type = "AI", location = "Unused Legendary AI", rotation = FACE_DOWN }))
         legendaryAiDeck:Shuffle()
     end
 
-    local specialAiDeck = Container(Archive.Take({ name = monsterSetup.specialAiDeck, type = "AI", location = "Unused Special AI", rotation = FACE_DOWN }))
+    local specialAiDeck = Container(Archive.Take({ name = monster.specialAiDeck, type = "AI", location = "Unused Special AI", rotation = FACE_DOWN }))
 
     local miscAiDeck = Container(Archive.Take({ name = "Misc AI", type = "AI", location = "Unused Misc AI", rotation = FACE_DOWN }))
 
@@ -265,7 +289,7 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     for i = 1, (showdownSetup.legendary or 0) do
         table.insert(sources, Action.ContainerSource(legendaryAiDeck))
     end
-    local aiDeck = Action.CreateDeck({ sources = sources, location = "AI", name = monsterSetup.monster.." AI", type = "AI", rotation = FACE_DOWN })
+    local aiDeck = Action.CreateDeck({ sources = sources, location = "AI", name = monster.name.." AI", type = "AI", rotation = FACE_DOWN })
     aiDeck:Shuffle()
 
     if showdownSetup.topAiCards or showdownSetup.bottomAiCards then
@@ -279,12 +303,12 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     -- Hit Locations
 
     local sources = {
-        Action.ArchiveSource(monsterSetup.hitLocationsDeck, "Hit Locations")
+        Action.ArchiveSource(monster.hitLocationsDeck, "Hit Locations")
     }
     for _, card in ipairs(showdownSetup.miscHitLocations or {}) do
         table.insert(sources, Action.ContainerSource(miscAiDeck, card, "Hit Locations"))
     end
-    local hitLocationsDeck = Action.CreateDeck({ sources = sources, location = "HL", name = monsterSetup.hitLocationsDeck, type = "Hit Locations", rotation = FACE_DOWN })
+    local hitLocationsDeck = Action.CreateDeck({ sources = sources, location = "HL", name = monster.hitLocationsDeck, type = "Hit Locations", rotation = FACE_DOWN })
     hitLocationsDeck:Shuffle()
     if showdownSetup.removeHitLocations then
         Log.Debugf("Taking %s from hit location deck and moving to Unused HL", showdownSetup.removeHitLocations)
@@ -332,7 +356,7 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     local SpawnTerrainTile = function(terrainTile, location, rotation)
         if not terrainTileObjects[terrainTile] then
             Log.Debugf("Spawning new terrain tile %s to %s", terrainTile, location)
-            terrainTileObjects[terrainTile] = terrainTilesBag:Take({ name = terrainTile, type = "Terrain Tiles", location = location })
+            terrainTileObjects[terrainTile] = terrainTilesBag:Take({ name = terrainTile, type = "Terrain Tiles", location = location, rotation = rotation })
         else
             Log.Debugf("Cloning terrain tile %s to %s", terrainTile, location)
             Action.Clone({ object = terrainTileObjects[terrainTile], location = location, rotation = rotation })
@@ -352,12 +376,13 @@ local function Showdown_Setup(monsterSetup, levelSetup)
         local data = Terrain.Data(terrainCard.getName())
         if locations then
             for i, location in ipairs(locations) do
+                log(rotations[i])
                 SpawnTerrainTile(data.terrainTile, location, rotations[i])
             end
         else
             local count = data.count
             if count == "*" then
-                count = levelSetup.level
+                count = level.level
             end
 
             for i = 1, count do
@@ -378,7 +403,7 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     end
 
     -- special terrain
-    for _, terrainSetup in ipairs(showdownSetup.specialTerrain or monsterSetup.specialTerrain or {}) do
+    for _, terrainSetup in ipairs(showdownSetup.specialTerrain or monster.specialTerrain or {}) do
         if terrainSetup.terrain then
             terrainLocation, miscLocation = NextTerrainLocation()
             Log.Debugf("Spawning special terrain card %s at %s", terrainSetup.terrain, terrainLocation)
@@ -395,24 +420,24 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     end
 
     -- fixed terrain
-    for _, terrainSetup in ipairs(showdownSetup.fixedTerrain or monsterSetup.fixedTerrain or {}) do
+    for _, terrainSetup in ipairs(showdownSetup.fixedTerrain or monster.fixedTerrain or {}) do
         SpawnTerrain(terrainSetup.terrain, terrainSetup.positions, terrainSetup.rotations)
     end
 
     -- unfixed terrain
-    for _, terrain in ipairs(showdownSetup.unfixedTerrain or monsterSetup.unfixedTerrain or {}) do
+    for _, terrain in ipairs(showdownSetup.unfixedTerrain or monster.unfixedTerrain or {}) do
         SpawnTerrain(terrain, nil, nil)
     end
 
     -- random terrain
-    for i = 1, (showdownSetup.randomTerrain or monsterSetup.randomTerrain or 0) do
+    for i = 1, (showdownSetup.randomTerrain or monster.randomTerrain or 0) do
         SpawnTerrain(nil, nil, nil)
     end
 
     -----------------------------------------------------------------------------------------------
     -- misc object
 
-    local miscObject = showdownSetup.miscObject or monsterSetup.miscObject
+    local miscObject = showdownSetup.miscObject or monster.miscObject
     if miscObject then
         Log.Debugf("Spawning misc object %s", miscObject.name)
         Archive.Take({ name = miscObject.name, type = miscObject.type, location = "Misc" })
@@ -422,21 +447,21 @@ local function Showdown_Setup(monsterSetup, levelSetup)
     -- monster
 
     Archive.Take({
-        name = monsterSetup.monster,
+        name = monster.name,
         type = "Monster Figurine",
-        location = showdownSetup.position or monsterSetup.position,
-        rotation = showdownSetup.rotation or monsterSetup.rotation,
+        location = showdownSetup.position or monster.position,
+        rotation = showdownSetup.rotation or monster.rotation,
     })
 
     -- stats
     for _, stat in ipairs({ "movement", "toughness", "speed", "damage", "accuracy", "evasion", "luck" }) do
-        Showdown_SetStat(stat, showdownSetup[stat] or 0)
+        Showdown_SetMonsterStat(stat, showdownSetup[stat] or 0)
     end
 
     -----------------------------------------------------------------------------------------------
     -- players
-    local playerLocations = showdownSetup.playerPositions or monsterSetup.playerPositions
-    local playerRotations = showdownSetup.playerRotations or monsterSetup.playerRotations or {{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } }
+    local playerLocations = showdownSetup.playerPositions or monster.playerPositions
+    local playerRotations = showdownSetup.playerRotations or monster.playerRotations or {{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } }
     for i = 1, 4 do
         local figurine = PlayerBoard.ForPlayer(i):Figurine()
         if figurine then
@@ -474,7 +499,7 @@ end
 local function Showdown_SelectMonster(option)
     local monsterSetup = option:Value()
     Log.Debugf("Selected %s", monsterSetup.monster)
-    Showdown_ui.monsterSetup = monsterSetup
+    Showdown_ui.monster = monsterSetup
 
     for i, level in ipairs(monsterSetup.levels) do
         local levelOptionButton = Showdown_ui.levelOptionButtons[i]
@@ -492,7 +517,7 @@ local function Showdown_SelectMonster(option)
 
     Showdown_ui.monsterButtonGroup:Set(option)
 
-    Showdown_ui.levelSetup = Showdown_ui.levelOptionButtons[1]:Value()
+    Showdown_ui.level = Showdown_ui.levelOptionButtons[1]:Value()
     Showdown_ui.levelButtonGroup:Set(Showdown_ui.levelOptionButtons[1])
 end
 
@@ -611,41 +636,31 @@ local function Showdown_Init(saveState, expansions, modules, ui)
     saveState = saveState or {}
     for _, stat in ipairs(SHOWDOWN_STATS) do
         Showdown_stats[stat] = saveState[stat] or 0
+        Showdown_tokenStats[stat] = 0
     end
 
     -----------------------------------------------------------------------------------------------
 
     for _, expansion in ipairs(expansions) do
-        for monster, setup in pairs(expansion.setups or {}) do
-            if setup.resourcesDeck == nil then setup.resourcesDeck = monster.." Resources" end
-            if setup.info == nil then setup.info = monster.." Info" end
-            if setup.basicAction == nil then setup.basicAction = monster.." Basic Action" end
-            if setup.basicAiDeck == nil then setup.basicAiDeck = monster.." Basic AI" end
-            if setup.advancedAiDeck == nil then setup.advancedAiDeck = monster.." Advanced AI" end
-            if setup.legendaryAiDeck == nil then setup.legendaryAiDeck = monster.." Legendary AI" end
-            if setup.specialAiDeck == nil then setup.specialAiDeck = monster.." Special AI" end
-            if setup.hitLocationsDeck == nil then setup.hitLocationsDeck = monster.." Hit Locations" end
-            setup.monster = monster
-            table.insert(Showdown_setups, setup)
-        end
-
-        for monster, size in pairs(expansion.monsterSizes or {}) do
-            assert(Check(Showdown_monsterSizes[monster] == nil, "Monster size %s already registered (%s)", monster, Showdown_monsterSizes[monster]))
-            Showdown_monsterSizes[monster] = { x = size.x, y = size.y }
-        end
-
         for _, monster in ipairs(expansion.monsters or {}) do
-            assert(Check(Showdown_monsterExpansions[monster] == nil, "Monster %s already registered to %s", monster, Showdown_monsterExpansions[monster]))
-            Showdown_monsterExpansions[monster] = expansion.name
+            if monster.resourcesDeck == nil then monster.resourcesDeck = monster.name.." Resources" end
+            if monster.info == nil then monster.info = monster.name.." Info" end
+            if monster.basicAction == nil then monster.basicAction = monster.name.." Basic Action" end
+            if monster.basicAiDeck == nil then monster.basicAiDeck = monster.name.." Basic AI" end
+            if monster.advancedAiDeck == nil then monster.advancedAiDeck = monster.name.." Advanced AI" end
+            if monster.legendaryAiDeck == nil then monster.legendaryAiDeck = monster.name.." Legendary AI" end
+            if monster.specialAiDeck == nil then monster.specialAiDeck = monster.name.." Special AI" end
+            if monster.hitLocationsDeck == nil then monster.hitLocationsDeck = monster.name.." Hit Locations" end
+            table.insert(Showdown_monsters, monster)
+            Showdown_monsterExpansions[monster.name] = expansion.name
+            Showdown_monsterSizes[monster.name] = { x = monster.size.x, y = monster.size.y }
         end
     end
-    table.sort(Showdown_setups, function(x, y) return x.monster < y.monster end)
+    table.sort(Showdown_monsters, function(x, y) return x.name < y.name end)
 
     -----------------------------------------------------------------------------------------------
 
     local showdownBoard = NamedObject.Get("Showdown Board")
-
-    local boardUi = { id = "ShowdownBoard", children = showdownBoard.UI.getXmlTable() }
 
     local x = -6.264187
     local xEnd = -6.628941
@@ -656,10 +671,12 @@ local function Showdown_Init(saveState, expansions, modules, ui)
     local y7 = 4.921028
     local dy = (y7 - y1) / 6
 
+    local uiY = 10.75
+
     for i, stat in ipairs(SHOWDOWN_STATS) do
         local y = y1 + (i - 1) * dy
-        Showdown_statCounters[stat] = Ui3d.Counter(boardUi, { object = showdownBoard, id = Util.Capitalize(stat), topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, height = SHOWDOWN_UI_HEIGHT, fontSize = 300, value = Showdown_stats[stat], onValueChanged = function(delta)
-            Showdown_SetStat(stat, Showdown_stats[stat] + delta)
+        Showdown_statCounters[stat] = Ui3d.Counter({ object = showdownBoard, id = Util.Capitalize(stat), topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, y = uiY, scale = 0.18, value = Showdown_MonsterStat(stat), onValueChanged = function(delta)
+            Showdown_SetMonsterStat(stat, Showdown_stats[stat] + delta)
         end })
     end
 
@@ -683,13 +700,11 @@ local function Showdown_Init(saveState, expansions, modules, ui)
         for col, deck in ipairs(decks) do
             local x = x1 + (col - 1) * dx
             local y = y1 + (row - 1) * dy
-            Ui3d.Button(boardUi, { object = showdownBoard, id = deck, topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, height = SHOWDOWN_UI_HEIGHT, onClick = function()
+            Ui3d.Button({ object = showdownBoard, id = deck, topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, y = uiY, onClick = function()
                 Showdown_ResetDeck(deck)
             end })
         end
     end
-
-    showdownBoard.UI.setXmlTable(boardUi.children)
 
     -----------------------------------------------------------------------------------------------
 
@@ -709,20 +724,20 @@ local function Showdown_Init(saveState, expansions, modules, ui)
 
     local monsterScroll = Ui.VerticalScroll(panel, { x = 20+3, y = 307+3, width = 306-6, height = 216-6 })
 
-    local monsterPanel = Ui.Panel(monsterScroll, { id = "Monster", width = 280, height = #Showdown_setups * 30 })
+    local monsterPanel = Ui.Panel(monsterScroll, { id = "Monster", width = 280, height = #Showdown_monsters * 30 })
     Showdown_ui.monsterButtonGroup = Ui.OptionButtonGroup(monsterPanel, { id = "Monster", selectedColors = Ui.DARK_BROWN_COLORS, unselectedColors = Ui.INVISIBLE_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onClick = Showdown_SelectMonster })
     Showdown_ui.monsterOptionButtons = {}
     local y = 0
-    for _, setup in ipairs(Showdown_setups) do
-        Showdown_ui.monsterOptionButtons[setup.monster] = Ui.OptionButton(Showdown_ui.monsterButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 280, height = 30, text = setup.monster, value = setup })
+    for _, monster in ipairs(Showdown_monsters) do
+        Showdown_ui.monsterOptionButtons[monster.name] = Ui.OptionButton(Showdown_ui.monsterButtonGroup, { rectAlignment = "UpperLeft", x = 0, y = y, width = 280, height = 30, text = monster.name, value = monster })
         y = y - 30
     end
 
     local levelPanel = Ui.Panel(panel, { id = "Level", rectAlignment = "LowerLeft", x = 341+3, y = 307+3, width = 306-6, height = 216-6 })
     Showdown_ui.levelButtonGroup = Ui.OptionButtonGroup(levelPanel, { id = "Level", selectedColors = Ui.DARK_BROWN_COLORS, unselectedColors = Ui.INVISIBLE_COLORS, textAlignment = "MiddleLeft", fontSize = 16, onClick = function(option)
-        local levelSetup = option:Value()
-        Log.Debugf("Selected %s, %s", Showdown_ui.monsterSetup.monster, levelSetup.name)
-        Showdown_ui.levelSetup = levelSetup
+        local level = option:Value()
+        Log.Debugf("Selected %s, %s", Showdown_ui.monster.name, level.name)
+        Showdown_ui.level = level
         Showdown_ui.levelButtonGroup:Set(option)
     end  })
     Showdown_ui.levelOptionButtons = {}
@@ -733,18 +748,18 @@ local function Showdown_Init(saveState, expansions, modules, ui)
     end
 
     Ui.InvisibleButton(panel, { id = "Begin", x = 183, y = 227, width = 301, height = 60, onClick = function()
-        if not Showdown_ui.monsterSetup or not Showdown_ui.levelSetup then
+        if not Showdown_ui.monster or not Showdown_ui.level then
             return Log.Broadcastf("Please select a monster and level")
         end
 
-        local expansion = Showdown_monsterExpansions[Showdown_ui.monsterSetup.monster]
+        local expansion = Showdown_monsterExpansions[Showdown_ui.monster.name]
         if not Setup.EnabledExpansions()[expansion] then
             return Log.Broadcastf("%s expansion required. You can add expansions in the 'Setup' menu.", expansion)
         end
 
-        Log.Debugf("Begin showdown clicked for monster %s, level %s", Showdown_ui.monsterSetup.monster, Showdown_ui.levelSetup.level)
+        Log.Debugf("Begin showdown clicked for monster %s, level %s", Showdown_ui.monster.name, Showdown_ui.level.name)
         Showdown_HideUi()
-        Showdown_Setup(Showdown_ui.monsterSetup, Showdown_ui.levelSetup)
+        Showdown_Setup(Showdown_ui.monster, Showdown_ui.level)
     end })
 
     Ui.InvisibleButton(panel, { id = "Cleanup", x = 183, y = 20, width = 301, height = 60, onClick = function()
@@ -786,7 +801,90 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local SHOWDOWN_TOKEN_STATS = {
+    ["Movement Token"] = "movement",
+    ["Toughness Token"] = "toughness",
+    ["Damage Token"] = "damage",
+    ["Speed Token"] = "speed",
+    ["Accuracy Token"] = "accuracy",
+    ["Evasion Token"] = "evasion",
+    ["Luck Token"] = "luck",
+}
+
+local function Showdown_TokenValue(token)
+    local value = 1
+    rot = token.getRotation()
+    if rot.z >= 15 and rot.z <= 345    then
+            value = -1
+    end
+
+    local qty = token.getQuantity()
+    if qty >= 2 then
+        value = value * qty
+    end
+
+    return value
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Showdown_OnDroppedOnMonsterTokens( object)
+    local name = object.GetName()
+
+    local stat = SHOWDOWN_TOKEN_STATS[name]
+    if stat then
+        Log.Debugf("Linking token %s (%s) to monster", name, object.getGUID())
+        Showdown_linkedTokens[object] = { stat = stat, value = Showdown_TokenValue(object) }
+        Showdown_UpdateMonsterTokenStat(stat)
+        object.registerCollisions() -- hack to track flips
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Showdown_OnObjectPickedUpFromMonsterTokens( object)
+    local token = Showdown_linkedTokens[object]
+    if token then
+        Log.Debugf("Unlinking token %s (%s) from monster", object.getName(), object.getGUID())
+        Showdown_linkedTokens[object] = nil
+        Showdown_UpdateMonsterTokenStat(token.stat)
+        object.unregisterCollisions()   -- hack to turn off flip tracking
+        return
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Showdown_OnObjectCollisionEnter(object, collisionInfo)
+    -- This is a hack to detect flipped tokens
+    -- There's no onFlip event, and flipping doesn't trigger onPickUp, so we rely on this to detect flips
+    -- of *already registered* tokens.
+
+    local collisionObject = collisionInfo.collision_object
+    Log.Debugf("%s (%s) collided with %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
+
+    local token = Showdown_linkedTokens[object]
+    if token then
+        local oldValue = token.value
+        local newValue = Showdown_TokenValue(object)
+        if newValue != oldValue then
+            Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
+            token.value = newValue
+            Showdown_UpdateMonsterTokenStat(token.stat)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 local function Showdown_PostInit()
+    Zone.Add({
+        name = "Monster Tokens",
+        location = Location.Get("Monster Tokens"),
+        dropHandler = function(object) Showdown_OnDroppedOnMonsterTokens(object) end,
+        pickUpHandler = function(object) Showdown_OnObjectPickedUpFromMonsterTokens(object) end,
+    })
+    EventManager.AddHandler("onObjectCollisionEnter", Showdown_OnObjectCollisionEnter)
     EventManager.AddHandler("onObjectPickUp", Showdown_OnObjectPickUp)
     EventManager.AddHandler("onObjectDrop", Showdown_OnObjectDrop)
 end
@@ -803,6 +901,7 @@ return {
     Init = Showdown_Init,
     PostInit = Showdown_PostInit,
     Save = Showdown_Save,
+    ShowUi = Showdown_ShowUi,
     MonsterMovement = Showdown_MonsterMovement,
     MonsterToughness = Showdown_MonsterToughness,
     MonsterDamage = Showdown_MonsterDamage,

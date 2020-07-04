@@ -6,7 +6,7 @@ return {
         ["Fighting Arts"] = "Sunstalker Fighting Arts",
         ["Secret Fighting Arts"] = "Sunstalker Secret Fighting Arts",
         ["Disorders"] = "Sunstalker Disorders",
-        ["Weapon Proficiencies"] = "Katana",
+        ["Weapon Proficiencies"] = "Katana Proficiency",
         ["Armor Sets"] = "Cycloid Scale Armor",
         ["Strange Resources"] = "Sunstalker Strange Resources",
         ["Terrain"] = "2 Salt Sculptures",
@@ -15,8 +15,6 @@ return {
         ["Rare Gear"] = "Sunstalker Rare Gear",
         ["Settlement Locations"] = "Sunstalker Settlement Locations",
     },
-
-    monsters = { "Sunstalker" },
 
     campaigns = {
         {
@@ -131,7 +129,7 @@ return {
             { "Sunstalker Fighting Arts", "Fighting Arts" },
             { "Sunstalker Secret Fighting Arts", "Secret Fighting Arts" },
             { "Sunstalker Disorders", "Disorders" },
-            { "Katana", "Weapon Proficiencies" },
+            { "Katana Proficiency", "Weapon Proficiencies" },
             { "Cycloid Scale Armor", "Armor Sets" },
             { "Sunstalker Strange Resources", "Strange Resources" },
             { "Sunstalker Resources", "Monster Resources" },
@@ -242,12 +240,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Sunstalker"] = { x = 4, y = 4 },
-    },
-
-    setups = {
-        ["Sunstalker"] = {
+    monsters = {
+        {
+            name = "Sunstalker",
+            size = { x = 4, y = 4 },
             rules = { "Sunstalker Rules", 5 },
             huntTrack = { "H", "M", "M", "H", "H", "O", "M", "H", "H", "M", "H" },
             position = "(11.5, 8.5)",

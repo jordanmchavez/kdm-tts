@@ -26,26 +26,6 @@ return {
         ["Hunt Events"] = "Core Hunt Events",
     },
 
-    monsters = {
-        "Butcher",
-        "Gold Smoke Knight",
-        "King's Man",
-        "Phoenix",
-        "Screaming Antelope",
-        "The Hand",
-        "Watcher",
-        "White Gigalion",
-        "White Lion",
-    },
-
-    nemeses = {
-        { name = "Butcher", levels = 3 },
-        { name = "King's Man", levels = 3 },
-        { name = "The Hand", levels = 3 },
-        { name = "Watcher", levels = 1 },
-        { name = "Gold Smoke Knight", levels = 1 },
-    },
-
     settlementEvents = {
         "Heat Wave",
         "Rivalry",
@@ -254,6 +234,7 @@ return {
         ["Screaming Leg Warmers"] = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
 
         ["Crystal Skin"] = { head = 3, arms = 3, body = 3, waist = 3, legs = 3, modifier = true },
+        ["Shield Proficiency"] = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
     },
 
     weaponStats = {
@@ -328,7 +309,7 @@ return {
 
         ["Rawhide Whip"] = { speed = 3, accuracy = 7, strength = 1 },
 
-        ["Beast Knuckle"] = { speed = 2, accuracy = 6, strength = 4 },
+        ["Beast Knuckle"] = { speed = 2, accuracy = 6, strength = 4, paired = true },
         ["Lance of Longinus"] = { speed = 2, accuracy = 6, strength = 9 },
 
         ["Counterweighted Axe"] = { speed = 2, accuracy = 6, strength = 4 },
@@ -818,20 +799,11 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Butcher"]            = { x = 2, y = 2 },
-        ["Gold Smoke Knight"]  = { x = 2, y = 2 },
-        ["King's Man"]         = { x = 2, y = 2 },
-        ["Phoenix"]            = { x = 3, y = 3 },
-        ["Screaming Antelope"] = { x = 2, y = 2 },
-        ["The Hand"]           = { x = 2, y = 2 },
-        ["Watcher"]            = { x = 2, y = 2 },
-        ["White Gigalion"]     = { x = 3, y = 3 },
-        ["White Lion"]         = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Butcher"] = {
+    monsters = {
+        {
+            name = "Butcher",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 84 },
             resourcesDeck = false,
             legendaryAiDeck = false,
@@ -896,7 +868,10 @@ return {
                 },
             },
         },
-        ["Gold Smoke Knight"] = {
+        {
+            name = "Gold Smoke Knight",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 96 },
             resourcesDeck = false,
             position = "(11.5, 8.5)",
@@ -921,7 +896,10 @@ return {
                 },
             },
         },
-        ["King's Man"] = {
+        {
+            name = "King's Man",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 86 },
             resourcesDeck = false,
             legendaryAiDeck = "Familiar Face",
@@ -994,7 +972,9 @@ return {
                 },
             },
         },
-        ["Phoenix"] = {
+        {
+            name = "Phoenix",
+            size = { x = 3, y = 3 },
             rules = { "Core Rules", 87 },
             huntTrack = { "H", "M", "H", "M", "H", "O", "M", "H", "M", "H", "H" },
             position = "(12, 9)",
@@ -1091,7 +1071,9 @@ return {
                 },
             },
         },
-        ["Screaming Antelope"] = {
+        {
+            name = "Screaming Antelope",
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 88 },
             huntTrack = { "M", "H", "M", "H", "H", "O", "M", "H", "M", "H", "H" },
             position = "(11.5, 8.5)",
@@ -1201,7 +1183,10 @@ return {
                 },
             },
         },
-        ["The Hand"] = {
+        {
+            name = "The Hand",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 85 },
             resourcesDeck = false,
             legendaryAiDeck = false,
@@ -1271,7 +1256,10 @@ return {
                 },
             },
         },
-        ["Watcher"] = {
+        {
+            name = "Watcher",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 94 },
             resourcesDeck = false,
             advancedAiDeck = false,
@@ -1284,8 +1272,9 @@ return {
                     name = "Level 1",
                     level = 1,
                     showdown = {
+                        survivorStatus = { "Retinue", "Retinue", "Retinue", "Retinue" },
                         starting = {
-                            special = { "Audience", "Lantern Vortex", "Vapor of Nothingness", "Retinue" },
+                            special = { "Audience", "Lantern Vortex", "Vapor of Nothingness", "Horripilation" },
                             misc = { "Indomitable" },
                         },
                         basic = 12,
@@ -1296,7 +1285,9 @@ return {
                 },
             },
         },
-        ["White Gigalion"] = {
+        {
+            name = "White Gigalion",
+            size = { x = 3, y = 3 },
             rules = { "White Gigalion Rules", 4 },
             advancedAiDeck = "White Lion Advanced AI",
             specialAiDeck = "White Lion Special AI",
@@ -1352,7 +1343,9 @@ return {
                 },
             },
         },
-        ["White Lion"] = {
+        {
+            name = "White Lion",
+            size = { x = 2, y = 2 },
             rules = { "Core Rules", 89 },
             huntTrack = { "M", "M", "H", "H", "M", "O", "H", "M", "M", "H", "H" },
             position = "(11.5, 8.5)",

@@ -2,78 +2,144 @@ require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("Ui3d")
 local Util = require("Kdm/Util")
 
-local UI_DEFAULT_HEIGHT = -10.5
-local UI_ROTATION = "0 0 180"
-local UI_SCALE = 0.1
-local UI_SCALE_STR = "0.1 0.1 0.1"
+local UI_SCALE = 0.15
+local UI_Y = 0.103  -- works for 0.1-thick tiles
 
-local UI_POSITION_MULTIPLIER = 100
-local UI_SIZE_MULTIPLIER = (1 / UI_SCALE) * 100
+local UI_LIGHT_BROWN = { r = 0.733, g = 0.706, b = 0.631, a = 100 }
+local UI_DARK_BROWN = { r = 0.271, g = 0.22, b = 0.141, a = 100 }
+local UI_BACKGROUND_COLOR = { r = 1.0, g = 0.0, b = 0.5, a = 0.9 }
+local UI_BACKGROUND_COLOR = { r = 1, g = 1, b = 1, a = 0 }
+local UI_HOVER_COLOR = { r = 1.0, g = 1.0, b = 1.0, a = 0.5 }
+local UI_PRESS_COLOR = { r = 1.0, g = 1.0, b = 1.0, a = 0.7 }
 
-local UI_LIGHT_BROWN = "#bbb4a1"
-local UI_DARK_BROWN = "#453824"
-local UI_IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
-local UI_INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
---local UI_INVISIBLE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
+local Ui_objectButtons = {}
+local Ui_objectInputs = {}
 
-local UI_LEFT_MOUSE_BUTTON = "-1"   -- yes, this really is a string
+function Ui_Dud() end
+
+---------------------------------------------------------------------------------------------------
+
+local function Ui_RecordButtonAndGetIndex(object)
+    if not Ui_objectButtons[object] then
+        Ui_objectButtons[object] = {}
+    end
+    table.insert(Ui_objectButtons[object], object)
+    return #Ui_objectButtons[object] - 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Ui_RecordInputAndGetIndex(object)
+    if not Ui_objectInputs[object] then
+        Ui_objectInputs[object] = {}
+    end
+    table.insert(Ui_objectInputs[object], object)
+    return #Ui_objectInputs[object] - 1
+end
+
+---------------------------------------------------------------------------------------------------
+
+
+local function Ui_Button(params)
+    local object, id, topLeft, bottomRight, onClick = params.object, params.id, params.topLeft, params.bottomRight, params.onClick
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+    assert(CheckFunc(onClick))
+    local button = {
+        tag = "Button",
+        object = object,
+        id = object.getGUID().."_"..params.id.."_Button",
+    }
+
+    Log.Debugf("Creating button %s", button.id)
+
+    local index = Ui_RecordButtonAndGetIndex(object)
+    local tl = params.topLeft
+    local br = params.bottomRight
+    local x = -(tl.x + br.x) / 2
+    local y = (tl.y + br.y) / 2
+    local scale = params.scale or UI_SCALE
+    local sizeFactor = 500 / scale
+    local width = math.abs(br.x - tl.x) * sizeFactor
+    local height = math.abs(br.y - tl.y) * sizeFactor
+    local clickFunctionName = button.id.."_OnClick"
+    self.setVar(clickFunctionName, params.onClick)
+    button.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = width,
+        height = height,
+        color = UI_BACKGROUND_COLOR,
+        hover_color = UI_HOVER_COLOR,
+        press_color = UI_PRESS_COLOR,
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(button.params)
+
+    return button
+end
 
 ---------------------------------------------------------------------------------------------------
 
 local Ui_InputClass = {
     Set = function(input, value)
         Log.Debugf("Changing %s to %s", input.id, value)
-        value = value or ""   -- nil will not actually clear the text
-        input.object.UI.setAttribute(input.id, "text", value)
+        input.value = value
+        input.object.editInput(input.params)
     end,
 }
 Ui_InputClass.__index = Ui_InputClass
 
-function Ui_Input(parent, params)
-    local id, topLeft, bottomRight, fontSize, onValueChanged = params.id, params.topLeft, params.bottomRight, params.fontSize, params.onValueChanged
+function Ui_Input(params)
+    local object, id, topLeft, bottomRight, value, onValueChanged = params.object, params.id, params.topLeft, params.bottomRight, params.value, params.onValueChanged
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
-    assert(CheckNum(fontSize))
+    assert(CheckStrOrNil(value))
     assert(CheckFunc(onValueChanged))
 
-    local id = parent.id.."_"..id.."Input"
+    local id = object.getGUID().."_"..id.."Input"
     Log.Debugf("Creating Input %s", id)
 
+    local id = id.."Input"
     local input = {
         id = id,
-        object = params.object or self,
-        onValueChanged = params.onValueChanged,
+        object = object,
+        onValueChanged = onValueChanged,
     }
     setmetatable(input, Ui_InputClass)
 
-    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
-    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
-    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
-    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
-    local onValueChanged = id.."_OnValueChanged"
-    self.setVar(onValueChanged, function(_, value)
+    local index = Ui_RecordInputAndGetIndex(object)
+    local tl = params.topLeft
+    local br = params.bottomRight
+    local x = -(tl.x + br.x) / 2
+    local y = (tl.y + br.y) / 2
+    local scale = params.scale or UI_SCALE
+    local sizeFactor = 500 / scale
+    local width = math.abs(br.x - tl.x) * sizeFactor
+    local height = math.abs(br.y - tl.y) * sizeFactor
+    local inputFunctionName = id.."_OnValueChanged"
+    self.SetVar(inputFunctionName, function(_, _, value)
         input.onValueChanged(value)
     end)
-    table.insert(parent.children, {
-        tag = "InputField",
-        attributes = {
-            id = id,
-            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width,
-            height = height,
-            text = params.value,
-            placeholder = params.placeholder or " ",
-            textColor = params.textColor or UI_DARK_BROWN,
-            colors = UI_INVISIBLE_COLORS,
-            fontSize = params.fontSize,
-            textAlignment = "MiddleLeft",
-            onValueChanged = "Global/"..onValueChanged,
-            verticalOverflow = "Overflow",
-        }
-    })
+    input.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = width,
+        height = height,
+        label = params.label or "",
+        value = value or "",
+        color = UI_BACKGROUND_COLOR,
+        font_color = UI_DARK_BROWN,
+        font_size = 1000,
+        input_function = inputFunctionName,
+        function_owner = self,
+    }
+    object.createInput(input.params)
 
     return input
 end
@@ -83,96 +149,100 @@ end
 local Ui_CounterClass = {
     Set = function(counter, value)
         assert(CheckNum(value))
-        Log.Debugf("Changing %s to %d", counter.textId, value)
-        counter.object.UI.setAttribute(counter.textId, "text", tostring(value))
+        Log.Debugf("Changing %s to %d", counter.text.id, value)
+        counter.text.params.label = tostring(value)
+        counter.object.editButton(counter.text.params)
     end,
 }
 Ui_CounterClass.__index = Ui_CounterClass
 
-function Ui_Counter(parent, params)
-    local id, topLeft, bottomRight, fontSize, onValueChanged = params.id, params.topLeft, params.bottomRight, params.fontSize, params.onValueChanged
+function Ui_Counter(params)
+    local object, id, topLeft, bottomRight, value, onValueChanged = params.object, params.id, params.topLeft, params.bottomRight, params.value, params.onValueChanged
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
-    assert(CheckNum(fontSize))
+    assert(CheckNum(value))
     assert(CheckFunc(onValueChanged))
 
-    local id = parent.id.."_"..id.."Counter"
+    local id = object.getGUID().."_"..id.."Counter"
     Log.Debugf("Creating Counter %s", id)
 
     local textId = id.."Text"
+    local minusButtonId = id.."MinusButton"
+    local plusButtonId = id.."PlusButton"
 
     local counter = {
-        textId = textId,
-        object = params.object or self,
-        onValueChanged = params.onValueChanged,
+        object = object,
+        onValueChanged = onValueChanged,
+        text = { id = textId },
+        minusButton = { id = minusButtonId },
+        plusButton = { id = plusButtonId },
     }
     setmetatable(counter, Ui_CounterClass)
 
-    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
-    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
-    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
-    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
-    local value = params.value or 0
-    table.insert(parent.children, {
-        tag = "Text",
-        attributes = {
-            id = textId,
-            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width,
-            height = height,
-            text = tostring(value),
-            color = UI_LIGHT_BROWN,
-            fontSize = fontSize,
-            textAlignment = "MiddleCenter",
-            horizontalOverflow = "Overflow",
-            verticalOverflow = "Overflow",
-        }
-    })
+    local index = Ui_RecordButtonAndGetIndex(object)
+    local tl = params.topLeft
+    local br = params.bottomRight
+    local x = -(tl.x + br.x) / 2
+    local y = (tl.y + br.y) / 2
+    local scale = params.scale or UI_SCALE
+    local sizeFactor = 500 / scale
+    local width = math.abs(br.x - tl.x) * sizeFactor
+    local height = math.abs(br.y - tl.y) * sizeFactor
+    counter.text.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = Util.Lerp(tl.y, br.y, 0.65) },
+        scale = { x = scale, y = scale, z = scale },
+        width = 0,
+        height = 0,
+        label = tostring(value),
+        color = { r = 1, g = 1, b = 1 },
+        hover_color = UI_BACKGROUND_COLOR,
+        press_color = UI_BACKGROUND_COLOR,
+        font_color = UI_LIGHT_BROWN,
+        font_size = 1000,
+        click_function = "Ui_Dud",
+        function_owner = self,
+    }
+    object.createButton(counter.text.params)
 
-    local minusId = id.."Minus"
-    local minusX = Util.Lerp(topLeft.x, bottomRight.x, 0.25) * UI_POSITION_MULTIPLIER
-    local minusOnClick = id.."Minus_OnClick"
-    self.setVar(minusOnClick, function(_, mouseButton)
-        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and -1 or -10)
+    local clickFunctionName = counter.minusButton.id.."_OnClick"
+    self.setVar(clickFunctionName, function(_, _, altClick)
+        counter.onValueChanged(altClick and -10 or -1)
     end)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = minusId,
-            position = minusX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width / 2,
-            height = height,
-            colors = UI_INVISIBLE_COLORS,
-            textAlignment = "MiddleCenter",
-            onClick = "Global/"..minusOnClick,
-        }
-    })
+    local index = Ui_RecordButtonAndGetIndex(object)
+    counter.minusButton.params = {
+        index = index,
+        position = { x = -Util.Lerp(tl.x, br.x, 0.25), y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = width / 2,
+        height = height,
+        color = UI_BACKGROUND_COLOR,
+        hover_color = UI_HOVER_COLOR,
+        press_color = UI_PRESS_COLOR,
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(counter.minusButton.params)
 
-    local plusId = id.."Plus"
-    local plusX = Util.Lerp(topLeft.x, bottomRight.x, 0.75) * UI_POSITION_MULTIPLIER
-    local plusOnClick = id.."Plus_OnClick"
-    self.setVar(plusOnClick, function(_, mouseButton)
-        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and 1 or 10)
+    local clickFunctionName = counter.plusButton.id.."_OnClick"
+    self.setVar(clickFunctionName, function(_, _, altClick)
+        counter.onValueChanged(altClick and 10 or 1)
     end)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = plusId,
-            position = plusX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width / 2,
-            height = height,
-            colors = UI_INVISIBLE_COLORS,
-            textAlignment = "MiddleCenter",
-            onClick = "Global/"..plusOnClick,
-        }
-    })
+    local index = Ui_RecordButtonAndGetIndex(object)
+    counter.plusButton.params = {
+        index = index,
+        position = { x = -Util.Lerp(tl.x, br.x, 0.75), y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = width / 2,
+        height = height,
+        color = UI_BACKGROUND_COLOR,
+        hover_color = UI_HOVER_COLOR,
+        press_color = UI_PRESS_COLOR,
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(counter.plusButton.params)
 
     return counter
 end
@@ -180,116 +250,86 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local Ui_CheckBoxClass = {
-    Set = function(checkBox, value)
-        Log.Debugf("Changing %s to %s", checkBox.id, tostring(value))
-        if value then
-            checkBox.object.UI.setAttributes(checkBox.id, {
-                image = checkBox.image,
-                colors = UI_IMAGE_COLORS,
-            })
-        else
-            checkBox.object.UI.setAttributes(checkBox.id, {
-                image = nil,
-                colors = UI_INVISIBLE_COLORS,
-            })
-        end
+    Set = function(checkBox, checked)
+        Log.Debugf("Changing %s to %s", checkBox.id, tostring(checked))
+        checkBox.text.params.label = checked and "\u{25a0}" or ""
+        checkBox.object.editButton(checkBox.text.params)
     end,
 }
 Ui_CheckBoxClass.__index = Ui_CheckBoxClass
 
-function Ui_CheckBox(parent, params)
-    local id, topLeft, bottomRight, onClick = params.id, params.topLeft, params.bottomRight, params.onClick
+function Ui_CheckBox(params)
+    local object, id, topLeft, bottomRight, onClick = params.object, params.id, params.topLeft, params.bottomRight, params.onClick
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
     assert(CheckFunc(onClick))
 
-    local id = parent.id.."_"..id.."CheckBox"
-    Log.Debugf("Creating CheckBox %s", id)
+    local id = object.getGUID().."_"..params.id.."_CheckBox"
+    Log.Debugf("Creating check box %s", id)
 
     local checkBox = {
-        id = id,
-        object = params.object or self,
-        image = params.image or "CheckBoxFilled",
-        onClick = onClick,
+        tag = "CheckBox",
+        object = object,
+        text = {
+            id = id.."_Text"
+        },
+        button = {
+            id = id.."_Button"
+        }
     }
     setmetatable(checkBox, Ui_CheckBoxClass)
 
-    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
-    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
-    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
-    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
-    local onClick = id.."_OnClick"
-    self.setVar(onClick, function()
-        checkBox.onClick()
-    end)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            position = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT),
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width,
-            height = height,
-            image = params.value and checkBox.image or nil,
-            colors = params.value and UI_IMAGE_COLORS or UI_INVISIBLE_COLORS,
-            onClick = "Global/"..onClick,
-        }
-    })
+    local index = Ui_RecordButtonAndGetIndex(object)
+    local tl = params.topLeft
+    local br = params.bottomRight
+    local x = -(tl.x + br.x) / 2
+    local y = (tl.y + br.y) / 2
+    local scale = params.scale or UI_SCALE
+    local sizeFactor = 500 / scale
+    local width = math.abs(br.x - tl.x) * sizeFactor
+    local height = math.abs(br.y - tl.y) * sizeFactor
+    checkBox.text.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = Util.Lerp(tl.y, br.y, 0.42) },
+        scale = { x = scale, y = scale, z = scale },
+        width = 0,
+        height = 0,
+        label = params.checked and "\u{25A0}" or "",
+        alignment = 3,  -- center
+        color = UI_BACKGROUND_COLOR,
+        font_size = 1000,
+        font_color = UI_DARK_BROWN,
+        click_function = "Ui_Dud",
+        function_owner = self,
+    }
+    object.createButton(checkBox.text.params)
+
+    local index = Ui_RecordButtonAndGetIndex(object)
+    local clickFunctionName = checkBox.button.id.."_OnClick"
+    self.setVar(clickFunctionName, params.onClick)
+    checkBox.button.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = width,
+        height = height,
+        color = UI_BACKGROUND_COLOR,
+        hover_color = { 0, 0, 0, 0.8 },
+        press_color = { 0, 0, 0, 0.8 },
+        click_function = clickFunctionName,
+        function_owner = self,
+    }
+    object.createButton(checkBox.button.params)
 
     return checkBox
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui_Button(parent, params)
-    local id, topLeft, bottomRight, onClick = params.id, params.topLeft, params.bottomRight, params.onClick
-    assert(CheckStr(id))
-    assert(CheckVec2(topLeft))
-    assert(CheckVec2(bottomRight))
-    assert(CheckFunc(onClick))
-
-    local id = parent.id.."_"..id.."Button"
-    Log.Debugf("Creating Button %s", id)
-
-    local button = {
-        id = id,
-        object = params.object or self,
-        onClick = onClick,
-    }
-
-    local centerX = ((topLeft.x + bottomRight.x) / 2) * UI_POSITION_MULTIPLIER
-    local centerY = ((topLeft.y + bottomRight.y) / 2) * UI_POSITION_MULTIPLIER
-    local width = math.abs(bottomRight.x - topLeft.x) * UI_SIZE_MULTIPLIER
-    local height = math.abs(bottomRight.y - topLeft.y) * UI_SIZE_MULTIPLIER
-    local onClick = id.."_OnClick"
-    self.setVar(onClick, function()
-        button.onClick()
-    end)
-    local pos = centerX.." "..centerY.." "..(params.height or UI_DEFAULT_HEIGHT)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            position = pos,
-            rotation = UI_ROTATION,
-            scale = UI_SCALE,
-            width = width,
-            height = height,
-            colors = UI_INVISIBLE_COLORS,
-            onClick = "Global/"..onClick,
-        }
-    })
-
-    return button
-end
-
----------------------------------------------------------------------------------------------------
-
 return {
+    Button = Ui_Button,
     Input = Ui_Input,
     Counter = Ui_Counter,
     CheckBox = Ui_CheckBox,
-    Button = Ui_Button,
 }

@@ -35,7 +35,7 @@ local PlayerBoard_gearCellByZone = {}
 
 local function PlayerBoard_GearCellFromZones(zones)
     for _, zone in ipairs(zones) do
-        local gearCell = PlayerBoard_gearCellByZone[zone.name]
+        local gearCell = PlayerBoard_gearCellByZone[zone]
         if gearCell then
             return gearCell
         end
@@ -106,14 +106,12 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         end
     end
 
-    local ui = { id = "PlayerBoard"..playerNumber, children = object.UI.getXmlTable() }
-
     local checkBoxSize = 0.0548
     local y = -0.972599
 
     local topLeft = { x = 0.011453, y = y }
     local bottomRight = { x = topLeft.x - checkBoxSize, y = y + checkBoxSize }
-    playerBoard.headHeavyInjuryCheckBox = Ui.CheckBox(ui, { object = object, id = "HeadHeavyInjury", topLeft = topLeft, bottomRight = bottomRight, value = playerBoard.headHeavyInjury, onClick = function()
+    playerBoard.headHeavyInjuryCheckBox = Ui.CheckBox({ object = object, id = "HeadHeavyInjury", topLeft = topLeft, bottomRight = bottomRight, scale = 0.075, checked = playerBoard.headHeavyInjury, onClick = function()
         local value = not playerBoard.headHeavyInjury
         Log.Debugf("Setting PlayerBoard %d (%s) headHeavyInjury to %s", playerBoard.playerNumber, playerBoard.object.getGUID(), tostring(value))
         playerBoard.headHeavyInjury = value
@@ -129,7 +127,7 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         local topLeft = { x = x1 + (i - 1) * dx, y = y }
         local bottomRight = { x = topLeft.x - checkBoxSize, y = y + checkBoxSize }
         local field = hitLocation.."LightInjury"
-        playerBoard[field.."CheckBox"] = Ui.CheckBox(ui, { object = object, id = Util.Capitalize(field), topLeft = topLeft, bottomRight = bottomRight, value = playerBoard[field], onClick = function()
+        playerBoard[field.."CheckBox"] = Ui.CheckBox({ object = object, id = Util.Capitalize(field), topLeft = topLeft, bottomRight = bottomRight, scale = 0.075, checked = playerBoard[field], onClick = function()
             local value = not playerBoard[field]
             Log.Debugf("Setting PlayerBoard %d %s to %s", playerBoard.playerNumber, field, tostring(value))
             playerBoard[field] = value
@@ -143,7 +141,7 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         local topLeft = { x = x1 + (i - 1) * dx, y = y }
         local bottomRight = { x = topLeft.x - checkBoxSize, y = y + checkBoxSize }
         local field = hitLocation.."HeavyInjury"
-        playerBoard[field.."CheckBox"] = Ui.CheckBox(ui, { object = object, id = Util.Capitalize(field), topLeft = topLeft, bottomRight = bottomRight, value = playerBoard[field], onClick = function()
+        playerBoard[field.."CheckBox"] = Ui.CheckBox({ object = object, id = Util.Capitalize(field), topLeft = topLeft, bottomRight = bottomRight, scale = 0.075, checked = playerBoard[field], onClick = function()
             local value = not playerBoard[field]
             Log.Debugf("Setting PlayerBoard %d %s to %s", playerBoard.playerNumber, field, tostring(value))
             playerBoard[field] = value
@@ -162,30 +160,22 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         local topLeft = { x = x1 + (i - 1) * dx, y = y1 }
         local bottomRight = { x = topLeft.x + width, y = y2 }
         local value = playerBoard[hitLocation.."TemporaryArmor"] + playerBoard[hitLocation.."GearArmor"]
-        playerBoard[hitLocation.."ArmorCounter"] = Ui.Counter(ui, { object = object, id = Util.Capitalize(hitLocation.."Armor"), topLeft = topLeft, bottomRight = bottomRight, value = value, fontSize = 100, onValueChanged = function(delta)
+        playerBoard[hitLocation.."ArmorCounter"] = Ui.Counter({ object = object, id = Util.Capitalize(hitLocation.."Armor"), topLeft = topLeft, bottomRight = bottomRight, scale = 0.07, value = value, onValueChanged = function(delta)
             playerBoard:AddArmor(hitLocation, delta, 0)
         end })
     end
 
-    local topLeft = { x = -0.007076, y = -0.685368 }
-    local bottomRight = { x = -0.210712, y = -0.624482 }
-    Ui.Button(ui, { object = object, id = "HealAndReset", topLeft = topLeft, bottomRight = bottomRight, onClick = function()
+    local topLeft = { x = -0.004649, y = -0.687242 }
+    local bottomRight = { x = -0.212906, y = -0.623098 }
+    Ui.Button({ object = object, id = "HealAndReset", topLeft = topLeft, bottomRight = bottomRight, scale = 0.07, onClick = function()
         playerBoard:HealAndReset(playerBoard)
     end})
 
     topLeft.y = -0.610934
     bottomRight.y = -0.549081
-    Ui.Button(ui, { object = object, id = "PackSurvivor", topLeft = topLeft, bottomRight = bottomRight, onClick = function()
+    Ui.Button({ object = object, id = "PackSurvivor", topLeft = topLeft, bottomRight = bottomRight, scale = 0.07, onClick = function()
         playerBoard:PackCharSheet(playerBoard)
     end})
-
-    object.UI.setCustomAssets({
-        {
-            name = "CheckBoxFilled",
-            url = "http://cloud-3.steamusercontent.com/ugc/1189461526463396506/7C8173ABCCC39B1FB8EB5FF188FAC0B5CF5A3F69/",
-        },
-    })
-    object.UI.setXmlTable(ui.children)
 
     return playerBoard
 end
@@ -508,8 +498,8 @@ function PlayerBoardClass.UnpackCharSheet(playerBoard)
                 packedCard[#packedCard] = nil
 
                 for _, zone in ipairs(Zone.Get(pos)) do
-                    Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, zone.name)
-                    availableLocations[zone.name] = false
+                    Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, zone)
+                    availableLocations[zone] = false
                 end
             end
         end
@@ -650,7 +640,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PlayerBoard_GetTokenValue(token)
+local function PlayerBoard_TokenValue(token)
     local value = 1
     rot = token.getRotation()
     if rot.z >= 15 and rot.z <= 345    then
@@ -703,19 +693,19 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
         if gearCell then
             Log.Debugf("Linking gear token %s (%s) to %s at gear grid %s", name, object.getGUID(), playerBoard.object.getName(), gearCell.name)
             playerBoard.linkedGearTokens[object] = gearCell
-            gearCell.tokens[object] = { stat = stat, value = PlayerBoard_GetTokenValue(object) }
+            gearCell.tokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
             if gearCell.weapon then
                 EventManager.FireEvent("onPlayerBoardUpdateWeapon", playerBoard, gearCell.weapon)
             end
 
         elseif Util.ArrayContains(zones, "Player "..playerBoard.playerNumber.." Permanent Tokens") then
             Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-            playerBoard.linkedPermanentTokens[object] = { stat = stat, value = PlayerBoard_GetTokenValue(object) }
+            playerBoard.linkedPermanentTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
             PlayerBoard_UpdateCharSheetPermanentModifier(playerBoard, stat)
 
         else
             Log.Debugf("Linking temporary token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-            playerBoard.linkedTemporaryTokens[object] = { stat = stat, value = PlayerBoard_GetTokenValue(object) }
+            playerBoard.linkedTemporaryTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
             PlayerBoard_UpdateCharSheetTemporaryModifier(playerBoard, stat)
         end
         object.registerCollisions() -- hack to track flips
@@ -846,7 +836,7 @@ function PlayerBoard_OnObjectCollisionEnter(object, collisionInfo)
         assert(token, "Token %s (%s) was linked to gear grid %s, but was not in gear grid table", object.getName(), object.getGUID(), gearCell.name)
 
         local oldValue = token.value
-        local newValue = PlayerBoard_GetTokenValue(object)
+        local newValue = PlayerBoard_TokenValue(object)
         if newValue != oldValue then
             Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
             token.value = newValue
@@ -859,7 +849,7 @@ function PlayerBoard_OnObjectCollisionEnter(object, collisionInfo)
     local token = playerBoard.linkedTemporaryTokens[object]
     if token then
         local oldValue = token.value
-        local newValue = PlayerBoard_GetTokenValue(object)
+        local newValue = PlayerBoard_TokenValue(object)
         if newValue != oldValue then
             Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
             token.value = newValue
@@ -870,7 +860,7 @@ function PlayerBoard_OnObjectCollisionEnter(object, collisionInfo)
     local token = playerBoard.linkedPermanentTokens[object]
     if token then
         local oldValue = token.value
-        local newValue = PlayerBoard_GetTokenValue(object)
+        local newValue = PlayerBoard_TokenValue(object)
         if newValue != oldValue then
             Log.Debugf("Token %s (%s) flipped on %s (%s)", object.getName(), object.getGUID(), collisionObject.getName(), collisionObject.getGUID())
             token.value = newValue

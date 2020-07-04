@@ -12,26 +12,23 @@ local function RulesNav_Init(saveState, expansions, modules)
     assert(Rules)
 
     local rulesNavBoard = NamedObject.Get("Rules Navigation Board")
-    local ui = { id = "RulesNav", children = rulesNavBoard.UI.getXmlTable() }
 
     local x1 = 7.762758
     local x1End = 6.705129
     local width = x1End - x1
-
     local x13 = -6.702875
     local dx = (x13 - x1) / 12
 
     local y1 = -0.401185
     local y1End = 0.047924
     local height = y1End - y1
-
     local y2 = 0.392804
     local dy = y2 - y1
 
     local createButton = function(name, col, row, onClick)
         local topLeft = { x =  x1 + ((col - 1) * dx), y = y1 + ((row - 1) * dy) }
         local bottomRight = { x = topLeft.x + width, y = topLeft.y + height }
-        Ui.Button(ui, { object = rulesNavBoard, id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick })
+        Ui.Button({ object = rulesNavBoard, id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick })
     end
 
     local buttons = {
@@ -56,8 +53,6 @@ local function RulesNav_Init(saveState, expansions, modules)
     createButton("Back", 6, 2, Rules.Back)
     createButton("Previous Page", 7, 2, Rules.PreviousPage)
     createButton("Next Page", 8, 2, Rules.NextPage)
-
-    rulesNavBoard.UI.setXmlTable(ui.children)
 end
 
 ---------------------------------------------------------------------------------------------------

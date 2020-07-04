@@ -247,6 +247,7 @@ local function Ui_Input(parent, params)
             placeholder = params.placeholder or " " ,
             text = params.text,
             fontSize = params.fontSize or 16,
+            fontStyle = params.fontStyle,
             textColor = params.textColor,
             lineType = params.lineType,
             onValueChanged = onValueChanged,
@@ -407,7 +408,7 @@ local function Ui_CheckButton(parent, params)
             width = params.width,
             height = params.height,
             text = params.text,
-            colors = params.value and checkButton.selectedColors or checkButton.unselectedColors,
+            colors = params.checked and checkButton.selectedColors or checkButton.unselectedColors,
             textColor = checkButton.textColor,
             fontSize = params.fontSize,
             textAlignment = "MiddleCenter",
@@ -421,8 +422,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local Ui_CheckBoxClass = {
-    Set = function(checkBox, value)
-        checkBox.object.UI.setAttribute(checkBox.id, "image", value and checkBox.filledImage or checkBox.emptyImage)
+    Set = function(checkBox, checked)
+        checkBox.object.UI.setAttribute(checkBox.id, "image", checked and checkBox.filledImage or checkBox.emptyImage)
     end,
 }
 Ui_CheckBoxClass.__index = Ui_CheckBoxClass
@@ -458,7 +459,7 @@ local function Ui_CheckBox(parent, params)
             width = params.width or 30,
             height = params.height or 30,
             colors = UI_IMAGE_COLORS,
-            image = params.value and checkBox.filledImage or checkBox.emptyImage,
+            image = params.checked and checkBox.filledImage or checkBox.emptyImage,
             active = params.active,
             onClick = onClick,
         },
@@ -648,7 +649,7 @@ local function Ui_OptionBox(group, params)
             width = params.width or 30,
             height = params.height or 30,
             colors = UI_IMAGE_COLORS,
-            image = params.value and "CheckBoxFilled" or "CheckBoxEmpty",
+            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
             onClick = onClick,
         },
     })

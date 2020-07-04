@@ -94,7 +94,7 @@ local function Setup_SetupTimeline(campaign, expansions)
                 local monster = replaceNemeses[monster]
                 Log.Debugf("Adding replacement showdown [%d] %s", year, name)
             end
-            Settlement.AddTimelineEvent(year, 6, { type = "ShowdownEvent", monster = monster, level = level })
+            Settlement.AddTimelineEvent(year, 6, { type = "ShowdownEvent", monster = monster, level = level, nemesis = true })
 
         else
             assert(CheckFail("Unknown event type %s for event %s", type, event))
@@ -128,7 +128,7 @@ local function Setup_SetupDeck(params)
 
     Log.Debugf("Setting up %s deck", deck)
 
-    local deckContainer = Action.CreateDeck({ sources = sources, name = name, type = deck, location = location, rotation = params.rotation })
+    local deckContainer = Action.CreateDeck({ sources = sources, name = name, type = type, location = location, rotation = params.rotation })
 
     if params.remove then
         deckContainer:Delete(params.remove)
@@ -239,6 +239,8 @@ local function Setup_Setup(campaign, expansionsMap)
         end
     end
 
+    Archive.CleanupBags()
+
     Setup_SetupArchiveOverrides(expansionsMap)
 
     Setup_SetupTimeline(campaign, expansions)
@@ -261,6 +263,7 @@ local function Setup_Setup(campaign, expansionsMap)
 
     Setup_SetupDeck({ expansions = expansions, deck = "Abilities", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Fighting Arts", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = campaign.removedFightingArts })
+    log("done fa")
     Setup_SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Disorders", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     Setup_SetupDeck({ expansions = expansions, deck = "Severe Injuries", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
@@ -344,9 +347,12 @@ local function Setup_Init(saveState, expansions, modules, ui)
     end
 
     Setup_enabledExpansions = saveState or Setup_enabledExpansions
+    Setup_enabledExpansions["Core"] = true
+    Log.Debugf("Enabled expansions: %s", Setup_enabledExpansions)
     for expansion, _ in pairs(Setup_enabledExpansions) do
         local overrides = Setup_archiveOverrides[expansion]
         if overrides then
+            Log.Debugf("Overriding archive entries for %s", expansion)
             Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries }, true)
         end
     end

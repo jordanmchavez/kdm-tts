@@ -15,8 +15,6 @@ return {
         ["Rare Gear"] = "Spidicules Rare Gear",
     },
 
-    monsters = { "Spidicules" },
-
     settlementEvents = {
         "Silk Storm",
     },
@@ -144,12 +142,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Spidicules"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Spidicules"] = {
+    monsters = {
+        {
+            name = "Spidicules",
+            size = { x = 2, y = 2 },
             rules = { "Spidicules Rules", 5 },
             huntTrack = { "M", "M", "H", "H", "M", "F", "H", "M", "M", "H", "H" },
             position = "(11.5, 8.5)",

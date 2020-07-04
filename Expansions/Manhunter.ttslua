@@ -9,8 +9,6 @@ return {
         ["Rare Gear"] = "Manhunter Rare Gear",
     },
 
-    monsters = { "Manhunter" },
-
     timelineEvents = {
         { year = 5, name = "The Hanged Man", type = "RulebookEvent" },
     },
@@ -88,12 +86,11 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Manhunter"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Manhunter"] = {
+    monsters = {
+        {
+            name = "Manhunter",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Manhunter Rules", 5 },
             resourcesDeck = false,
             position = "(11.5, 8.5)",

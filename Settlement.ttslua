@@ -23,11 +23,13 @@ local SETTLEMENT_MAX_NOTES = 6
 local SETTLEMENT_RIGHT_MOUSE_BUTTON = "-2"
 local SETTLEMENT_EVENT_TYPE_ICONS = {
     ["RulebookEvent"] =  "RulebookEventIcon",
+    ["HuntEvent"] = "HuntEventIcon",
     ["ShowdownEvent"] = "ShowdownEventIcon",
     ["SettlementEvent"] = "SettlementEventIcon",
 }
 local SETTLEMENT_EVENT_TYPE_IMAGES = {
     ["RulebookEvent"] = "RulebookEventButton",
+    ["HuntEvent"] = "HuntEventButton",
     ["ShowdownEvent"] = "ShowdownEventButton",
     ["SettlementEvent"] = "SettlementEventButton",
 }
@@ -35,39 +37,29 @@ local SETTLEMENT_EVENT_TYPE_IMAGES = {
 local Settlement_trie = Trie()
 local Settlement_data = {}
 local Settlement_ui = {}
+local Settlement_monsterIndex = {}
 
 --------------------------------------------------------------------------------------------------
 
-local function Settlement_NemesisSearchResultName(monster, level)
-    if level then
-        local lvl = " Lvl "..string.sub(level, -1)
-        if monster and monster != "" then
-            return monster.." - "..lvl
+local function Settlement_ShowdownEventTimelineName(monster, level, nemesis)
+    if monster and level then
+        if nemesis then
+            return "[Nemesis] "..monster.." - "..level
         else
-            return "Unspecified Nemesis - "..lvl
+            return monster.." - "..level
         end
-    elseif monster and monster != "" then
-        return monster
-    else
-        return "Unspecified Nemesis"
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Settlement_NemesisTimelineEventName(monster, level)
-    Log.Debugf("Generating name for %s/%s", monster, level)
-    if level then
-        local lvl = " Lvl "..string.sub(level, -1)
-        if monster and monster != "" then
-            return "Nemesis Encounter - "..monster..lvl
+    elseif monster then
+        if nemesis then
+            return "[Nemesis] "..monster
         else
-            return "Nemesis Encounter -"..lvl
+            return monster
         end
-    elseif monster and monster != "" then
-        return "Nemesis Encounter - "..monster
+    elseif level then
+        assert(nemesis)
+        return "[Nemesis] "..level
     else
-        return "Nemesis Encounter"
+        assert(nemesis)
+        return "Nemesis"
     end
 end
 
@@ -75,21 +67,21 @@ end
 
 local defaultEvents = {
     {
-        keywords = { "Unspecified", "Nemesis" },
+        keywords = { "Unspecified", "Nemesis"},
         event = {
             type = "ShowdownEvent",
-            searchResultName = Settlement_NemesisSearchResultName(nil, nil),
+            name = "Unspecified Nemesis",
+            nemesis = true,
         },
     },
 }
 for level = 1, 3 do
-    local levelStr = "Level "..level
     table.insert(defaultEvents, {
-        keywords = { "Nemesis", "Encounter", "Lvl", "Level", tostring(level) },
+        keywords = { "Unspecified", "Nemesis", "Level", tostring(level) },
         event = {
             type = "ShowdownEvent",
-            searchResultName = Settlement_NemesisSearchResultName(nil, levelStr),
-            level = "Level 1",
+            name = "Unspecified Nemesis - Level "..level,
+            nemesis = true,
         },
     })
 end
@@ -135,13 +127,18 @@ local function Settlement_AddTimelineEvent(year, event, params)
             custom = params.custom,
         }
 
-    elseif type == "ShowdownEvent" then
-        local name = params.custom and params.name or Settlement_NemesisTimelineEventName(params.monster, params.level)
+    elseif type == "ShowdownEvent" or type == "HuntEvent" then
+        local name, monster, level
+        if params.custom then
+            name = params.name
+        else
+            name = Settlement_ShowdownEventTimelineName(params.monster, params.level, params.nemesis)
+        end
         eventData = {
             name = name,
             type = type,
-            monster = params.monster,
-            level = params.level,
+            monster = monster,
+            level = level,
             custom = params.custom,
         }
 
@@ -303,7 +300,7 @@ local function Settlement_SetEventSearchResults(results)
 
         local text = Settlement_ui.timelineEvent.resultTexts[i]
         text:Show()
-        text:SetText(result.searchResultName)
+        text:SetText(result.name)
     end
 
     for i = #results + 1, 5 do
@@ -366,7 +363,7 @@ local function Settlement_SearchEvents(searchTerms)
     local i = 1
     for term in string.gmatch(searchTerms, "%S+") do
         local termMatches = Settlement_trie:Get(term)
-        local termIndex = Util.Index(termMatches, "searchResultName")
+        local termIndex = Util.Index(termMatches, "name")
 
         matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
         i = i + 1
@@ -379,7 +376,7 @@ local function Settlement_SearchEvents(searchTerms)
             table.insert(sortedMatches, m)
         end
     end
-    table.sort(sortedMatches, function(x, y) return x.searchResultName < y.searchResultName end)
+    table.sort(sortedMatches, function(x, y) return x.name < y.name end)
 
     Log.Debugf("Search results for %s: %s", searchTerms, sortedMatches)
     Settlement_SetEventSearchResults(sortedMatches)
@@ -391,9 +388,6 @@ local SETTLEMENT_EVENT_TYPE_HANDLERS = {
     ["RulebookEvent"] = function(eventData)
         if not eventData.custom then
             Settlement_HideUi()
-            log(eventData)
-            log(Rules)
-            log(Rules.SpawnRules)
             Rules.SpawnRules(eventData.rulebook, eventData.state)
         else
             Log.Debugf("Custom timeline event button, no effect")
@@ -411,6 +405,11 @@ local SETTLEMENT_EVENT_TYPE_HANDLERS = {
         --         Showdown.SelectLevel(eventData.level)
         --     end
         -- end
+    end,
+
+    ["HuntEvent"] = function(eventData)
+        Settlement_HideUi()
+        Showdown.ShowUi()
     end,
 
     ["SettlementEvent"] = function(eventData)
@@ -471,7 +470,6 @@ local function Settlement_RegisterExpansion(expansion)
             if page.timelineEvent then
                 local event = {
                     name = name,
-                    searchResultName = name,
                     type = "RulebookEvent",
                     rulebook = rulebook.name,
                     state = page.state,
@@ -484,28 +482,32 @@ local function Settlement_RegisterExpansion(expansion)
         end
     end
 
-    for _, nemesis in ipairs(expansion.nemeses or {}) do
-        local event = {
-            type = "ShowdownEvent",
-            searchResultName = Settlement_NemesisSearchResultName(nemesis.name, nil),
-            monster = nemesis.name,
-            expansion = expansion.name,
-        }
-        local baseKeywords = Util.Split(nemesis.name, " ")
-        for _, keyword in ipairs(baseKeywords) do
-            Settlement_trie:Set(keyword, event)
-        end
-        if nemesis.levels > 1 then
-            for level = 1, nemesis.levels do
+    for _, monster in ipairs(expansion.monsters or {}) do
+        Settlement_monsterIndex[monster.name] = monster
+
+        local monsterKeywords = Util.Split(monster.name, " ")
+        if #monster.levels == 1 then
+            local event = {
+                type = monster.nemesis and "ShowdownEvent" or "HuntEvent",
+                name = Settlement_ShowdownEventTimelineName(monster.name, nil, monster.nemesis),
+                monster = monster.name,
+                expansion = expansion.name,
+            }
+            for _, keyword in ipairs(monsterKeywords) do
+                Settlement_trie:Set(keyword, event)
+            end
+        else
+            for _, level in ipairs(monster.levels) do
+                local levelKeywords = Util.Split(level.name, " ")
                 local event = {
-                    type = "ShowdownEvent",
-                    searchResultName = Settlement_NemesisSearchResultName(nemesis.name, level),
-                    monster = nemesis.name,
-                    level = "Level "..level,
+                    type = monster.nemesis and "ShowdownEvent" or "HuntEvent",
+                    name = Settlement_ShowdownEventTimelineName(monster.name, level.name, monster.nemesis),
+                    monster = monster.name,
+                    level = level.name,
                     expansion = expansion.name,
                 }
-                local keywords = Util.ConcatArrays(baseKeywords, { "Lvl", "Level", tostring(level) })
-                for _, keyword in ipairs(keywords) do
+                log(monster.name..": "..event.type)
+                for _, keyword in ipairs(Util.ConcatArrays(monsterKeywords, levelKeywords)) do
                     Settlement_trie:Set(keyword, event)
                 end
             end
@@ -516,7 +518,7 @@ local function Settlement_RegisterExpansion(expansion)
         for _, keyword in ipairs(Util.Split(settlementEvent, " ")) do
             Settlement_trie:Set(keyword, {
                 name = settlementEvent,
-                searchResultName = settlementEvent,
+                name = settlementEvent,
                 type = "SettlementEvent",
                 expansion = expansion.name,
             })
@@ -577,7 +579,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         Settlement_HideUi()
     end })
 
-    Settlement_ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 482, height = 35, text = Settlement_data.name, fontSize = 24, onValueChanged = function(value)
+    Settlement_ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 482, height = 40, text = Settlement_data.name, fontSize = 24, onValueChanged = function(value)
         Log.Debugf("Setting settlement name to %s", value)
         Settlement_data.name = value
     end })
@@ -616,7 +618,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         survivalAction = survivalAction or {}
 
         local x, y = coords[i].x, coords[i].y
-        Settlement_ui.survivalActionCheckBoxes[i] = Ui.CheckBox(panel, { id = "SurvivalAction"..i, x = x, y = y, width = 20, height = 20, value = survivalAction.checked, active = active, onClick = function()
+        Settlement_ui.survivalActionCheckBoxes[i] = Ui.CheckBox(panel, { id = "SurvivalAction"..i, x = x, y = y, width = 20, height = 20, checked = survivalAction.checked, active = active, onClick = function()
             local survivalAction = Settlement_data.survivalActions[i]
             if survivalAction then
                 local value = not survivalAction.checked
@@ -641,7 +643,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         local active = milestone != nil
         milestone = milestone or {}
 
-        Settlement_ui.milestoneCheckBoxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, value = milestone.checked, active = active, onClick = function()
+        Settlement_ui.milestoneCheckBoxes[i] = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, checked = milestone.checked, active = active, onClick = function()
             local milestone = Settlement_data.milestones[i]
             if milestone then
                 local value = not milestone.checked
@@ -671,7 +673,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
     for i = 1, SETTLEMENT_MAX_QUARRIES do
         local x = (i <= 5) and 1301 or 1437
         local row = (i - 1) % 5
-        Settlement_ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 412.000 - (row * dy), width = 125, height = 25, text = Settlement_data.quarries[i],  fontSize = 12, onValueChanged = function(value)
+        Settlement_ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 412.000 - (row * dy), width = 125, height = 25, text = Settlement_data.quarries[i],  fontSize = 12, fontStyle = "Bold", onValueChanged = function(value)
             Log.Debugf("Setting quarries[%d] to %s", i, value)
             Settlement_data.quarries[i] = value
             Settlement_ui.quarryInputs[i]:Set(value)
@@ -708,7 +710,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         Settlement_ui.timeline[year] = timelineUi
 
         local y = 1528 + ((year - 1) * dy)
-        timelineUi.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, value = yearData.checked, onClick = function()
+        timelineUi.yearCheckBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, checked = yearData.checked, onClick = function()
             local value = not Settlement_data.timeline[year].checked
             Log.Debugf("%s year %d", value and "Checking" or "Unchecking", year)
             Settlement_data.timeline[year].checked = value
@@ -803,10 +805,10 @@ end
 
 local function Settlement_Save()
     local saveData = {
-        name = Settlement_name,
-        survivalLimit = Settlement_survivalLimit,
-        departingBonuses = Settlement_departingBonuses,
-        arrivalBonuses = Settlement_arrivalBonuses,
+        name = Settlement_data.name,
+        survivalLimit = Settlement_data.survivalLimit,
+        departingBonuses = Settlement_data.departingBonuses,
+        arrivalBonuses = Settlement_data.arrivalBonuses,
         survivalActions = Settlement_data.survivalActions,
         milestones = Settlement_data.milestones,
         quarries = Settlement_data.quarries,

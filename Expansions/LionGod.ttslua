@@ -12,8 +12,6 @@ return {
         ["Rare Gear"] = "Lion God Rare Gear",
     },
 
-    monsters = { "Lion God" },
-
     timelineEvents = {
         { year = 13, name = "The Silver City", type = "RulebookEvent" },
     },
@@ -105,12 +103,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Lion God"] = { x = 3, y = 3 },
-    },
-
-    setups = {
-        ["Lion God"] = {
+    monsters = {
+        {
+            name = "Lion God",
+            size = { x = 3, y = 3 },
             rules = { "Lion God Rules", 5 },
             resourcesDeck = false,
             huntTrack = { "H", "M", "H", "M", "H", "O", "H", "M", "H", "M", "H" },

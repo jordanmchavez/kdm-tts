@@ -12,8 +12,6 @@ return {
         ["Settlement Locations"] = "Gorm Settlement Locations",
     },
 
-    monsters = { "Gorm" },
-
     settlementEvents = {
         "Gorm Climate",
     },
@@ -117,12 +115,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Gorm"] = { x = 3, y = 3 },
-    },
-
-    setups = {
-        ["Gorm"] = {
+    monsters = {
+        {
+            name = "Gorm",
+            size = { x = 3, y = 3 },
             rules = { "Gorm Rules", 5 },
             huntTrack = { "M", "M", "H", "H", "M", "O", "H", "H", "M", "M", "H" },
             position = "(11, 8)",

@@ -6,7 +6,7 @@ return {
         ["Fighting Arts"] = "Dragon King Fighting Arts",
         ["Secret Fighting Arts"] = "Dragon King Secret Fighting Arts",
         ["Disorders"] = "Dragon King Disorders",
-        ["Weapon Proficiencies"] = "Scythe",
+        ["Weapon Proficiencies"] = "Scythe Proficiency",
         ["Armor Sets"] = "Dragon Armor",
         ["Strange Resources"] = "Dragon King Strange Resources",
         ["Terrain"] = "Dragon King Terrain",
@@ -14,15 +14,6 @@ return {
         ["Innovations"] = "Dragon King Innovations",
         ["Rare Gear"] = "Dragon King Rare Gear",
         ["Settlement Locations"] = "Dragon King Settlement Locations",
-    },
-
-    monsters = {
-        "Dragon King",
-        "The Tyrant",
-    },
-
-    nemeses = {
-        { name = "The Tyrant", levels = 3 },
     },
 
     campaigns = {
@@ -135,7 +126,7 @@ return {
             { "Dragon King Fighting Arts", "Fighting Arts" },
             { "Dragon King Secret Fighting Arts", "Secret Fighting Arts" },
             { "Dragon King Disorders", "Disorders" },
-            { "Scythe", "Weapon Proficiencies" },
+            { "Scythe Proficiency", "Weapon Proficiencies" },
             { "Dragon Armor", "Armor Sets" },
             { "Dragon King Strange Resources", "Strange Resources" },
             { "Dragon King Resources", "Monster Resources" },
@@ -245,13 +236,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Dragon King"] = { x = 4, y = 4 },
-        ["The Tyrant"] = { x = 2, y = 2 },
-    },
-
-    setups = {
-        ["Dragon King"] = {
+    monsters = {
+        {
+            name = "Dragon King",
+            size = { x = 4, y = 4 },
             rules = { "Dragon King Rules", 4 },
             huntTrack = { "M", "H", "M", "M", "H", "O", "M", "H", "H", "M", "H" },
             position = "(11.5, 8.5)",
@@ -352,7 +340,10 @@ return {
                 },
             },
         },
-        ["The Tyrant"] = {
+        {
+            name = "The Tyrant",
+            nemesis = true,
+            size = { x = 2, y = 2 },
             rules = { "Dragon King Rules", 13 },
             resourcesDeck = false,
             position = "(11.5, 8.5)",

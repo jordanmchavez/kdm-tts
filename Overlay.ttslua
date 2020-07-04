@@ -52,7 +52,7 @@ local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local squareSize = 2730
     overlay.object.createButton({
         function_owner = self,
-        position = { x = -l.x, y = l.y, z = -l.z },
+        position = { x = -l.x, y = l.y, z = l.z },
         scale = { x = 0.1, y = 0.1, z = 0.1 },
         width = squareSize * width,
         height = squareSize * height,
@@ -81,6 +81,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
 
     local localPosition = overlay.object.positionToLocal(position)
     local centerCol, centerRow = overlay.grid:ColRow(localPosition)
+    Log.Debugf("center: %d, %d", centerCol, centerRow)
     local baseLeft, baseTop  -- left-top corner of the figurine's base (1x1, 2x2, 3x3, etc)
     if baseSize % 2 == 0 then
         local offset = math.floor(baseSize / 2) - 1
@@ -91,6 +92,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
         baseLeft = math.floor(centerCol + 0.5) - offset
         baseTop = math.floor(centerRow + 0.5) - offset
     end
+    Log.Debugf("base LT: %d, %d", baseLeft, baseTop)
 
     local halfRadius = math.floor(radius / 2)
 

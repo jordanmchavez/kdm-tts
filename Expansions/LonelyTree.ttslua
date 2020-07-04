@@ -9,8 +9,6 @@ return {
         ["Terrain Tiles"] = { "The Lonely Tree", "Lonely Fruit" },
     },
 
-    monsters = { "Lonely Tree" },
-
     terrain = {
         ["The Lonely Tree"] = {
             terrainTile = "The Lonely Tree",
@@ -77,12 +75,10 @@ return {
         },
     },
 
-    monsterSizes = {
-        ["Lonely Tree"] = { x = 3, y = 3 },
-    },
-
-    setups = {
-        ["Lonely Tree"] = {
+    monsters = {
+        {
+            name = "Lonely Tree",
+            size = { x = 3, y = 3 },
             rules = { "Lonely Tree Rules", 6 },
             resourcesDeck = false,
             position = "(11, 8)",

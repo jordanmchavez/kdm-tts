@@ -214,6 +214,11 @@ return {
         p2 = { x = -11.358661, y = 10.741003, z = -2.601561 },
         board = "Showdown Board",
     },
+    ["Monster Tokens"] = {
+        p1 = { x = -6.236383, y = 10.750100, z = -2.637769 },
+        p2 = { x = -6.632036, y = 10.750100, z = 1.044209 },
+        board = "Showdown Board",
+    },
     ["Monster Token 1"] = {
         center = { x = -6.446431, y = 10.741002, z = -2.413854 },
         size = LOCATION_CARD_SIZE,
