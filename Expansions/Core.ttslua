@@ -777,7 +777,7 @@ return {
             },
         },
         {
-            name = "White Gigalion",
+            name = "White Gigalion Rules",
             pages = {
                 ["White Gigalion Introduction"] = {
                     keywords = { "White", "Gigalion", "Introduction" },

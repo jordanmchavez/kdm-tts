@@ -238,7 +238,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckObj(value, fmt, ...)
+function CheckObject(value, fmt, ...)
     if value == nil then
         return false, Util.SafeFormat("Required userdata arg is nil: "..(fmt or ""), ...)
     end
@@ -251,7 +251,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckObjOrNil(value, fmt, ...)
+function CheckObjectOrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "userdata" then

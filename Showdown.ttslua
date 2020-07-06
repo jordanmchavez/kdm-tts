@@ -376,7 +376,6 @@ local function Showdown_Setup(monster, level)
         local data = Terrain.Data(terrainCard.getName())
         if locations then
             for i, location in ipairs(locations) do
-                log(rotations[i])
                 SpawnTerrainTile(data.terrainTile, location, rotations[i])
             end
         else
@@ -572,12 +571,12 @@ local function Showdown_OnObjectPickUp(_, object)
 
     elseif type == "Player Figurine" then
         local playerBoard = PlayerBoard.ForFigurine(object)
-        if not playerBoard or not playerBoard:CharSheet() then
+        if not playerBoard or not playerBoard:SurvivorSheet() then
             return
         end
         local color = object.getColorTint()
         color[4] = 0.7
-        Showdown_overlay:Show(object.getPosition(), 1, playerBoard:CharSheet():Movement(), color)
+        Showdown_overlay:Show(object.getPosition(), 1, playerBoard:SurvivorSheet():Survivor():Movement(), color)
     end
 end
 

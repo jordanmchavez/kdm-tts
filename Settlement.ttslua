@@ -506,7 +506,6 @@ local function Settlement_RegisterExpansion(expansion)
                     level = level.name,
                     expansion = expansion.name,
                 }
-                log(monster.name..": "..event.type)
                 for _, keyword in ipairs(Util.ConcatArrays(monsterKeywords, levelKeywords)) do
                     Settlement_trie:Set(keyword, event)
                 end

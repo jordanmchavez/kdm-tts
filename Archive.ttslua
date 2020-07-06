@@ -25,6 +25,7 @@ local Archive_reverseIndex = {
     ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
     ["Settlement Events Archive"] = { { "Settlement Events", "Settlement Events" } },
     ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
+    ["Survivor Sheets Archive"] = { { "Survivor Sheet", "Survivor Sheet" }}
 }
 
 -- These archives have no intermediate bag...you just pull the object directly
@@ -45,6 +46,7 @@ local Archive_singleItemArchives = {
     ["Hunt Events Archive"]          = true,
     ["Settlement Events Archive"]    = true,
     ["Rare Gear Archive"]            = true,
+    ["Survivor Sheets Archive"]      = true,
 }
 
 local Archive_bags = {}

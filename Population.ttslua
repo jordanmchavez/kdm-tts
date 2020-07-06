@@ -1,0 +1,203 @@
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Population")
+local Util = require("Kdm/Util")
+local Console = require("Kdm/Console")
+local Location = require("Kdm/Location")
+local EventManager = require("Kdm/EventManager")
+local Survivor = require("Kdm/Survivor")
+local SurvivorSheet = require("Kdm/SurvivorSheet")
+
+local Archive = nil
+
+local Population_nextSurvivorId = 1
+
+local Population_survivorsById = {}
+
+local Population_survivorSheetsBySurvivor = {}
+local Population_survivorSheetsByObject = {}
+
+-- y = 0.1, but give the hitbox some thickness
+local POPULATION_SURVIVOR_SHEET_SIZE = { x = 10.32265, y = 5, z = -12.96177 }
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_NextSurvivorId()
+    local id = Population_nextSurvivorId
+    Population_nextSurvivorId = Population_nextSurvivorId + 1
+    return id
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_AddSurvivor()
+    local survivor = Survivor.Create({ id = Population_NextSurvivorId() })
+    Population_survivorsById[survivor:Id()] = survivor
+    Log.Debugf("Created new survivor %d", survivor:Id())
+    return survivor
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_SpawnSurvivorSheet(survivor)
+    local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+    if survivorSheet then
+        return Log.Errorf("SurvivorSheet %s already exists for Survivor %d", survivorSheet:Object().getGUID(), survivor:Id())
+    end
+
+    local location = Location.Get("(11.5, 8.5)")
+    local blocking = location:BoxClean({ size = POPULATION_SURVIVOR_SHEET_SIZE })
+    if #blocking > 0 then
+        Log.Broadcastf("Please move the highlighted objects out of the board center and try spawning the survivor sheet again.")
+        Util.HighlightAll(blocking)
+        return
+    end
+
+    local object = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = location, rotation = FACE_UP })
+    local survivorSheet = SurvivorSheet.Create(survivor, object, nil, nil)
+    Population_survivorSheetsBySurvivor[survivor] = survivorSheet
+    Population_survivorSheetsByObject[object] = survivorSheet
+
+    Log.Debugf("Spawned survivor sheet %s for survivor %d", survivorSheet:Object().getGUID(), survivor:Id())
+
+    return survivorSheet
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_Init(saveState, expansions, modules, ui)
+    Archive = modules.Archive
+
+    local saveState = saveState or {}
+    for _, survivorSaveState in ipairs(saveState.survivors or {}) do
+        local survivor = Survivor.Create(survivorSaveState)
+        Population_survivorsById[survivor:Id()] = survivor
+        Population_nextSurvivorId = Util.Max(Population_nextSurvivorId, survivor:Id() + 1)
+    end
+    Log.Debugf("Population_nextSurvivorId = %d", Population_nextSurvivorId)
+
+    for _, survivorSheetSaveState in ipairs(saveState.survivorSheets or {}) do
+        local survivor = Population_survivorsById[survivorSheetSaveState.survivorId]
+        if not survivor then
+            return Log.Errorf("SurvivorSheet %s was saved with non-existant survivor %d", survivorSheetSaveState.survivorSheetGuid, survivorSheetSaveState.survivorId)
+        end
+
+        local object = getObjectFromGUID(survivorSheetSaveState.objectGuid)
+        if not object then
+            return Log.Errorf("Survivor %d had saves survivor sheet GUID %s, but that object doesn't exist. Try re-spawning this survivor's sheet from the Population UI.", survivor:Id(), survivorSheetSaveState.objectGuid)
+        end
+
+        local packedBag = nil
+        if survivorSheetSaveState.packedBagGuid then
+            packedBag = getObjectFromGUID(survivorSheetSaveState.packedBagGuid)
+            if not packedBag then
+                return Log.Errorf("Survivor '%s' (%d) was saved with packed bag GUID %s, but that object doesn't exist. Try re-spawning this survivor's sheet from the Population UI.", survivor:Name(), survivor:Id(), survivorSheetSaveState.packedBagGuid)
+            end
+        end
+
+        local survivorSheet = SurvivorSheet.Create(survivor, object, packedBag, saveState.packedObjects)
+
+        Population_survivorSheetsBySurvivor[survivor] = survivorSheet
+        Population_survivorSheetsByObject[object] = survivorSheet
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_OnLeavePlay(object)
+    local survivorSheet = Population_survivorSheetsByObject[object]
+    if survivorSheet then
+        Log.Debugf("Survivor sheet %s for survivor %d left play", object.getGUID(), survivorSheet:Survivor():Id())
+        Population_survivorSheetsBySurvivor[survivorSheet:Survivor()] = nil
+        Population_survivorSheetsByObject[object] = nil
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_PostInit()
+    EventManager.AddHandler("onObjectDestroy", function(object) Population_OnLeavePlay(object) end)
+    EventManager.AddHandler("onObjectEnterContainer", function(container, object) Population_OnLeavePlay(object) end)
+    EventManager.AddHandler("onSurvivorChangeStat", function(survivor, stat, value)
+        local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+        if survivorSheet then
+            survivorSheet:UpdateStat(stat, value)
+        end
+    end
+)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_Save()
+    local survivors = {}
+    for _, survivor in pairs(Population_survivorsById) do
+        table.insert(survivors, survivor:Save())
+    end
+
+    local survivorSheets = {}
+    for _, survivorSheet in pairs(Population_survivorSheetsBySurvivor) do
+        table.insert(survivorSheets, survivorSheet:Save())
+    end
+
+    return {
+        survivors = survivors,
+        survivorSheets = survivorSheets,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_SurvivorSheetForObject(object)
+    return Population_survivorSheetsByObject[object]
+end
+
+---------------------------------------------------------------------------------------------------
+
+Console.AddCommand("popprint", function(args)
+    assert(args[2])
+    local id = tonumber(args[2])
+    assert(id)
+    local survivor = Population_survivorsById[id]
+    assert(survivor)
+    Log.Printf("%s", survivor)
+end)
+
+Console.AddCommand("popls", function()
+    for survivorId, survivor in pairs(Population_survivorsById) do
+        local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+        Log.Printf("[%d] %s (sheet = %s)", survivor:Id(), survivor:Name(), survivorSheet and survivorSheet:Object().getGUID() or "nil")
+    end
+end)
+
+Console.AddCommand("popadd", function(args)
+    local survivor = Population_AddSurvivor()
+    Log.Printf("Added survivor %d", survivor:Id())
+end)
+
+Console.AddCommand("popspawn", function(args)
+    if #args != 2 then
+        return Log.Errorf("usage: popspawn <survivorId>")
+    end
+
+    local id = tonumber(args[2])
+    local survivor = Population_survivorsById[id]
+    if not survivor then
+        return Log.Errorf("No Survivor for id %s", tostring(args[2]))
+    end
+
+    local survivorSheet = Population_SpawnSurvivorSheet(survivor)
+    if not survivorSheet then
+        return
+    end
+
+    Log.Printf("Spawned survivor sheet %s", survivorSheet:Object().getGUID())
+end)
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Population_Init,
+    PostInit = Population_PostInit,
+    Save = Population_Save,
+    SurvivorSheetForObject = Population_SurvivorSheetForObject,
+}

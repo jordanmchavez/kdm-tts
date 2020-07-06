@@ -8,7 +8,7 @@ local OverlayClass = {}
 OverlayClass.__index = OverlayClass
 
 local function Overlay_Create(params)
-    assert(CheckObj(params.object))
+    assert(CheckObject(params.object))
     assert(CheckTagged(params.grid, "Grid"))
     assert(CheckNum(params.height))
 

@@ -263,7 +263,6 @@ local function Setup_Setup(campaign, expansionsMap)
 
     Setup_SetupDeck({ expansions = expansions, deck = "Abilities", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Fighting Arts", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = campaign.removedFightingArts })
-    log("done fa")
     Setup_SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Disorders", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     Setup_SetupDeck({ expansions = expansions, deck = "Severe Injuries", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })

@@ -8,19 +8,21 @@ local Log = {
 }
 
 Log.debugPackages = {
-    --["G"] = true,
+    ["G"] = true,
+    ["Survivor"] = true,
+    ["SurvivorSheet"] = true,
+    ["Population"] = true,
+    ["PlayerBoard"] = true,
     --["BattleReference"] = true,
     --["Ui3d"] = true,
-    --["PlayerBoard"] = true,
-     --["CharSheet"] = true,
     --["Zone"] = true,
     -- ["Action"] = true,
-    -- ["Locations"] = true,
-    ["Showdown"] = true,
+    --["Location"] = true,
+    --["Showdown"] = true,
     -- ["Hunt"] = true,
     --["Grid"] = true,
     --["Overlay"] = true,
-    ["Setup"] = true,
+    --["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

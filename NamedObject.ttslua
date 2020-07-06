@@ -27,6 +27,7 @@ local NamedObject_guidNames = {
     ["916de5"] = "Settlement Events Archive",
     ["7a04ec"] = "Rare Gear Archive",
     ["5d72f3"] = "Hunt Events Archive",
+    ["174926"] = "Survivor Sheets Archive",
 
     ["437cd7"] = "Showdown Board",
     ["51a21e"] = "Hunt Board",

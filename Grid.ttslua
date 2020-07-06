@@ -7,7 +7,7 @@ GridClass.__index = GridClass
 
 local function Grid_Create(params)
     local object, left, right, top, bottom, cols, rows = params.object, params.left, params.right, params.top, params.bottom, params.cols, params.rows
-    assert(CheckObj(object))
+    assert(CheckObject(object))
     assert(CheckNum(left))
     assert(CheckNum(right))
     assert(CheckNum(top))
@@ -62,7 +62,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function GridClass.Snap(grid, object, size)
-    assert(CheckObj(object))
+    assert(CheckObject(object))
     assert(CheckVec2(size))
 
     local width, height = size.x, size.y

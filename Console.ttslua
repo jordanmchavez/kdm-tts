@@ -1,0 +1,98 @@
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("Console")
+
+local CONSOLE_CHAR = "\\"
+
+local Console_commandFuncs = {}
+
+---------------------------------------------------------------------------------------------------
+
+local function Console_AddCommand(name, commandFunc)
+    name = name:lower()
+    assert(Check(not Console_commandFuncs[name], "Command %s already registered", name))
+    Console_commandFuncs[name] = commandFunc
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Console_Tokenize(message)
+    local tokens = {}
+
+    local dq = 34   -- ascii double quote "
+    local sq = 39   -- ascii single quote '
+
+    local bytes = table.pack(string.byte(message, 1, message:len()))
+    local i = 2 -- skip leading console char
+    while true do
+        local start = i
+
+        -- skip whitespace
+        while i <= #bytes and bytes[i] <= 32 do
+            i = i + 1
+        end
+        if i > #bytes then
+            break
+        end
+
+        local tokenStart = i
+
+        -- check for leading quote (we ignore quotes mid-token)
+        local quote = nil
+        local b = bytes[i]
+        if b == dq or b == sq then
+            quote = b
+            i = i + 1
+            tokenStart = i
+        end
+
+        -- find end of word
+        if quote then
+            while i <= #bytes and bytes[i] ~= quote do
+                i = i + 1
+            end
+            assert(bytes[i] == quote, "String missing "..string.char(quote).." quote ")
+        else
+            while i <= #bytes and bytes[i] > 32 do
+                i = i + 1
+            end
+        end
+
+        table.insert(tokens, message:sub(tokenStart, i - 1))
+        i = i + 1
+    end
+
+    return tokens
+end
+
+---------------------------------------------------------------------------------------------------
+
+function onChat(message, player)
+    if message == "" or message:sub(1, 1) != CONSOLE_CHAR then
+        return
+    end
+
+    local args = Console_Tokenize(message)
+
+    local commandFunc = Console_commandFuncs[args[1]:lower()]
+    if not commandFunc then
+        Log.Printf("Unrecognized command: %s", args[1])
+        return false
+    end
+
+    commandFunc(args)
+
+    return false
+end
+
+---------------------------------------------------------------------------------------------------
+
+Console_AddCommand("help", function(args)
+    for name, _ in pairs(Console_commandFuncs) do
+        Log.Printf(name)
+    end
+end)
+---------------------------------------------------------------------------------------------------
+
+return {
+    AddCommand = Console_AddCommand,
+}

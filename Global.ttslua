@@ -1,6 +1,7 @@
 local KDM_VERSION = "0.27 Beta"
 
 local Log = require("Kdm/Log").ForPackage("G")
+local Console = require("Kdm/Console")
 local Zone = require("Kdm/Zone")
 
 local NamedObject = require("Kdm/NamedObject")
@@ -12,14 +13,16 @@ local Archive = require("Kdm/Archive")
 local Action = require("Kdm/Action")
 local Rules = require("Kdm/Rules")
 local RulesNav = require("Kdm/RulesNav")
-local CharSheet = require("Kdm/CharSheet")
+local Survivor = require("Kdm/Survivor")
+local SurvivorSheet = require("Kdm/SurvivorSheet")
+local Population = require("Kdm/Population")
 local PlayerBoard = require("Kdm/PlayerBoard")
-local SettlementBoard = require("Kdm/SettlementBoard")
-local Settlement = require("Kdm/Settlement")
-local Setup = require("Kdm/Setup")
-local Showdown = require("Kdm/Showdown")
-local Hunt = require("Kdm/Hunt")
-local BattleReference = require("Kdm/BattleReference")
+-- local SettlementBoard = require("Kdm/SettlementBoard")
+-- local Settlement = require("Kdm/Settlement")
+-- local Setup = require("Kdm/Setup")
+-- local Showdown = require("Kdm/Showdown")
+-- local Hunt = require("Kdm/Hunt")
+-- local BattleReference = require("Kdm/BattleReference")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -41,10 +44,11 @@ local Sunstalker = require("Kdm/Expansions/Sunstalker")
 
 function onSave()
     local saveState = {
+        Population = Population.Save(),
         PlayerBoard = PlayerBoard.Save(),
-        Settlement = Settlement.Save(),
-        Setup = Setup.Save(),
-        Showdown = Showdown.Save(),
+        -- Settlement = Settlement.Save(),
+        -- Setup = Setup.Save(),
+        -- Showdown = Showdown.Save(),
     }
 
     return JSON.encode(saveState)
@@ -70,14 +74,14 @@ function onLoad(saveJson)
         ["Action"] = Action,
         ["Rules"] =  Rules,
         ["RulesNav"] = RulesNav,
-        ["CharSheet"] = CharSheet,
+        ["Population"] = Population,
         ["PlayerBoard"] = PlayerBoard,
-        ["SettlementBoard"] = SettlementBoard,
-        ["Settlement"] = Settlement,
-        ["Setup"] = Setup,
-        ["Showdown"] = Showdown,
-        ["Hunt"] = Hunt,
-        ["BattleReference"] = BattleReference,
+        -- ["SettlementBoard"] = SettlementBoard,
+        -- ["Settlement"] = Settlement,
+        -- ["Setup"] = Setup,
+        -- ["Showdown"] = Showdown,
+        -- ["Hunt"] = Hunt,
+        -- ["BattleReference"] = BattleReference,
     }
 
     local ui = { id = "UI", children = self.UI.getXmlTable() }

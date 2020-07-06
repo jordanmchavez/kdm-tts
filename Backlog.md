@@ -50,15 +50,15 @@ scan:
 * Updated Shield Proficiency to add =1 all armor
 * re-enable non-nemesis monsters in showdown event search
     * changed hunt vs showdown
-
-
+* fixed a bug with terrain spawning with wrong rotating
 
 -------------------------------------------------------------------------
 
-* lion god giant stone face not rotating correctly
+hidden weapons to battle reference
+linked figurines
 * Large notes field on back of char sheet
 * misc combat stuff: twilight sword
-
+* camera to rules/hunt/showdown
 spiderlings/lonely fruit/shades are not snapping
 * Constellation Tracker
 

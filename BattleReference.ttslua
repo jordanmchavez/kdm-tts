@@ -328,7 +328,7 @@ local function BattleReference_PostInit()
             BattleReference_Update()
         end
     end)
-    EventManager.AddHandler("onCharSheetChangeStat", function(charSheet, attribute)
+    EventManager.AddHandler("onSurvivorChangeStat", function(charSheet, attribute)
         if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
             BattleReference_Update()
         end
