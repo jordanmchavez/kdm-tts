@@ -71,11 +71,13 @@ local function Rules_SpawnRules(rules, state, dontRecordHistory)
     end
 
     Archive.Take({ name = rules, type = "Rulebook", location = location, spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil })
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 
     if not dontRecordHistory then
         Rules_history:Push({ rules, state })
     end
+
+    Util.LookAt({ location = Location.Get("Rules Board"), pitch = 90 })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -249,14 +251,15 @@ local function Rules_Init(saveState, expansions, modules, ui)
     end
 
     local xStart = 80+110
-    Rules_searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = -50, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
+    local yStart = -10
+    Rules_searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = yStart, width = 250, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
         Rules_SetSearchResults(Rules_Search(value))
     end })
-    Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = -50, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
+    Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+250+5, y = yStart, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", fontSize = 20, onClick = function()
         Rules_SetSearchResults({})
         Rules_searchInput:Set(nil)
     end })
-    Rules_searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = -90, width = 300, height = 160, color = "#00000088", active = false })
+    Rules_searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = yStart - 40, width = 300, height = 160, color = "#00000088", active = false })
 
     Rules_searchResultButtons = {}
     for i = 1, 5 do

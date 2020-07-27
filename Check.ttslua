@@ -192,7 +192,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function CheckVec2(value, fmt, ...)
+function CheckVec2OrNil(value, fmt, ...)
     if value != nil then
         local t = type(value)
         if t != "table" then

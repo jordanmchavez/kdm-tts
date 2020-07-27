@@ -35,7 +35,7 @@ local function SettlementBoard_ResetGear(gear, locationName)
         location = location,
         rotation = FACE_DOWN,
     })
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 end
 
 ---------------------------------------------------------------------------------------------------

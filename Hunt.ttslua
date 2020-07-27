@@ -22,7 +22,7 @@ Hunt_settingUp = false
 ---------------------------------------------------------------------------------------------------
 
 local function Hunt_CleanupInternal()
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 
     local blocking = Location.Get("Hunt Cards"):BoxClean({ types = {
         "Hunt Events",
@@ -110,11 +110,14 @@ local function Hunt_Setup(monster, level)
         rotation = { x = 0, y = 90, z =0 },
     })
 
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 
     Log.Printf("Hunt ready. May your lanterns guide you in the darkness.")
 
     Hunt_settingUpHunt = false
+
+    Util.LookAt({ location = Location.Get("Hunt Track"), distance = 30 })
+
 
     EventManager.FireEvent("onHuntStart")
 end
@@ -130,7 +133,11 @@ end
 local function Hunt_HideUi()
     Log.Debugf("Hiding Hunt UI")
     Hunt_ui.panel:Hide()
-    Hunt_ui.open = nil
+    Hunt_ui.open = false
+end
+
+local function Hunt_IsUiOpen()
+    return Hunt_ui.open
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -201,16 +208,9 @@ local function Hunt_Init(saveState, expansions, modules, ui)
 
     -----------------------------------------------------------------------------------------------
 
-    Ui.ImageButton(ui, { id = "Hunt", rectAlignment = "UpperLeft", image = "HuntButton", x = 80+110, y = -10, width = 100, height = 30, onClick = function()
-        if Hunt_ui.open then
-            Hunt_HideUi()
-        else
-            Hunt_ShowUi()
-        end
-    end })
-
+    Hunt_ui.open = false
     Hunt_ui.panel = Ui.Panel(ui, { id = "Hunt", width = 667, height = 632, active = false })
-    Ui.Image(Hunt_ui.panel, { id = "Hunt", image = "Hunt", width = 667, height = 632 })
+    Ui.Image(Hunt_ui.panel, { id = "Hunt", rectAlignment = "MiddleCenter", image = "Hunt", width = 667, height = 632 })
 
     Ui.InvisibleButton(Hunt_ui.panel, { id = "Close", x = 627, y = 592, width = 30, height = 30, onClick = Hunt_HideUi })
 
@@ -257,6 +257,7 @@ local function Hunt_Init(saveState, expansions, modules, ui)
     Ui.InvisibleButton(Hunt_ui.panel, { id = "Cleanup", x = 183, y = 20, width = 301, height = 60, onClick = function()
         Log.Debugf("Cleanup hunt clicked")
         Hunt_Cleanup()
+        Hunt_HideUi()
     end })
 end
 
@@ -264,4 +265,7 @@ end
 
 return {
     Init = Hunt_Init,
+    ShowUi = Hunt_ShowUi,
+    HideUi = Hunt_HideUi,
+    IsUiOpen = Hunt_IsUiOpen,
 }

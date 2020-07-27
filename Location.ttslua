@@ -6,8 +6,8 @@ local NamedObject = require("Kdm/NamedObject")
 LOCATION_REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
 LOCATION_SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 LOCATION_SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
-LOCATION_CARD_SIZE = { x = 3, y = 10, z = 4.7 }
-LOCATION_GEAR_SIZE = { x = 3, y = 10, z = 3 }
+LOCATION_CARD_SIZE = { x = 2.695, y = 2, z = 4.1 }
+LOCATION_GEAR_SIZE = { x = 2.738, y = 10, z = 2.738 }
 LOCATION_TOKEN_SIZE = { x = 1.412567, y = 0.1, z = 1.405437 }
 LOCATION_SURVIVAL_TOKEN_SIZE = { x = 2.7, y = 0.1, z = 2.7 }
 
@@ -356,23 +356,29 @@ local function Location_Init(saveState, expansions, modules)
 
     -----------------------------------------------------------------------------------------------
     -- Player board locations
-    local cards = {
-        { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
-        { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
-    }
-    local playerBoardY = 0.602462
-    local topLeft = { x = 0.761011, y = 0.113605, z = 0.169144 }
-    local bottomRight = { x = -0.762014, y = 0.113605, z = 0.499068 }
-    local dx = (bottomRight.x - topLeft.x) / 7
-    local dz = (bottomRight.z - topLeft.z)
+
     for playerNumber = 1, 4 do
         local prefix = "Player "..playerNumber
         local playerBoard = NamedObject.Get(prefix.." Board")
 
         Location_Add(Location_Create({
             name = prefix.." Cards",
-            p1 = { x = 0.863623, y = 0.219046, z = 0.010613 },
-            p2 = { x = -0.863623, y = 0.150000, z = 0.564581 },
+            p1 = { x = 0.859072, y = 0.150000, z = 0.013382 },
+            p2 = { x = -0.861394, y = 0.150000, z = 0.653109 },
+            object = playerBoard,
+        }))
+
+        local function Location_CreateFromObject(object)
+            local bounds = object.getBounds()
+            return Location_Create({ name = object.getName(), center = bounds.center, size = bounds.size })
+        end
+
+        Location_Add(Location_CreateFromObject(NamedObject.Get(prefix.." Marker")))
+
+        Location_Add(Location_Create({
+            name = prefix.." Gear",
+            p1 = { x = -0.227844, y = 0.150000, z = -0.637769 },
+            p2 = { x = -0.861394, y = 0.150000, z = 0.653109 },
             object = playerBoard,
         }))
 
@@ -395,19 +401,36 @@ local function Location_Init(saveState, expansions, modules)
             end
         end
         Location_Add(Location_Create({
+            name = prefix.." Armor Set",
+            p1 = { x = -0.008251, y = 0.150000, z = -0.535133 },
+            p2 = { x = -0.208823, y = 0.172053, z = -0.222166 },
+            object = playerBoard,
+        }))
+        Location_Add(Location_Create({
             name = prefix.." Fist & Tooth",
             p1 = { x = -0.010514,         y = 0.150000, z = -0.203541 },
             p2 = { x = -0.010514 + width, y = 0.150000, z = -0.203541 + height },
             object = playerBoard,
         }))
 
+        local cards = {
+            { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
+            { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
+        }
+        local x1 = 0.858382
+        local z1 = 0.014506
+        local width = 0.661071 - x1
+        local height = 0.322404 - z1
+        local dx = (-0.663998 - x1) / 7
+        local dz = 0.344662 - z1
         for col = 1, 8 do
-            local x = topLeft.x + (col - 1) * dx
+            local x = x1 + (col - 1) * dx
             for row = 1, 2 do
+                local z = z1 + (row - 1) * dz
                 Location_Add(Location_Create({
                     name = prefix.." "..cards[row][col],
-                    center = { x = x, y = topLeft.y, z = topLeft.z + (row - 1) * dz },
-                    size = LOCATION_CARD_SIZE,
+                    p1 = { x = x,         y = 0.150000, z = z },
+                    p2 = { x = x + width, y = 0.150000, z = z + height },
                     object = playerBoard,
                 }))
             end

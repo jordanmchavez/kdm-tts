@@ -1,3 +1,4 @@
+* Slightly increased color contrast on UIs by lightening the "light brown" color
 * Swap Innovations and Resources on Settlement Board
     * Indicators for principles
     * Automatic consequence drawing
@@ -9,10 +10,6 @@
 * Fixed custom showdown timeline events overwriting the name with "Nemesis Encounter"
 * Manhunter expansion no longer preemptively adds special showdowns to the timeline.
 * Fixed evasion not clearing on showdown cleanup
-* Add lifetime reroll:
-    * Option: checkbox on the char sheet
-    * Option: token, similar to survival token
-    * Option: ability card
 * Redo of the main boards:
     * Move "reset" buttons for decks to the side and give more space
     * large showdown board
@@ -54,11 +51,16 @@ scan:
 
 -------------------------------------------------------------------------
 
+potstars spawn constellations somewhere
+potstars constellation grid: spawn near reference boards
+
+ren "survivor box archive" -> survivor boxes
+descriptive text on survivor box, how it works, what you can do with it
+"survivor sheet" -> "survivor sheet/box" or a giant lantern symbol, or better yet an image of the box
+survivor box sizes
+
 hidden weapons to battle reference
-linked figurines
-* Large notes field on back of char sheet
 * misc combat stuff: twilight sword
-* camera to rules/hunt/showdown
 spiderlings/lonely fruit/shades are not snapping
 * Constellation Tracker
 
@@ -77,10 +79,12 @@ spiderlings/lonely fruit/shades are not snapping
     * Monster Grid Snapping
     * Terrain Grid Snapping
 
+* Spawn severe injuries
 * Menus should be mutually exclusive: clicking on one should close the others
 * Fix broken multi-line notes        
 * two armor sets keep one forever
 
+* Quick camera nav locations on the bottom (hotkeyed?)
 * Video tutorial
 * Export/Import saves
 * Add a Settlement Phase Board:
@@ -93,7 +97,6 @@ spiderlings/lonely fruit/shades are not snapping
 * Test scripting
 * Hunt/showdown camera movement
 * UI only visible to player who clicked?
-* Population UI
 * Test Script
 * Add "right click to delete" somewhere on the settlement timeline
 * Improve search to "find/spawn anything"
@@ -220,3 +223,10 @@ redo sizes
 onSubmit
 
 * merge monsterSizes into setups, and rename setups -> monseters
+
+
+lowerleft by default for all ui
+* settlement -> timeline for module
+
+
+* UI to use attributes.id for parents instead of .id

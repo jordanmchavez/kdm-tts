@@ -275,12 +275,14 @@ local function Settlement_ShowUi()
     Settlement_ui.open = true
 end
 
----------------------------------------------------------------------------------------------------
-
 local function Settlement_HideUi()
     Log.Debugf("Hiding settlement ui")
     Settlement_ui.panel:Hide()
     Settlement_ui.open = false
+end
+
+local function Settlement_IsUiOpen()
+    return Settlement_ui.open
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -429,14 +431,7 @@ local SETTLEMENT_EVENT_TYPE_HANDLERS = {
             return
         end
 
-        for _, player in ipairs(Player.getPlayers()) do
-            player.lookAt({
-                position = card.getPosition(),
-                pitch = 75,
-                yaw = 0,
-                distance = 10,
-            })
-        end
+        Util.LookAt({ object = card, pitch = 75, distance = 10 })
     end
 }
 
@@ -529,13 +524,9 @@ end
 
 local function Settlement_Init(saveState, expansions, modules, ui)
     Archive = modules.Archive
-    assert(Archive)
     Rules = modules.Rules
-    assert(Rules)
     Showdown = modules.Showdown
-    assert(Showdown)
     Setup = modules.Setup
-    assert(Setup)
 
     for _, expansion in ipairs(expansions) do
         Settlement_RegisterExpansion(expansion)
@@ -561,18 +552,10 @@ local function Settlement_Init(saveState, expansions, modules, ui)
         }
     end
 
-    Ui.ImageButton(ui, { id = "Settlement", rectAlignment = "UpperLeft", x = 80, y = -50, width = 100, height = 30, image = "SettlementButton", onClick = function()
-        if Settlement_ui.open then
-            Settlement_HideUi()
-        else
-            Settlement_ShowUi()
-        end
-    end })
-
-    local panel = Ui.Panel(ui, { id = "Settlement", width = 1600, height = 935, active = false })
     Settlement_ui.open = false
+    local panel = Ui.Panel(ui, { id = "Settlement", width = 1600, height = 935, x = 30, y = -20, active = false })
     Settlement_ui.panel = panel
-    Ui.Image(panel, { id = "Settlement", image = "Settlement", width = 1600, height = 935 })
+    Ui.Image(panel, { id = "Settlement", rectAlignment = "MiddleCenter", image = "Settlement", width = 1600, height = 935 })
 
     Ui.InvisibleButton(panel, { id = "Close", x = 1570, y = 905,  width = 30, height = 30, onClick = function ()
         Settlement_HideUi()
@@ -693,7 +676,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
 
     local scroll = Ui.VerticalScroll(panel, { x = 23, y = 23, width = 1242, height = 760 - 6 })
     local timelinePanel = Ui.Panel(scroll, { id = "Timeline", width = 1242, height = 1563 })
-    Ui.Image(timelinePanel, { id = "Timeline", image = "Timeline30", width = 1242, height = 1563 })
+    Ui.Image(timelinePanel, { id = "Timeline", rectAlignment = "MiddleCenter", image = "Timeline30", width = 1242, height = 1563 })
 
     local x1 = 78
     local width = 172
@@ -746,7 +729,7 @@ local function Settlement_Init(saveState, expansions, modules, ui)
     local addTimelineEventPanel = Ui.Panel(panel, { id = "AddTimelineEvent", width = 376, height = 493, active = false })
     Settlement_ui.timelineEvent.panel = addTimelineEventPanel
 
-    Ui.Image(addTimelineEventPanel, { id = "AddTimelineEvent", image = "AddTimelineEvent", width = 376, height = 493 })
+    Ui.Image(addTimelineEventPanel, { id = "AddTimelineEvent", rectAlignment = "MiddleCenter", image = "AddTimelineEvent", width = 376, height = 493 })
 
     Ui.InvisibleButton(addTimelineEventPanel, { id = "Close", x = 336, y = 453, width = 30, height = 30, onClick = function()
         Settlement_CloseTimelineEventPanel()
@@ -836,6 +819,9 @@ end
 return {
     Init = Settlement_Init,
     Save = Settlement_Save,
+    ShowUi = Settlement_ShowUi,
+    HideUi = Settlement_HideUi,
+    IsUiOpen = Settlement_IsUiOpen,
     Reset = Settlement_Reset,
     AddTimelineEvent = Settlement_AddTimelineEvent,
     SetSurvivalActions = Settlement_SetSurvivalActions,

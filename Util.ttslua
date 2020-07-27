@@ -61,7 +61,7 @@ end
 function Util.Find(array, value)
     for i, v in ipairs(array) do
         if v == value then
-            return i
+            return v
         end
     end
     return nil
@@ -72,7 +72,7 @@ end
 function Util.FindIf(array, fn)
     for i, v in ipairs(array) do
         if fn(v) then
-            return i
+            return v
         end
     end
     return nil
@@ -264,6 +264,40 @@ function Util.Map(a, f)
         table.insert(results, f(elem))
     end
     return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.TruncateString(s, max)
+    if not s or s:len() <= max then
+        return s
+    end
+
+    return s:sub(1, max - 2)..".."
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.LookAt(params)
+    local position = nil
+    if params.position then
+        position = params.position
+    elseif params.location then
+        position = params.location:Center()
+    elseif params.object then
+        position = params.object.getPosition()
+    else
+        assert(false, "Either position, location, or object is required")
+    end
+
+    for _, player in ipairs(Player.getPlayers()) do
+        player.lookAt({
+            position = position,
+            pitch = params.pitch or 65,
+            yaw = 0,
+            distance = params.distance or 60,
+        })
+    end
 end
 
 ---------------------------------------------------------------------------------------------------

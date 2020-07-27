@@ -6,6 +6,8 @@ local EventManager = require("Kdm/EventManager")
 local Ui = require("Kdm/Ui3d")
 local Location = require("Kdm/Location")
 local NamedObject = require("Kdm/NamedObject")
+local Survivor = require("Kdm/Survivor")
+local Container = require("Kdm/Container")
 
 local Armor = nil
 local Weapon = nil
@@ -56,6 +58,20 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
         linkedMiscTokens = {},
     }
     setmetatable(playerBoard, PlayerBoardClass)
+
+    local function loadSurvivorSheet()
+        local survivorSheetObject = getObjectFromGUID(saveState.linkedSurvivorSheetGuid)
+        if survivorSheetObject == nil then  -- compare nil for TTS objects
+            return Log.Errorf("Can't find survivor sheet %s that player board %d was linked to! Try recreating the it from the Population screen and dropping it back onto the player board.", saveState.linkedSurvivorSheetGuid, playerNumber)
+        end
+        playerBoard.linkedSurvivorSheet = Population.SurvivorSheetForObject(survivorSheetObject)
+        if not playerBoard.linkedSurvivorSheet then
+            return Log.Errorf("Survivor sheet %s on player board %d waswasn't linked to any survivor.", survivorSheetObject.getGUID(), playerNumber)
+        end
+    end
+    if saveState.linkedSurvivorSheetGuid then
+        loadSurvivorSheet()
+    end
 
     local playerGearPrefix = "Player "..playerNumber.." Gear "
     for _, name in ipairs({ "1 1", "1 2", "1 3", "2 1", "2 2", "2 3", "3 1", "3 2", "3 3" }) do
@@ -160,7 +176,7 @@ local function PlayerBoard_Create(playerNumber, object, saveState)
     topLeft.y = -0.610934
     bottomRight.y = -0.549081
     Ui.Button({ object = object, id = "PackSurvivor", topLeft = topLeft, bottomRight = bottomRight, scale = 0.07, onClick = function()
-        playerBoard:PackSurvivorSheet(playerBoard)
+        playerBoard:PackSurvivorBox()
     end})
 
     return playerBoard
@@ -170,6 +186,10 @@ end
 
 function PlayerBoardClass.Save(playerBoard)
     local saveState = {}
+
+    if playerBoard.linkedSurvivorSheet then
+        saveState.linkedSurvivorSheetGuid = playerBoard.linkedSurvivorSheet.object.getGUID()
+    end
 
     for _, hitLocation in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
         local field = hitLocation.."TemporaryArmor"
@@ -196,8 +216,10 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function PlayerBoardClass.Number(playerBoard) return playerBoard.playerNumber end
+function PlayerBoardClass.Object(playerBoard) return playerBoard.object end
 function PlayerBoardClass.Figurine(playerBoard) return playerBoard.figurine end
 function PlayerBoardClass.SurvivorSheet(playerBoard) return playerBoard.linkedSurvivorSheet end
+function PlayerBoardClass.Survivor(playerBoard) return playerBoard.linkedSurvivorSheet and playerBoard.linkedSurvivorSheet:Survivor() or nil end
 function PlayerBoardClass.Color(playerBoard) return NamedObject.Get("Player "..playerBoard.playerNumber.." Marker").getColorTint() end
 function PlayerBoardClass.Armor(playerBoard) return playerBoard.linkedArmor end
 
@@ -243,7 +265,7 @@ function PlayerBoardClass.LinkFigurine(playerBoard, figurine)
     playerBoard:UnlinkFigurine()
 
     for i, pb in ipairs(PlayerBoard_playerBoards) do
-        if pb.figurine == object then
+        if pb.figurine == figurine then
             pb:UnlinkFigurine()
         end
     end
@@ -252,6 +274,10 @@ function PlayerBoardClass.LinkFigurine(playerBoard, figurine)
     local marker = NamedObject.Get("Player "..playerBoard.playerNumber.." Marker")
     figurine.setColorTint(marker.getColorTint())
     playerBoard.figurine = figurine
+
+    if playerBoard:SurvivorSheet() then
+        figurine.setName(playerBoard:SurvivorSheet():Survivor():NameOrUnnamed())
+    end
 
     Log.Printf("Linked figurine %s to player %s", figurine.getName(), playerBoard.playerNumber)
 end
@@ -265,6 +291,7 @@ function PlayerBoardClass.UnlinkFigurine(playerBoard)
     end
 
     Log.Debugf("Unlinking figurine %s (%s) from player %d", figurine.getName(), figurine.getGUID(), playerBoard.playerNumber)
+    figurine.setName("Unnamed Survivor")
     figurine.setColorTint({ r = 0, g = 0, b = 0 })
     playerBoard.figurine = nil
 end
@@ -323,78 +350,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function PlayerBoardClass.PackSurvivorSheet(playerBoard)
-    local survivorSheet = playerBoard.linkedSurvivorSheet
-    if survivorSheet == nil then
-        return
-    end
-
-    -- Important to do this before picking up cards, since otherwise we'd be removing the FAs/Disorders/etc from the survivor
-    -- as we pick them up
-    playerBoard.linkedSurvivorSheet = nil
-
-    local packedBag, packedObjects = survivorSheet:PackedBag(), survivorSheet:PackedObjects()
-    if packedObjects then
-        Log.Printf("%s is already packed. Pick up and drop the survivor sheet to unpack.", survivorSheet:Survivor():NameOrUnnamed())
-        return
-    end
-
-    survivorSheet:Object().setLock(false)
-
-    -- scan all cards
-    local hits = Location.Get("Player "..playerBoard.playerNumber.." Cards"):BoxCast()
-    local cards = {}
-    for _, hit in ipairs(hits) do
-        local hitObj = hit.hit_object
-        if hitObj.tag == "Card" then
-            table.insert(cards, hitObj)
-        end
-    end
-
-    if #cards == 0 and playerBoard.figurine == nil then
-        Log.Printf("Nothing to pack!")
-        return
-    end
-
-    Log.Debugf("Putting player cards and figurine in bag")
-
-    local playerBoardObj = playerBoard.object
-    local pos = survivorSheet:Object().getPosition()
-    pos.y = pos.y + 1
-    spawnObject({
-        type = "bag",
-        position = pos,
-        callback_function = function(bag)
-            bag.setName(survivorSheet:Survivor():NameOrUnnamed().." Objects")
-            bag.setGMNotes("Survivor Objects")
-
-            local packedObjects = {}
-            for _, card in ipairs(cards) do
-                local name = card.getName()
-                local pos = playerBoardObj.positionToLocal(card.getPosition())
-                Log.Debugf("Scooping %s at %s into bag", name, pos)
-                if not packedObjects[name] then
-                    packedObjects[name] = {}
-                end
-                table.insert(packedObjects[name], { pos, card.getRotation() })
-                bag.putObject(card)
-            end
-
-            if playerBoard.figurine then
-                local figurine = playerBoard.figurine
-                Log.Debugf("Scooping figurine %s (%s) into bag", figurine.getName(), figurine.getGUID())
-                playerBoard:UnlinkFigurine() -- putting it into a bag should take care of this, but just in case
-                bag.putObject(figurine)
-            end
-
-            survivorSheet:SetPackedBag(bag)
-            survivorSheet:SetPackedObjects(packedObjects)
-        end
-    })
-end
-
----------------------------------------------------------------------------------------------------
-
 local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLocations)
     if gmNotes == "Disorders" then
         for i = 1, 3 do
@@ -404,7 +359,6 @@ local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLoca
                 return key
             end
         end
-        Log.Printf("How'd you get four disorders?")
 
     elseif gmNotes == "Fighting Arts" or gmNotes == "Secret Fighting Arts" then
         for i = 1, 3 do
@@ -414,7 +368,6 @@ local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLoca
                 return key
             end
         end
-        Log.Printf("How'd you get four fighting arts?")
 
     elseif gmNotes == "Weapon Proficiencies" then
         local key = playerPrefix.." Weapon Proficiency"
@@ -435,91 +388,127 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function PlayerBoardClass.UnpackSurvivorSheet(playerBoard, survivorSheet)
-    local packedBag, packedObjects = survivorSheet:PackedBag(), survivorSheet:PackedObjects()
-    if not packedBag then
+function PlayerBoardClass.PackSurvivorBox(playerBoard)
+    local survivorSheet = playerBoard.linkedSurvivorSheet
+    if survivorSheet == nil then
+        Log.Debugf("No survivor linked with player board %d", playerBoard:Number())
         return
     end
 
-    Log.Debugf("Unpacking survivor sheet %s for survivor '%s' (%d)", survivorSheet:Object().getGUID(), survivorSheet:Survivor():Name(), survivorSheet:Survivor():Id())
+    local survivor = survivorSheet:Survivor()
 
-    local playerPrefix = "Player "..playerBoard.playerNumber
+    Log.Debugf("Packing survivor %d on player board %d", survivor:Id(), playerBoard:Number())
+
+    playerBoard.linkedSurvivorSheet = nil
+    EventManager.FireEvent("onPlayerBoardUnlinkSurvivor", playerBoard, survivorSheet:Survivor())
+
+    local objectsToPack = {}
+
+    -- Add cards
+    local playerBoardObject = playerBoard:Object()
+    local hits = Location.Get("Player "..playerBoard:Number().." Cards"):BoxCast()
+    local objectsToPack = {}
+    for _, hit in ipairs(hits) do
+        local hitObj = hit.hit_object
+        if hitObj.tag == "Card" then
+            Log.Debugf("Adding object %s/%s to pack list", hitObj.getName(), hitObj.getGMNotes())
+            table.insert(objectsToPack, {
+                object = hitObj,
+                position = playerBoardObject.positionToLocal(hitObj.getPosition()),
+            })
+        end
+    end
+
+    -- Add figurine
+    if playerBoard.figurine then
+        Log.Debugf("Adding player figurine %s to pack list", playerBoard.figurine.getGUID())
+        table.insert(objectsToPack, { object = playerBoard.figurine })
+        playerBoard:UnlinkFigurine() -- putting it into a bag should take care of this, but just in case
+    end
+
+    Population.DestroySurvivorSheetAndCreatePackedSurvivorBox(survivorSheet, objectsToPack, "Survivor Status "..playerBoard:Number())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoardClass.UnpackSurvivorBox(playerBoard, survivorBox)
+    local survivor = survivorBox:Survivor()
+
+    local playerPrefix = "Player "..playerBoard:Number()
+
+    local survivorBoxContainer, packedObjectPositions = Container(survivorBox:Object()), survivor:PackedObjectPositions()
+
+    Log.Debugf("Unpacking SurvivorBox %s for survivor '%s' (%d)", survivorBoxContainer:Guid(), survivor:Name(), survivor:Id())
+
+    local playerBoardObject = playerBoard:Object()
+
     local availableLocations = {}
     for i = 1, 3 do availableLocations[playerPrefix.." Disorder "..i] = true end
     for i = 1, 3 do availableLocations[playerPrefix.." Fighting Art "..i] = true end
     availableLocations[playerPrefix.." Weapon Proficiency"] = true
     for i = 1, 9 do availableLocations[playerPrefix.." Ability/Impairment "..i] = true end
 
-    local playerBoardObj = playerBoard.object
-    for _, bagEntry in ipairs(packedBag.getObjects()) do
-        if bagEntry.gm_notes == "Player Figurine" then
-            local pos = NamedObject.Get(playerPrefix.." Marker").getBounds().center
-            pos.y = pos.y + 0.5
-            local figurine = packedBag.TakeObject({
-                position = pos,
-                guid = bagEntry.guid,
-                smooth = false,
+    for _, entry in ipairs(survivorBoxContainer:Objects()) do
+        if entry.gm_notes == "Player Figurine" then
+            Log.Debugf("Unpacking figurine %s to player marker", entry.guid)
+            local figurine = survivorBoxContainer:Take({
+                guid = entry.guid,
+                location = playerPrefix.." Marker",
             })
             playerBoard:LinkFigurine(figurine)
-        else
-            local packedCard = packedObjects[bagEntry.name]
-            if packedCard and #packedCard >= 1 then
-                local pos = playerBoardObj.positionToWorld(packedCard[#packedCard][1])
-                local rot = packedCard[#packedCard][2]
-                Log.Debugf("Taking %s to %s", bagEntry.name, pos)
-                packedBag.takeObject({
-                    position = pos,
-                    rotation = { rot.x, rot.y, rot.z },
-                    guid     = bagEntry.guid,
-                    smooth   = false,
-                })
-                packedCard[#packedCard] = nil
 
-                for _, zone in ipairs(Zone.Get(pos)) do
-                    Log.Debugf("Card %s (%s) now occupies location %s", bagEntry.name, bagEntry.guid, zone)
+        else
+            local positions = packedObjectPositions[entry.name]
+            if positions and #positions >= 1 then
+                local position = playerBoardObject.positionToWorld(positions[#positions].position)
+                Log.Debugf("Taking %s to %s", entry.name, position)
+                survivorBoxContainer:Take({
+                    guid     = entry.guid,
+                    position = position,
+                    rotation = positions[#positions].rotation
+                })
+                table.remove(positions)
+
+                for _, zone in ipairs(Zone.GetZoneNamesAtPosition(position)) do
+                    Log.Debugf("Card %s (%s) now occupies location %s", entry.name, entry.guid, zone)
                     availableLocations[zone] = false
                 end
             end
         end
     end
 
-    Log.Debugf("Available Locations: %s", availableLocations)
+    local extraObjects = false
+    local objectsWithoutPositions = survivorBoxContainer:Objects()
+    if #objectsWithoutPositions > 0 then
+        Log.Debugf("%s objects without positions", #objectsWithoutPositions)
 
-    local remainingObjects = packedBag.getObjects()
-    local deleteBag = true
-    if #remainingObjects > 0 then
-        for _, bagEntry in ipairs(remainingObjects) do
-            local location = PlayerBoard_TakeNextLocation(playerPrefix, bagEntry.gm_notes, availableLocations)
+        local height = DEFAULT_SPAWN_HEIGHT + 0.5
+        for _, entry in ipairs(objectsWithoutPositions) do
+            local location = PlayerBoard_TakeNextLocation(playerPrefix, entry.gm_notes, availableLocations)
             if not location then
-                Log.Errorf("Couldn't place %s (%s); no more space!", bagEntry.name, bagEntry.tag)
-                deleteBag = false
-            else
-                local pos = Location.Get(location):Center()
-                pos.y = pos.y + 0.5
-                Log.Debugf("Taking %s to %s", bagEntry.name, pos)
-                packedBag.takeObject({
-                    position = pos,
-                    rotation = { x = 0, y = 180, z = 0 },
-                    guid     = bagEntry.guid,
-                    smooth   = false,
-                })
+                Log.Errorf("Couldn't place %s; no more space!", entry.name)
+                location = playerPrefix.." Survivor Sheet"
+                extraObjects = true
             end
+
+            Log.Debugf("Taking %s (%s) to %s", entry.name, entry.guid, location)
+            survivorBoxContainer:Take({
+                guid     = entry.guid,
+                location = location,
+                height = height,
+            })
+            height = height + 0.5
         end
     end
 
-    if deleteBag then
-        Log.Debugf("Destroying packed bag %s (%s)", packedBag.getName(), packedBag.getGUID())
-        packedBag.destruct()
-    else
-        Log.Errorf("Some items in the bag couldn't be unpacked automatically. Please take them out and place them, then delete the bag.")
-        local pos = survivorSheet:Object().getPosition()
-        pos.y = pos.y + 2
-        packedBag.setPositionSmooth(pos, false, true)
-        Util.Highlight(packedBag)
+    if extraObjects then
+        Log.Errorf("Some items couldn't be placed automatically and have been placed on your survivor sheet.")
     end
 
-    survivorSheet:SetPackedBag(nil)
-    survivorSheet:SetPackedObjects(nil)
+    local survivorSheet = Population.ReplaceSurvivorBoxWithSheet(survivorBox, Location.Get(playerPrefix.." Survivor Sheet"))
+    playerBoard.linkedSurvivorSheet = survivorSheet
+    Log.Debugf("Linking SurvivorSheet %s to player board %d", survivorSheet:Object().getGUID(), playerBoard:Number())
+    EventManager.FireEvent("onPlayerBoardLinkSurvivor", playerBoard, survivor)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -646,7 +635,27 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
+local function PlayerBoard_OnObjectDroppedOnSurvivorSheet(playerBoard, object)
+    if object.getGMNotes() != "Survivor Box" then
+        return
+    end
+
+    if playerBoard.linkedSurvivorSheet then
+        return Log.Debugf("%s already linked to SurvivorSheet %s", playerBoard.object.getName(), playerBoard.linkedSurvivorSheet:Object().getGUID())
+    end
+
+    local survivorBox = Population.SurvivorBoxForObject(object)
+    if not survivorBox then
+        return Log.Errorf("Survivor box %s isn't linked to any survivor. This usually means it was created by copying/pasting or importing from another save. If this is the case, then you'll need to create the survivor and sheet from the 'Population' screen.", object.getGUID())
+    end
+
+    playerBoard:UnpackSurvivorBox(survivorBox)
+    PlayerBoard_UpdateSurvivorModifiers(playerBoard)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnGear(playerBoard, object)
     local name = object.GetName()
 
     if object.tag == "Card" then
@@ -662,7 +671,7 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
 
         local weaponStats = Weapon.Get(object.getName())
         if weaponStats and not playerBoard.linkedWeapons[object] then
-            local zones = Zone.Get(object.getPosition())
+            local zones = Zone.GetZoneNamesAtPosition(object.getPosition())
             local gearCell = PlayerBoard_GearCellFromZones(zones)
             Log.Debugf("Linking weapon %s (%s) to %s on gear grid %s", object.getName(), object.getGUID(), playerBoard.object.getName(), gearCell and gearCell.name or "<none>")
             if gearCell then
@@ -671,27 +680,12 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
             playerBoard.linkedWeapons[object] = { stats = weaponStats, gearCell = gearCell }
             EventManager.FireEvent("onPlayerBoardLinkWeapon", playerBoard, object)
         end
-
-        local survivorSheet = playerBoard.linkedSurvivorSheet
-        if survivorSheet then
-            local type = object.getGMNotes()
-            if type == "Abilities" then
-                survivorSheet:Survivor():AddAbility(name)
-            elseif type == "Fighting Arts" or type == "Secret Fighting Arts" then
-                survivorSheet:Survivor():AddFightingArt(name)
-            elseif type == "Disorders" then
-                survivorSheet:Survivor():AddDisorder(name)
-            elseif type == "Severe Injuries" then
-                survivorSheet:Survivor():AddSevereInjury(name)
-            end
-        end
-
         return
     end
 
     local stat = PLAYER_BOARD_TOKEN_STATS[name]
     if stat then
-        local zones = Zone.Get(object.getPosition())
+        local zones = Zone.GetZoneNamesAtPosition(object.getPosition())
         local gearCell = PlayerBoard_GearCellFromZones(zones)
         if gearCell then
             Log.Debugf("Linking gear token %s (%s) to %s at gear grid %s", name, object.getGUID(), playerBoard.object.getName(), gearCell.name)
@@ -700,31 +694,15 @@ local function PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object)
             if gearCell.weapon then
                 EventManager.FireEvent("onPlayerBoardUpdateWeapon", playerBoard, gearCell.weapon)
             end
-
-        elseif Util.ArrayContains(zones, "Player "..playerBoard.playerNumber.." Permanent Tokens") then
-            Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-            playerBoard.linkedPermanentTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
-            PlayerBoard_UpdateSurvivorPermanentModifier(playerBoard, stat)
-
-        else
-            Log.Debugf("Linking temporary token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-            playerBoard.linkedTemporaryTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
-            PlayerBoard_UpdateSurvivorTemporaryModifier(playerBoard, stat)
         end
         object.registerCollisions() -- hack to track flips
-        return
-    end
-
-    if name == "Bleeding Token" or name == "Lunacy Token" then
-        Log.Debugf("Linking misc token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
-        playerBoard.linkedMiscTokens[object] = object
         return
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
+local function PlayerBoard_OnObjectPickedUpFromGear(playerBoard, object)
     local armorStats = playerBoard.linkedArmor[object]
     if armorStats then
         Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
@@ -745,20 +723,6 @@ local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
         EventManager.FireEvent("onPlayerBoardUnlinkWeapon", playerBoard, object)
     end
 
-    local survivorSheet = playerBoard:SurvivorSheet()
-    if survivorSheet then
-        local type = object.getGMNotes()
-        if type == "Abilities" then
-            survivorSheet:Survivor():RemoveAbility(object.getName())
-        elseif type == "Fighting Arts" or type == "Secret Fighting Arts" then
-            survivorSheet:Survivor():RemoveFightingArt(object.getName())
-        elseif type == "Disorders" then
-            survivorSheet:Survivor():RemoveDisorder(object.getName())
-        elseif type == "Severe Injuries" then
-            survivorSheet:Survivor():RemoveSevereInjury(object.getName())
-        end
-    end
-
     local gearCell = playerBoard.linkedGearTokens[object]
     if gearCell then
         Log.Debugf("Unlinking gear token %s (%s) from %s at gear grid %s", object.getName(), object.getGUID(), playerBoard.object.getName(), gearCell.name)
@@ -770,21 +734,128 @@ local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
         object.unregisterCollisions()   -- hack to turn off flip tracking
         return
     end
+ end
 
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnArmorSet(playerBoard, object)
+    local name = object.GetName()
+
+    if object.tag == "Card" then
+        local armorStats = Armor.Get(object.getName())
+        if armorStats and not playerBoard.linkedArmor[object] then
+            Log.Debugf("Linking armor %s (%s) to %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
+            playerBoard.linkedArmor[object] = armorStats
+            for _, hitLocation in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+                playerBoard:AddArmor(hitLocation, 0, armorStats[hitLocation])
+            end
+            -- seems weird, but we actually have no need to track armor in the gear grid
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickedUpFromArmorSet(playerBoard, object)
+    local armorStats = playerBoard.linkedArmor[object]
+    if armorStats then
+        Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
+        playerBoard.linkedArmor[object] = nil
+        for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+            playerBoard:AddArmor(location, 0, -armorStats[location])
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_UpdateSurvivorCards(playerBoard)
+    local cards = {}
+    for _, type in ipairs(Survivor.CARD_TYPES) do
+        cards[type] = {}
+    end
+
+    for object, _ in pairs(Zone.GetObjectsInZone("Player "..playerBoard:Number().." Cards")) do
+        local type = object.getGMNotes()
+        if Survivor.CARD_TYPES_MAP[type] then
+            table.insert(cards[type], object.getName())
+        end
+    end
+
+    local survivor = playerBoard:SurvivorSheet():Survivor()
+    --Log.Debugf("Updating survivor %d on player board %d cards to %s", survivor:Id(), playerBoard:Number(), cards)
+    survivor:SetCards(cards)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnCards(playerBoard, object)
+    local name = object.GetName()
+
+    if object.tag != "Card" then
+        return
+    end
+
+    local armorStats = Armor.Get(object.getName())
+    if armorStats and not playerBoard.linkedArmor[object] then
+        Log.Debugf("Linking armor %s (%s) to %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
+        playerBoard.linkedArmor[object] = armorStats
+        for _, hitLocation in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+            playerBoard:AddArmor(hitLocation, 0, armorStats[hitLocation])
+        end
+        -- seems weird, but we actually have no need to track armor in the gear grid
+    end
+
+    if playerBoard.linkedSurvivorSheet then
+        PlayerBoard_UpdateSurvivorCards(playerBoard)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickedUpFromCards(playerBoard, object)
+    local armorStats = playerBoard.linkedArmor[object]
+    if armorStats then
+        Log.Debugf("Unlinking armor %s (%s) from %s with armor {%d, %d, %d, %d, %d}", object.getName(), object.getGUID(), playerBoard.object.getName(), armorStats.head, armorStats.arms, armorStats.body, armorStats.waist, armorStats.legs)
+        playerBoard.linkedArmor[object] = nil
+        for _, location in ipairs(PLAYER_BOARD_ARMOR_LOCATIONS) do
+            playerBoard:AddArmor(location, 0, -armorStats[location])
+        end
+    end
+
+    if playerBoard.linkedSurvivorSheet then
+        PlayerBoard_UpdateSurvivorCards(playerBoard)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnTemporaryTokens(playerBoard, object)
+    local name = object.GetName()
+
+    local stat = PLAYER_BOARD_TOKEN_STATS[name]
+    if stat then
+        Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedPermanentTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
+        PlayerBoard_UpdateSurvivorPermanentModifier(playerBoard, stat)
+        object.registerCollisions() -- hack to track flips
+    end
+
+    if name == "Bleeding Token" or name == "Lunacy Token" then
+        Log.Debugf("Linking misc token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedMiscTokens[object] = object
+        return
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickedUpFromTemporaryTokens(playerBoard, object)
     local token = playerBoard.linkedTemporaryTokens[object]
     if token then
         Log.Debugf("Unlinking temporary token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
         playerBoard.linkedTemporaryTokens[object] = nil
         PlayerBoard_UpdateSurvivorTemporaryModifier(playerBoard, token.stat)
-        object.unregisterCollisions()   -- hack to turn off flip tracking
-        return
-    end
-
-    local token = playerBoard.linkedPermanentTokens[object]
-    if token then
-        Log.Debugf("Unlinking permanent token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
-        playerBoard.linkedPermanentTokens[object] = nil
-        PlayerBoard_UpdateSurvivorPermanentModifier(playerBoard, token.stat)
         object.unregisterCollisions()   -- hack to turn off flip tracking
         return
     end
@@ -795,47 +866,34 @@ local function PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object)
         playerBoard.linkedMiscTokens[object] = nil
         return
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectDroppedOnPermanentTokens(playerBoard, object)
+    local name = object.GetName()
+    local stat = PLAYER_BOARD_TOKEN_STATS[name]
+    if stat then
+        Log.Debugf("Linking permanent token %s (%s) to %s", name, object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedPermanentTokens[object] = { stat = stat, value = PlayerBoard_TokenValue(object) }
+        PlayerBoard_UpdateSurvivorPermanentModifier(playerBoard, stat)
+        object.registerCollisions() -- hack to track flips
+        return
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function PlayerBoard_OnObjectPickedUpFromPermanentTokens(playerBoard, object)
+    local token = playerBoard.linkedPermanentTokens[object]
+    if token then
+        Log.Debugf("Unlinking permanent token %s (%s) from %s", object.getName(), object.getGUID(), playerBoard.object.getName())
+        playerBoard.linkedPermanentTokens[object] = nil
+        PlayerBoard_UpdateSurvivorPermanentModifier(playerBoard, token.stat)
+        object.unregisterCollisions()   -- hack to turn off flip tracking
+        return
+    end
  end
-
----------------------------------------------------------------------------------------------------
-
-local function PlayerBoard_OnObjectDroppedOnSurvivorSheet(playerBoard, object)
-    if object.getGMNotes() != "Survivor Sheet" then
-        return
-    end
-
-    if playerBoard.linkedSurvivorSheet then
-        return Log.Debugf("%s already linked to SurvivorSheet %s", playerBoard.object.getName(), playerBoard.linkedSurvivorSheet:Object().getGUID())
-    end
-
-    local survivorSheet = Population.SurvivorSheetForObject(object)
-    if not survivorSheet then
-        return Log.Errorf("Survivor sheet %s isn't linked to any survivor. This usually means it was created by copying/pasting or importing from another save. If this is the case, then you'll need to create the survivor and sheet from the 'Population' screen.", object.getGUID())
-    end
-
-    playerBoard:UnpackSurvivorSheet(survivorSheet)
-    Log.Debugf("Linking SurvivorSheet %s to %s", object.getGUID(), playerBoard.object.getName())
-    -- important to unpack *before* linking the survivor, so we don't unintentionally re-add the same cards
-    playerBoard.linkedSurvivorSheet = survivorSheet
-    PlayerBoard_UpdateSurvivorModifiers(playerBoard)
-
-    EventManager.FireEvent("onPlayerBoardLinkSurvivor", playerBoard, survivorSheet:Survivor())
-    return
-end
-
----------------------------------------------------------------------------------------------------
-
-local function PlayerBoard_OnObjectPickedUpFromSurvivorSheet(playerBoard, object)
-    local survivorSheet = playerBoard.linkedSurvivorSheet
-    if not survivorSheet or survivorSheet:Object() != object then
-        return
-    end
-
-    Log.Debugf("Unlinking SurvivorSheet %s from %s", object.getGUID(), playerBoard.object.getName())
-    survivorSheet:Survivor():SetModifiers({}, {})
-    playerBoard.linkedSurvivorSheet = nil
-    EventManager.FireEvent("onPlayerBoardUnlinkSurvivor", playerBoard, survivorSheet:Survivor())
-end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -897,9 +955,9 @@ end
 local function PlayerBoard_OnSurvivorChangeStat(survivor, stat, value)
     if stat == "name" then
         for _, playerBoard in ipairs(PlayerBoard_playerBoards) do
-            if playerBoard.linkedSurvivorSheet and playerBoard.linkedSurvivorSheet:Survivor() == survivor and playerBoard:LinkedFigurine() then
-                Log.Debugf("Updating linked figurine %s for player %s to %s", playerBoard:LinkedFigurine().getGUID(), playerBoard:PlayerNumber(), value)
-                playerBoard:LinkedFigurine().setName(value)
+            if playerBoard.linkedSurvivorSheet and playerBoard.linkedSurvivorSheet:Survivor() == survivor and playerBoard:Figurine() then
+                Log.Debugf("Updating linked figurine %s for player %s to %s", playerBoard:Figurine().getGUID(), playerBoard:Number(), value)
+                playerBoard:Figurine().setName(value)
             end
         end
     end
@@ -939,7 +997,6 @@ local function PlayerBoard_PostInit()
             playerPrefix.." Gear 3 1",
             playerPrefix.." Gear 3 2",
             playerPrefix.." Gear 3 3",
-            playerPrefix.." Fist & Tooth",
             playerPrefix.." Disorder 1",
             playerPrefix.." Disorder 2",
             playerPrefix.." Disorder 3",
@@ -956,8 +1013,6 @@ local function PlayerBoard_PostInit()
             playerPrefix.." Ability/Impairment 7",
             playerPrefix.." Ability/Impairment 8",
             playerPrefix.." Ability/Impairment 9",
-            playerPrefix.." Temporary Tokens",
-            playerPrefix.." Permanent Tokens",
         }
         for _, location in ipairs(locations) do
             Zone.Add({ name = location, location = Location.Get(location) })
@@ -966,31 +1021,63 @@ local function PlayerBoard_PostInit()
         -- Zone add order matters since each zone will fire for initial objects in the order they're added
         -- Intentionall add the "Survivor Sheet" zone last
         Zone.Add({
-            name = playerPrefix.." Board",
-            location = Location.CreateFromObject(playerBoard.object),
-            dropHandler = function(object) PlayerBoard_OnDroppedOnPlayerBoard(playerBoard, object) end,
-            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromPlayerBoard(playerBoard, object) end,
-        })
-
-        Zone.Add({
             name = playerPrefix.." Marker",
             location = Location.CreateFromObject(NamedObject.Get(playerPrefix.." Marker")),
             dropHandler = function(object) PlayerBoard_OnObjectDroppedOnMarker(playerBoard, object) end,
         })
 
         Zone.Add({
-            name = playerPrefix.." SurvivorSheet",
-            location = Location.CreateFromObject(playerBoard.object),
+            name = playerPrefix.." Survivor Sheet",
+            location = Location.Get(playerPrefix.." Survivor Sheet"),
             dropHandler = function(object) PlayerBoard_OnObjectDroppedOnSurvivorSheet(playerBoard, object) end,
-            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromSurvivorSheet(playerBoard, object) end,
         })
 
+        Zone.Add({
+            name = playerPrefix.." Gear",
+            location = Location.Get(playerPrefix.." Gear"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnGear(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromGear(playerBoard, object) end,
+        })
+        Zone.Add({
+            name = playerPrefix.." Fist & Tooth",
+            location = Location.Get(playerPrefix.." Fist & Tooth"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnGear(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromGear(playerBoard, object) end,
+        })
+
+        Zone.Add({
+            name = playerPrefix.." Armor Set",
+            location = Location.Get(playerPrefix.." Armor Set"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnArmorSet(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromArmorSet(playerBoard, object) end,
+        })
+
+        Zone.Add({
+            name = playerPrefix.." Cards",
+            location = Location.Get(playerPrefix.." Cards"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnCards(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromCards(playerBoard, object) end,
+        })
+
+        Zone.Add({
+            name = playerPrefix.." Temporary Tokens",
+            location = Location.Get(playerPrefix.." Temporary Tokens"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnTemporaryTokens(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromTemporaryTokens(playerBoard, object) end,
+        })
+
+        Zone.Add({
+            name = playerPrefix.." Permanent Tokens",
+            location = Location.Get(playerPrefix.." Permanent Tokens"),
+            dropHandler = function(object) PlayerBoard_OnObjectDroppedOnPermanentTokens(playerBoard, object) end,
+            pickUpHandler = function(object) PlayerBoard_OnObjectPickedUpFromPermanentTokens(playerBoard, object) end,
+        })
     end
 
     EventManager.AddHandler("onObjectCollisionEnter", PlayerBoard_OnObjectCollisionEnter)
     EventManager.AddHandler("onObjectEnterContainer", PlayerBoard_OnObjectEnterContainer)
     EventManager.AddHandler("onObjectDestroy", PlayerBoard_OnObjectDestroy)
-    EventManager.AddHandler("onSurvivorChangeStat", PlayerBoard_OnSurvivorChangeStat)
+    EventManager.AddHandler("onChangeSurvivorStat", PlayerBoard_OnSurvivorChangeStat)
 end
 
 ---------------------------------------------------------------------------------------------------

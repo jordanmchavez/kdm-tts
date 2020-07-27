@@ -21,7 +21,8 @@ local function Container_Create(object)
     assert(CheckObject(object))
 
     local container  = {
-        object = object
+        tag = "Container",
+        object = object,
     }
     setmetatable(container, ContainerClass)
 
@@ -30,19 +31,75 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function ContainerClass.Guid(container)
+    if container.object == nil then
+        return "<container destroyed>"
+    end
+
+    return container.object.getGUID()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Objects(container)
+    if container.object == nil then
+        return {}
+
+    elseif CONTAINER_TAGS[container.object.tag] then
+        return container.object.getObjects()
+
+    else
+        return {
+            -- last object
+            {
+                name = container.object.getName(),
+                guid = container.object.getGUID(),
+                gm_notes = container.object.getGMNotes(),
+            },
+        }
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Lock(container, lock)
+    if container.object == nil then
+        return Log.Debugf("Container object destroyed, nothing to lock")
+    end
+
+    container.object.setLock(lock)
+end
+
+---------------------------------------------------------------------------------------------------
+
 function ContainerClass.Take(container, params)
     assert(CheckTable(container))
     assert(container.object != nil, "Container is empty or was destroyed")  -- != nil is important for deleted TTS object comparison
 
-    local name, type, location, spawnFunc = params.name, params.type, Location.Get(params.location), params.spawnFunc
-    assert(CheckTagged(location, "Location"))
+    local guid = params.guid
 
+    local name = params.name
+    local type = params.type
+    if name then
+        assert(Check(type, "Name '%s' provided, but no type", name))
+    end
+
+    assert(Check(not guid or not name, "Can't have both guid (%s) and name (%s)", guid, name))
+
+    local location = params.location
+    local position = params.position
+    if location then
+        location = Location.Get(location)
+        position = location:Center()
+        position.y = position.y + (params.height or DEFAULT_SPAWN_HEIGHT)
+    else
+        assert(position, "Either location or position is required")
+    end
+
+    local spawnFunc = params.spawnFunc
     local rotation = params.rotation or FACE_UP
-    local height = params.height or DEFAULT_SPAWN_HEIGHT
-    local position = location:Center()
-    position.y = position.y + height
 
-    Log.Debugf("Taking %s/%s from container %s (%s) to %s +%f", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), location:Name(), height)
+    Log.Debugf("Taking %s/%s from container %s (%s) to (%f, %f, %f)", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID(), position.x, position.y, position.z)
 
     if not CONTAINER_TAGS[container.object.tag] then
         local lastObject = container.object
@@ -55,11 +112,15 @@ function ContainerClass.Take(container, params)
         Log.Debugf("Took last object %s (%s)", lastObject.getName(), lastObject.getGUID())
 
         container.object = nil
+
+        if params.spawnFunc then
+            params.spawnFunc(lastObject)
+        end
         return lastObject
     end
 
-    local guid = nil
     if name then
+        assert(guid == nil)
         for _, entry in ipairs(container.object.getObjects()) do
             if entry.name == name and entry.gm_notes == type then
                 guid = entry.guid
@@ -79,6 +140,7 @@ function ContainerClass.Take(container, params)
         position = position,
         rotation = rotation,
         smooth = false,
+        callback_function = params.spawnFunc,
     })
     assert(Check(object, "Couldn't take %s/%s from container %s (%s)", name or "<top>", type or "<???>", container.object.getName(), container.object.getGUID()))
     Log.Debugf("Took %s (%s) from container %s (%s)", object.getName(), object.getGUID(), container.object.getName(), container.object.getGUID())

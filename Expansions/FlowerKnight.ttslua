@@ -30,7 +30,7 @@ return {
     weaponStats = {
         ["Replica Flower Sword"] = { speed = 2, accuracy = 6, strength = 6 },
         ["Vespertine Arrow"]     = { speed = 2, accuracy = 6, strength = 0, deadly = 4 },
-        ["Vespertine Bow"]       = { speed = 3, accuracy = 6, strength = 4, deadly = 1 },
+        ["Vespertine Bow"]       = { speed = 3, accuracy = 6, strength = 6, deadly = 1 },
     },
 
     guidNames = { ["475b51"] = "Flower Knight Archive" },

@@ -17,12 +17,14 @@ local Survivor = require("Kdm/Survivor")
 local SurvivorSheet = require("Kdm/SurvivorSheet")
 local Population = require("Kdm/Population")
 local PlayerBoard = require("Kdm/PlayerBoard")
--- local SettlementBoard = require("Kdm/SettlementBoard")
--- local Settlement = require("Kdm/Settlement")
--- local Setup = require("Kdm/Setup")
--- local Showdown = require("Kdm/Showdown")
--- local Hunt = require("Kdm/Hunt")
--- local BattleReference = require("Kdm/BattleReference")
+local SettlementBoard = require("Kdm/SettlementBoard")
+local Settlement = require("Kdm/Settlement")
+local Setup = require("Kdm/Setup")
+local Showdown = require("Kdm/Showdown")
+local Hunt = require("Kdm/Hunt")
+local BattleReference = require("Kdm/BattleReference")
+local MessageBox = require("Kdm/MessageBox")
+local GlobalUi = require("Kdm/GlobalUi")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -46,9 +48,10 @@ function onSave()
     local saveState = {
         Population = Population.Save(),
         PlayerBoard = PlayerBoard.Save(),
-        -- Settlement = Settlement.Save(),
-        -- Setup = Setup.Save(),
-        -- Showdown = Showdown.Save(),
+        Settlement = Settlement.Save(),
+        Setup = Setup.Save(),
+        Showdown = Showdown.Save(),
+        BattleReference = BattleReference.Save(),
     }
 
     return JSON.encode(saveState)
@@ -76,12 +79,14 @@ function onLoad(saveJson)
         ["RulesNav"] = RulesNav,
         ["Population"] = Population,
         ["PlayerBoard"] = PlayerBoard,
-        -- ["SettlementBoard"] = SettlementBoard,
-        -- ["Settlement"] = Settlement,
-        -- ["Setup"] = Setup,
-        -- ["Showdown"] = Showdown,
-        -- ["Hunt"] = Hunt,
-        -- ["BattleReference"] = BattleReference,
+        ["SettlementBoard"] = SettlementBoard,
+        ["Settlement"] = Settlement,
+        ["Setup"] = Setup,
+        ["Showdown"] = Showdown,
+        ["Hunt"] = Hunt,
+        ["BattleReference"] = BattleReference,
+        ["GlobalUi"] = GlobalUi,
+        ["MessageBox"] = MessageBox,
     }
 
     local ui = { id = "UI", children = self.UI.getXmlTable() }

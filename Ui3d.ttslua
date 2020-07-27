@@ -7,15 +7,15 @@ local UI_Y = 0.103  -- works for 0.1-thick tiles
 
 local UI_LIGHT_BROWN = { r = 0.733, g = 0.706, b = 0.631, a = 100 }
 local UI_DARK_BROWN = { r = 0.271, g = 0.22, b = 0.141, a = 100 }
-local UI_BACKGROUND_COLOR = { r = 1.0, g = 0.0, b = 0.5, a = 0.9 }
 local UI_BACKGROUND_COLOR = { r = 1, g = 1, b = 1, a = 0 }
+--local UI_BACKGROUND_COLOR = { r = 1.0, g = 0.0, b = 0.5, a = 0.9 }
 local UI_HOVER_COLOR = { r = 1.0, g = 1.0, b = 1.0, a = 0.5 }
 local UI_PRESS_COLOR = { r = 1.0, g = 1.0, b = 1.0, a = 0.7 }
 
 local Ui_objectButtons = {}
 local Ui_objectInputs = {}
 
-function Ui_Dud() end
+function Ui3d_Dud() end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -39,9 +39,62 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local Ui_TextClass = {
+    SetText = function(text, textValue)
+        Log.Debugf("Setting %s text to %s", text.id, testValue)
+        text.params.label = textValue
+        text.object.editButton(text.params)
+    end
+}
+Ui_TextClass.__index = Ui_TextClass
+
+-- really just a button
+local function Ui_Text(params)
+    local object, id, topLeft, bottomRight = params.object, params.id, params.topLeft, params.bottomRight
+    assert(CheckObject(object))
+    assert(CheckStr(id))
+    assert(CheckVec2(topLeft))
+    assert(CheckVec2(bottomRight))
+
+    local text = {
+        tag = "Text",
+        object = object,
+        id = object.getGUID().."_"..params.id.."_Text",
+    }
+    setmetatable(text, Ui_TextClass)
+
+    Log.Debugf("Creating text %s", text.id)
+
+    local index = Ui_RecordButtonAndGetIndex(object)
+    local tl = topLeft
+    local br = bottomRight
+    local x = -(tl.x + br.x) / 2
+    local y = (tl.y + br.y) / 2
+    local scale = params.scale or UI_SCALE
+
+    text.params = {
+        index = index,
+        position = { x = x, y = params.y or UI_Y, z = y },
+        scale = { x = scale, y = scale, z = scale },
+        width = 0,
+        height = 0,
+        --color = UI_BACKGROUND_COLOR,
+        label = params.text,
+        font_color = params.textColor,
+        font_size = 1000,
+        click_function = "Ui3d_Dud",
+        function_owner = self,
+    }
+    object.createButton(text.params)
+
+    return text
+end
+
+---------------------------------------------------------------------------------------------------
 
 local function Ui_Button(params)
     local object, id, topLeft, bottomRight, onClick = params.object, params.id, params.topLeft, params.bottomRight, params.onClick
+    assert(CheckObject(object))
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
@@ -55,8 +108,8 @@ local function Ui_Button(params)
     Log.Debugf("Creating button %s", button.id)
 
     local index = Ui_RecordButtonAndGetIndex(object)
-    local tl = params.topLeft
-    local br = params.bottomRight
+    local tl = topLeft
+    local br = bottomRight
     local x = -(tl.x + br.x) / 2
     local y = (tl.y + br.y) / 2
     local scale = params.scale or UI_SCALE
@@ -86,8 +139,8 @@ end
 
 local Ui_InputClass = {
     Set = function(input, value)
-        Log.Debugf("Changing %s to %s", input.id, value)
-        input.value = value
+        Log.Debugf("Setting %s to %s", input.id, value)
+        input.params.value = value
         input.object.editInput(input.params)
     end,
 }
@@ -95,6 +148,7 @@ Ui_InputClass.__index = Ui_InputClass
 
 function Ui_Input(params)
     local object, id, topLeft, bottomRight, value, onValueChanged = params.object, params.id, params.topLeft, params.bottomRight, params.value, params.onValueChanged
+    assert(CheckObject(object))
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
@@ -113,8 +167,8 @@ function Ui_Input(params)
     setmetatable(input, Ui_InputClass)
 
     local index = Ui_RecordInputAndGetIndex(object)
-    local tl = params.topLeft
-    local br = params.bottomRight
+    local tl = topLeft
+    local br = bottomRight
     local x = -(tl.x + br.x) / 2
     local y = (tl.y + br.y) / 2
     local scale = params.scale or UI_SCALE
@@ -158,6 +212,7 @@ Ui_CounterClass.__index = Ui_CounterClass
 
 function Ui_Counter(params)
     local object, id, topLeft, bottomRight, value, onValueChanged = params.object, params.id, params.topLeft, params.bottomRight, params.value, params.onValueChanged
+    assert(CheckObject(object))
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
@@ -181,8 +236,8 @@ function Ui_Counter(params)
     setmetatable(counter, Ui_CounterClass)
 
     local index = Ui_RecordButtonAndGetIndex(object)
-    local tl = params.topLeft
-    local br = params.bottomRight
+    local tl = topLeft
+    local br = bottomRight
     local x = -(tl.x + br.x) / 2
     local y = (tl.y + br.y) / 2
     local scale = params.scale or UI_SCALE
@@ -201,7 +256,7 @@ function Ui_Counter(params)
         press_color = UI_BACKGROUND_COLOR,
         font_color = UI_LIGHT_BROWN,
         font_size = 1000,
-        click_function = "Ui_Dud",
+        click_function = "Ui3d_Dud",
         function_owner = self,
     }
     object.createButton(counter.text.params)
@@ -260,6 +315,7 @@ Ui_CheckBoxClass.__index = Ui_CheckBoxClass
 
 function Ui_CheckBox(params)
     local object, id, topLeft, bottomRight, onClick = params.object, params.id, params.topLeft, params.bottomRight, params.onClick
+    assert(CheckObject(object))
     assert(CheckStr(id))
     assert(CheckVec2(topLeft))
     assert(CheckVec2(bottomRight))
@@ -281,8 +337,8 @@ function Ui_CheckBox(params)
     setmetatable(checkBox, Ui_CheckBoxClass)
 
     local index = Ui_RecordButtonAndGetIndex(object)
-    local tl = params.topLeft
-    local br = params.bottomRight
+    local tl = topLeft
+    local br = bottomRight
     local x = -(tl.x + br.x) / 2
     local y = (tl.y + br.y) / 2
     local scale = params.scale or UI_SCALE
@@ -300,7 +356,7 @@ function Ui_CheckBox(params)
         color = UI_BACKGROUND_COLOR,
         font_size = 1000,
         font_color = UI_DARK_BROWN,
-        click_function = "Ui_Dud",
+        click_function = "Ui3d_Dud",
         function_owner = self,
     }
     object.createButton(checkBox.text.params)
@@ -328,8 +384,10 @@ end
 ---------------------------------------------------------------------------------------------------
 
 return {
+    Text = Ui_Text,
     Button = Ui_Button,
     Input = Ui_Input,
     Counter = Ui_Counter,
     CheckBox = Ui_CheckBox,
+    DARK_BROWN = UI_DARK_BROWN
 }

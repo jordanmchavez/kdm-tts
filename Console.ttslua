@@ -1,7 +1,7 @@
 require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("Console")
 
-local CONSOLE_CHAR = "\\"
+local CONSOLE_CHAR = ">"
 
 local Console_commandFuncs = {}
 

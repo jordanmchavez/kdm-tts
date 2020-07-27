@@ -3,8 +3,11 @@ local Log = require("Kdm/Log").ForPackage("Ui")
 local Util = require("Kdm/Util")
 
 local UI_DARK_BROWN = "#453824"
-local UI_MID_BROWN = "#7f7059"
-local UI_LIGHT_BROWN = "#bbb4a1"
+--local UI_MID_BROWN = "#7f7059"
+local UI_MID_BROWN = "#71624c"
+-- local UI_LIGHT_BROWN = "#bbb4a1"
+local UI_LIGHT_BROWN = "#d3cdc3"
+
 
 local UI_DARK_BROWN_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
 local UI_MID_BROWN_COLORS = "#7f7059|#655741|#655741|#ffffff"
@@ -186,7 +189,7 @@ local function Ui_Image(parent, params)
         attributes = {
             id = id,
             image = params.image,
-            rectAlignment = params.rectAlignment or "MiddleCenter",
+            rectAlignment = params.rectAlignment or "LowerLeft",
             offsetXY = params.x and (params.x.." "..params.y) or nil,
             width = params.width,
             height = params.height,
@@ -716,7 +719,7 @@ local function Ui_Counter(parent, params)
             rectAlignment = params.rectAlignment or "LowerLeft",
             offsetXY = params.x.." "..params.y,
             width = params.width,
-            height = params.height,
+            height = params.height * 0.85,   -- hack to get the counter value to appear below the +/- in the top of the counter box
             text = tostring(value),
             color = params.textColor or UI_DARK_BROWN,
             fontSize = params.fontSize,

@@ -14,22 +14,24 @@ local Showdown = nil
 local BattleReference_ui = {}
 
 local BATTLE_UI_RELEVANT_ATTRIBUTES = {
-    name = true,
-    toughness = true,
-    speed = true,
-    accuracy = true,
-    strength = true,
-    evasion = true,
-    luck = true,
+    ["Name"] = true,
+    ["Toughness"] = true,
+    ["Speed"] = true,
+    ["Accuracy"] = true,
+    ["Strength"] = true,
+    ["Evasion"] = true,
+    ["Luck"] = true,
 }
 
 local BATTLE_REFERENCE_MAX_WEAPONS = 3
 
+local BattleReference_hiddenWeaponsBySurvivor = {}
+
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_CalcWeapons(playerBoard, charSheet)
+local function BattleReference_CalcWeapons(playerBoard, survivor)
     -- dedup and consolidate weapons
-    local hiddenWeapons = charSheet:HiddenWeapons()
+    local hiddenWeapons = BattleReference_hiddenWeaponsBySurvivor[survivor] or {}
     local weapons = {}
     local weaponCounts = {}
     setmetatable(weaponCounts, {  __index = function() return 0 end })
@@ -45,10 +47,10 @@ local function BattleReference_CalcWeapons(playerBoard, charSheet)
     end
     table.sort(weapons, function(w1, w2) return w1.name < w2.name end)
 
-    local charSpeed = charSheet:Speed()
-    local charAccuracy = charSheet:Accuracy()
-    local charStrength = charSheet:Strength()
-    local charLuck = charSheet:Luck()
+    local survivorSpeed = survivor:Speed()
+    local survivorAccuracy = survivor:Accuracy()
+    local survivorStrength = survivor:Strength()
+    local survivorLuck = survivor:Luck()
     local monsterEvasion = Showdown.MonsterEvasion()
     local monsterToughness = Showdown.MonsterToughness()
     local monsterLuck = Showdown.MonsterLuck()
@@ -57,11 +59,11 @@ local function BattleReference_CalcWeapons(playerBoard, charSheet)
     for _, weapon in ipairs(weapons) do
         local name, stats = weapon.name, weapon.stats
 
-        local speed = stats.speed + charSpeed
+        local speed = stats.speed + survivorSpeed
         -- accuracy goes the opposite way
-        local accuracy = stats.accuracy - charAccuracy
-        local strength = stats.strength + charStrength
-        local luck = (stats.deadly or 0) + charLuck
+        local accuracy = stats.accuracy - survivorAccuracy
+        local strength = stats.strength + survivorStrength
+        local luck = (stats.deadly or 0) + survivorLuck
 
         for _, modifier in ipairs(weapon.modifiers) do
             if modifier.stat == "speed" then
@@ -119,8 +121,8 @@ end
 local function BattleReference_UpdatePlayerInternal(playerBoard)
     local player = BattleReference_ui.players[playerBoard:Number()]
 
-    local charSheet = playerBoard:CharSheet()
-    if not charSheet then
+    local survivor = playerBoard:Survivor()
+    if not survivor then
         player.open = false
         player.height = 0
         player.panel:Hide()
@@ -130,9 +132,9 @@ local function BattleReference_UpdatePlayerInternal(playerBoard)
     player.open = true
     player.panel:Show()
 
-    player.nameText:SetText(charSheet:NameOrUnnamed())
+    player.nameText:SetText(survivor:NameOrUnnamed())
     player.showWeaponsButton:Show()
-    local weapons = BattleReference_CalcWeapons(playerBoard, charSheet)
+    local weapons = BattleReference_CalcWeapons(playerBoard, survivor)
     local numShownWeapons = Util.Min(#weapons, BATTLE_REFERENCE_MAX_WEAPONS)
     for i = 1, numShownWeapons do
         local weapon = weapons[i]
@@ -197,6 +199,17 @@ end
 local function BattleReference_Init(saveState, expansions, modules, ui)
     PlayerBoard = modules.PlayerBoard
     Showdown = modules.Showdown
+
+    -----------------------------------------------------------------------------------------------
+
+    for survivorId, hiddenWeapons in pairs(saveState or {}) do
+        local survivor = Population.SurvivorForId(survivorId)
+        if survivor == nil then
+            Log.Debug("No survivor with ID %d doesn't exist", survivorId)
+        else
+            BattleReference_hiddenWeaponsBySurvivor[survivor] = hiddenWeapons
+        end
+    end
 
     -----------------------------------------------------------------------------------------------
 
@@ -267,13 +280,13 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
         player.endTurnButton = Ui.Button(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
             player.turnEnded = not player.turnEnded
             if player.turnEnded then
-                Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:Survivor():NameOrUnnamed())
                 player.playerCircleImage:SetImage("GreyCircle")
                 player.nameText:SetColor(DISABLED_TEXT_COLOR)
                 player.nameText:SetFontStyle("Italic")
                 player.endTurnButton:SetColors(DARK_SELECTED_COLORS)
             else
-                Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:CharSheet():NameOrUnnamed())
+                Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:Survivor():NameOrUnnamed())
                 player.playerCircleImage:SetImage(playerCircleImages[playerNumber])
                 player.nameText:SetColor(TEXT_COLOR)
                 player.nameText:SetFontStyle("Normal")
@@ -283,9 +296,9 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
 
         player.showWeaponsImage = Ui.Image(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380, y = -8, width = 48, height = 25, image = "BR_Show" })
         player.showWeaponsButton = Ui.Button(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
-            local charSheet = playerBoard:CharSheet()
-            Log.Printf("Showing all weapons for %s", charSheet:NameOrUnnamed())
-            charSheet:ShowAllWeapons()
+            local survivor = playerBoard:Survivor()
+            Log.Printf("Showing all weapons for %s", survivor:NameOrUnnamed())
+            BattleReference_hiddenWeaponsBySurvivor[survivor] = nil
             BattleReference_UpdatePlayer(playerBoard)
         end})
 
@@ -301,9 +314,12 @@ local function BattleReference_Init(saveState, expansions, modules, ui)
             player.weaponImages[i] = Ui.Image(player.panel, { id = "Weapon"..i, rectAlignment = "UpperLeft", x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
             player.weaponShowWeaponsButtons[i] = Ui.Button(player.panel, { id = "WeaponName"..i, rectAlignment = "UpperLeft", x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
                 local weaponName = player.weaponNameTexts[i]:Text()
-                local charSheet = playerBoard:CharSheet()
-                Log.Printf("Hiding %s for %s", weaponName, charSheet:NameOrUnnamed())
-                charSheet:HideWeapon(weaponName)
+                local survivor = playerBoard:Survivor()
+                Log.Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
+                if not BattleReference_hiddenWeaponsBySurvivor[survivor] then
+                    BattleReference_hiddenWeaponsBySurvivor[survivor] = {}
+                end
+                BattleReference_hiddenWeaponsBySurvivor[survivor][weaponName] = true
                 BattleReference_UpdatePlayer(playerBoard)
             end })
             player.weaponNameTexts[i]  = Ui.Text(player.panel, { id = "WeaponName"..i,  rectAlignment = "UpperLeft", x =  43, y = y, width = 172, height = 25, color = TEXT_COLOR, fontSize = 14, text = "Calcified Juggernaut Blade" })
@@ -321,14 +337,14 @@ end
 local function BattleReference_PostInit()
     EventManager.AddHandler("onShowdownStart", BattleReference_Show)
     EventManager.AddHandler("onShowdownCleanup", BattleReference_Hide)
-    EventManager.AddHandler("onPlayerBoardLinkCharSheet", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
-    EventManager.AddHandler("onPlayerBoardUnlinkCharSheet", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardLinkSurvivor", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUnlinkSurvivor", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
     EventManager.AddHandler("onMonsterChangeStat", function(attribute)
         if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
             BattleReference_Update()
         end
     end)
-    EventManager.AddHandler("onSurvivorChangeStat", function(charSheet, attribute)
+    EventManager.AddHandler("onChangeSurvivorStat", function(survivor, stat, value)
         if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
             BattleReference_Update()
         end
@@ -337,8 +353,23 @@ local function BattleReference_PostInit()
     EventManager.AddHandler("onPlayerBoardUpdateWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
     EventManager.AddHandler("onPlayerBoardUnlinkWeapon", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
 
+    EventManager.AddHandler("onDeleteSurvivor", function(survivor)
+        BattleReference_hiddenWeaponsBySurvivor[survivor] = nil
+    end)
+
+
     BattleReference_Update()
 --    BattleReference_Show()
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function BattleReference_Save()
+    local hiddenWeaponsBySurvivorId = {}
+    for survivor, hiddenWeapons in pairs(BattleReference_hiddenWeaponsBySurvivor) do
+        hiddenWeaponsBySurvivorId[survivor:Id()] = hiddenWeapons
+    end
+    return hiddenWeaponsBySurvivorId
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -346,5 +377,6 @@ end
 return {
     Init = BattleReference_Init,
     PostInit = BattleReference_PostInit,
+    Save = BattleReference_Save,
     Update = BattleReference_Update,
 }

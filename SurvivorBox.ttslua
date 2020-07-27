@@ -1,0 +1,53 @@
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("SurvivorBox")
+local Util = require("Kdm/Util")
+local Ui = require("Kdm/Ui3d")
+
+local SurvivorBoxClass = {}
+SurvivorBoxClass.__index = SurvivorBoxClass
+
+local SURVIVOR_BOX_MAX_NAME = 20
+
+---------------------------------------------------------------------------------------------------
+
+local function SurvivorBox_Create(survivor, object)
+    assert(CheckTagged(survivor, "Survivor"))
+
+    Log.Debugf("Creating SurvivorBox for survivor %d", survivor:Id())
+    local survivorBox = {
+        tag = "Survivor Box",
+        survivor = survivor,
+        object = object,
+        ui = {},
+    }
+    setmetatable(survivorBox, SurvivorBoxClass)
+
+    local name = Util.TruncateString(survivor:Name(), SURVIVOR_BOX_MAX_NAME)
+    survivorBox.ui.nameText = Ui.Text({ object = object, id = "Name", topLeft = { x = 1.465516, y = -1.872933 }, bottomRight = { x = -1.495294, y = 0.35 }, y = 0.2, scale = 0.15, text = name, textColor = Ui.DARK_BROWN })
+
+    return survivorBox
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass.Survivor(survivorBox) return survivorBox.survivor end
+function SurvivorBoxClass.Object(survivorBox) return survivorBox.object end
+
+function SurvivorBoxClass.SetName(survivorBox, name)
+    survivorBox.ui.nameText:SetText(Util.TruncateString(name, SURVIVOR_BOX_MAX_NAME))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass.Save(survivorBox)
+    return {
+        survivorId = survivorBox.survivor:Id(),
+        objectGuid = survivorBox.object.getGUID()
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Create = SurvivorBox_Create,
+}

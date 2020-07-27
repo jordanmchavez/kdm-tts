@@ -1,3 +1,13 @@
+# Colors:
+Light: #d3cdc3ff
+Mid:   #71624cff
+Dark:  #453824ff
+
+# Colors (Old):
+Light: #bbb4a1ff
+Mid:   #7f7059ff
+Dark:  #453824ff
+
 # New Sizes:
 * Gear: 600x600
 * Card: 800x1240

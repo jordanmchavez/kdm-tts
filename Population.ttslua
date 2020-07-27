@@ -1,23 +1,36 @@
 require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("Population")
 local Util = require("Kdm/Util")
-local Console = require("Kdm/Console")
 local Location = require("Kdm/Location")
 local EventManager = require("Kdm/EventManager")
 local Survivor = require("Kdm/Survivor")
+local SurvivorBox = require("Kdm/SurvivorBox")
 local SurvivorSheet = require("Kdm/SurvivorSheet")
+local Ui = require("Kdm/Ui")
+local MessageBox = require("Kdm/MessageBox")
 
 local Archive = nil
 
+local POPULATION_SURVIVOR_BOX_SIZE = { x = 5.3, y = 5, z = 4.2 }
+local POPULATION_MAX_CARDS = 10
+
+local POPULATION_MAX_UI_ROWS = 5
+
 local Population_nextSurvivorId = 1
 
+local Population_survivors = {}
 local Population_survivorsById = {}
+local Population_survivorUiBySurvivor = {}
+
+local Population_survivorBoxesBySurvivor = {}
+local Population_survivorBoxesByObject = {}
 
 local Population_survivorSheetsBySurvivor = {}
 local Population_survivorSheetsByObject = {}
 
--- y = 0.1, but give the hitbox some thickness
-local POPULATION_SURVIVOR_SHEET_SIZE = { x = 10.32265, y = 5, z = -12.96177 }
+local Population_newSurvivorBonuses = nil
+
+local Population_ui = {}
 
 ---------------------------------------------------------------------------------------------------
 
@@ -29,37 +42,587 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Population_AddSurvivor()
+local function Population_UpdateLivingDead()
+    Log.Debugf("Updating living/dead survivor UI text")
+
+    local living = 0
+    local dead = 0
+    for _, survivor in ipairs(Population_survivors) do
+        if survivor:Dead() then
+            dead = dead + 1
+        else
+            living = living + 1
+        end
+    end
+    Population_ui.livingSurvivorsText:SetText(tostring(living))
+    Population_ui.deadSurvivorsText:SetText(tostring(dead))
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_CreateSurvivorBox(survivor, location)
+    assert(CheckTagged(survivor, "Survivor"))
+    location = Location.Get(location)
+
+    local survivorBox = Population_survivorBoxesBySurvivor[survivor]
+    if survivorBox then
+        Log.Debugf("SurvivorBox %s already exists for Survivor %d", survivorBox:Object().getGUID(), survivor:Id())
+        Util.Highlight(survivorBox:Object())
+        Util.LookAt({ object = survivorBox:Object() })
+        return
+    end
+
+    local blocking = location:BoxClean({ size = POPULATION_SURVIVOR_BOX_SIZE })
+    if #blocking > 0 then
+        Log.Broadcastf("Please move the highlighted objects out of the board center and try creating the survivor box again.")
+        Util.HighlightAll(blocking)
+        Util.LookAt({ location = location })
+        return
+    end
+
+    Archive.Take({
+        name = "Survivor Box",
+        type = "Survivor Box",
+        location = location,
+        rotation = FACE_UP,
+        spawnFunc = function(survivorBoxObject)
+            Wait.frames(function()  -- custom model boxes are mad sketchy the turn they come into play: they're treated as "Generic" not "Boxes" for 1 frame
+                Log.Printf("Created survivor box %s for survivor %d", survivorBoxObject.getGUID(), survivor:Id())
+
+                local survivorBox = SurvivorBox.Create(survivor, survivorBoxObject)
+                Population_survivorBoxesBySurvivor[survivor] = survivorBox
+                Population_survivorBoxesByObject[survivorBoxObject] = survivorBox
+
+                -- We pre-create a table of all cards to spawn to avoid any modification of survivor card fields during the spawn loop
+                local cardsToSpawn = {}
+                for type, cards in pairs(survivor:Cards()) do
+                    for _, card in ipairs(cards) do
+                        table.insert(cardsToSpawn, { card, type })
+                    end
+                end
+                Log.Debugf("Survivor %d cards to spawn: %s", survivor:Id(), cardsToSpawn)
+
+                Log.Debugf("Clearing survivor %d cards", survivor:Id())
+                survivor:SetCards({})
+
+                -- Spawn all cards
+                local height = DEFAULT_SPAWN_HEIGHT + 1
+                for _, cardToSpawn in ipairs(cardsToSpawn) do
+                    local card, type = cardToSpawn[1], cardToSpawn[2]
+                    Archive.Take({ archive = type.." Archive", name = card, type = type, location = location, height = height, spawnFunc = function(cardObject)
+                        survivorBoxObject.putObject(cardObject)
+                    end})
+                    height = height + 0.5
+
+                    -- Must clean up after each Take() since a survivor could have more than one of the same card
+                    Archive.CleanUpContainers()
+                end
+
+                Util.LookAt({ object = survivorBoxObject })
+            end, 1)
+        end,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_DestroySurvivorSheetAndCreatePackedSurvivorBox(survivorSheet, objectsToPack, location)
+    assert(CheckTagged(survivorSheet, "Survivor Sheet"))
+    assert(CheckTable(objectsToPack))
+
+    local survivor = survivorSheet:Survivor()
+    local survivorBox = Population_survivorBoxesBySurvivor[survivor]
+    if survivorBox then
+        return Log.Errorf("SurvivorBox %s already exists for Survivor %d", survivorBox:Object().getGUID(), survivor:Id())
+    end
+
+    Log.Debugf("Destroying survivor sheet %s and creating survivor box for Survivor %d", survivorSheet:Object().getGUID(), survivor:Id())
+
+    local survivorBoxObject = Archive.Take({ name = "Survivor Box", type = "Survivor Box", location = location, rotation = FACE_UP })
+
+    local packedObjectPositions = {}
+    for _, entry in ipairs(objectsToPack) do
+        local object, position = entry.object, entry.position
+        local name = object.getName()
+
+        if position then
+            if not packedObjectPositions[name] then
+                packedObjectPositions[name] = {}
+            end
+            table.insert(packedObjectPositions[name], { position = position, rotation = object.getRotation() })
+        end
+
+        Log.Debugf("Putting %s (%s) into survivor %d box", name, object.getGUID(), survivor:Id())
+        survivorBoxObject.putObject(object)
+    end
+
+    survivor:SetPackedObjectPositions(packedObjectPositions)
+
+    local survivorBox = SurvivorBox.Create(survivor, survivorBoxObject)
+    Population_survivorBoxesBySurvivor[survivor] = survivorBox
+    Population_survivorBoxesByObject[survivorBoxObject] = survivorBox
+
+    Population_survivorSheetsBySurvivor[survivor] = nil
+    Population_survivorSheetsByObject[survivorSheet:Object()] = nil
+    survivorSheet:Object().destruct()
+
+    return survivorBox
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_ReplaceSurvivorBoxWithSheet(survivorBox, location)
+    assert(CheckTagged(survivorBox, "Survivor Box"))
+    assert(CheckTagged(location, "Location"))
+
+    local survivor = survivorBox:Survivor()
+
+    local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+    if survivorSheet then
+        Log.Errorf("Survivor sheet %s already exists for survivor '%s' (%d), creating new sheet and linking ", survivorSheet:Object().getGUID(), survivor:Name(), survivor:Id())
+        Population_survivorSheetsByObject[survivorSheet:Object()] = nil
+    end
+
+    local survivorSheetObject = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = location, height = 0, rotation = FACE_UP, spawnFunc = function(spawnedObject)
+        spawnedObject.setLock(true)
+    end })
+    survivorSheetObject.interactable = false
+    Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
+
+    local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
+    Population_survivorSheetsBySurvivor[survivor] = survivorSheet
+    Population_survivorSheetsByObject[survivorSheetObject] = survivorSheet
+
+    Population_survivorBoxesBySurvivor[survivor] = nil
+    Population_survivorBoxesByObject[survivorBox:Object()] = nil
+    survivorBox:Object().destruct()
+
+    return survivorSheet
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_ShowUi()
+    Log.Debugf("Showing population ui")
+    Population_ui.panel:Show()
+    Population_ui.open = true
+end
+
+local function Population_HideUi()
+    Log.Debugf("Showing population ui")
+    Population_ui.panel:Hide()
+    Population_ui.open = false
+end
+
+local function Population_IsUiOpen()
+    return Population_ui.open
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_UpdateSurvivorUiCards(survivorUi)
+    local survivor = survivorUi.survivor
+    Log.Debugf("Updating cards UI for survivor %d", survivor:Id())
+
+    local cards = survivor:Cards()
+    local i = 1
+    for _, data in ipairs({
+        { type = "Secret Fighting Arts", icon = "FightingArtIcon" },
+        { type = "Fighting Arts", icon = "FightingArtIcon" },
+        { type = "Disorders", icon = "DisorderIcon" },
+        { type = "Severe Injuries", icon = "SevereInjuryIcon" },
+        { type = "Abilities", icon = "AbilityIcon" },
+    }) do
+        for _, card in ipairs(cards[data.type]) do
+            if i <= POPULATION_MAX_CARDS then
+                local cardsUi = survivorUi.cards[i]
+                cardsUi.image:SetImage(data.icon)
+                cardsUi.image:Show()
+                cardsUi.text:SetText(card)
+                cardsUi.text:Show()
+                i = i + 1
+            end
+        end
+    end
+
+    while i <= POPULATION_MAX_CARDS do
+        local cardsUi = survivorUi.cards[i]
+        cardsUi.image:Hide()
+        cardsUi.text:Hide()
+        i = i + 1
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_SetSurvivorUi(survivorUi, survivor)
+    assert(survivor)
+
+    Log.Debugf("Linking survivor UI row %d to survivor %d", survivorUi.row, survivor:Id())
+
+    survivorUi.survivor = survivor
+    Population_survivorUiBySurvivor[survivor] = survivorUi
+
+    survivorUi.panel:Show()
+
+    survivorUi.NameInput:Set(survivor:Name())
+    survivorUi.WeaponProficiencyTypeInput:Set(survivor:WeaponProficiencyType())
+    survivorUi.Notes1Input:Set(survivor:Notes1())
+    survivorUi.Notes2Input:Set(survivor:Notes2())
+    survivorUi.Notes3Input:Set(survivor:Notes3())
+    survivorUi.Notes4Input:Set(survivor:Notes4())
+
+    survivorUi.DeadCheckBox:Set(survivor:Dead())
+    survivorUi.MaleCheckBox:Set(survivor:Male())
+    survivorUi.FemaleCheckBox:Set(survivor:Female())
+    survivorUi.RerollCheckBox:Set(survivor:Reroll())
+
+    survivorUi.HuntXpCounter:Set(survivor:HuntXp())
+    survivorUi.SurvivalCounter:Set(survivor:Survival())
+    survivorUi.InsanityCounter:Set(survivor:Insanity())
+    survivorUi.CourageCounter:Set(survivor:Courage())
+    survivorUi.UnderstandingCounter:Set(survivor:Understanding())
+    survivorUi.MovementCounter:Set(survivor:Movement())
+    survivorUi.SpeedCounter:Set(survivor:Speed())
+    survivorUi.AccuracyCounter:Set(survivor:Accuracy())
+    survivorUi.StrengthCounter:Set(survivor:Strength())
+    survivorUi.EvasionCounter:Set(survivor:Evasion())
+    survivorUi.LuckCounter:Set(survivor:Luck())
+    survivorUi.WeaponProficiencyRankCounter:Set(survivor:WeaponProficiencyRank())
+
+    Population_UpdateSurvivorUiCards(survivorUi)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_ClearSurvivorUi(survivorUi)
+    Log.Debugf("Linking survivor UI row %d", survivorUi.row)
+
+    if survivorUi.survivor then
+        Population_survivorUiBySurvivor[survivorUi.survivor] = nil
+    end
+
+    survivorUi.survivor = nil
+    survivorUi.panel:Hide()
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_MaxUiPage()
+    return Util.Max(1, math.ceil(#Population_survivors / POPULATION_MAX_UI_ROWS))
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_SetUiPage(page)
+    local maxPages = Population_MaxUiPage()
+    assert(Check(page >= 1 and page <= maxPages, "Invalid page: %d", page))
+
+    Log.Debugf("Setting Population UI page to %d", page)
+    Population_ui.page = page
+
+    local startIndex = (Population_ui.page - 1) * 5 + 1
+    local endIndex = Util.Min(startIndex + (POPULATION_MAX_UI_ROWS - 1), #Population_survivors)
+    for i = startIndex, endIndex do
+        Population_SetSurvivorUi(Population_ui.survivorUiRows[i - startIndex + 1], Population_survivors[i])
+    end
+    for i = endIndex + 1, startIndex + (POPULATION_MAX_UI_ROWS - 1) do
+        Population_ClearSurvivorUi(Population_ui.survivorUiRows[i - startIndex + 1])
+    end
+
+    Population_ui.pageText:SetText("Page "..page.."/"..maxPages)
+end
+
+local function Population_PreviousUiPage()
+    if Population_ui.page > 1 then
+        Population_SetUiPage(Population_ui.page - 1)
+    end
+end
+
+local function Population_NextUiPage()
+    if Population_ui.page < Population_MaxUiPage() then
+        Population_SetUiPage(Population_ui.page + 1)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_CreateSurvivor()
     local survivor = Survivor.Create({ id = Population_NextSurvivorId() })
+    table.insert(Population_survivors, survivor)
     Population_survivorsById[survivor:Id()] = survivor
+
+    Population_UpdateLivingDead()
+
+    Population_SetUiPage(Population_MaxUiPage())
+
     Log.Debugf("Created new survivor %d", survivor:Id())
+
     return survivor
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Population_SpawnSurvivorSheet(survivor)
-    local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
-    if survivorSheet then
-        return Log.Errorf("SurvivorSheet %s already exists for Survivor %d", survivorSheet:Object().getGUID(), survivor:Id())
-    end
+local function Population_DeleteSurvivor(survivor)
+    Log.Debugf("Deleting survivor %d", survivor:Id())
 
-    local location = Location.Get("(11.5, 8.5)")
-    local blocking = location:BoxClean({ size = POPULATION_SURVIVOR_SHEET_SIZE })
-    if #blocking > 0 then
-        Log.Broadcastf("Please move the highlighted objects out of the board center and try spawning the survivor sheet again.")
-        Util.HighlightAll(blocking)
+    local boxOrSheet = Population_survivorBoxesBySurvivor[survivor] or Population_survivorSheetsBySurvivor[survivor]
+    if boxOrSheet then
+        Population_HideUi()
+        Log.Broadcastf("Please delete survivor sheet / box from the game board first.")
+        Util.Highlight(boxOrSheet:Object())
         return
     end
 
-    local object = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = location, rotation = FACE_UP })
-    local survivorSheet = SurvivorSheet.Create(survivor, object, nil, nil)
-    Population_survivorSheetsBySurvivor[survivor] = survivorSheet
-    Population_survivorSheetsByObject[object] = survivorSheet
+    MessageBox.Show(string.format("Are you sure you want to delete '%s'", survivor:NameOrUnnamed()), function()
+        -- We have to check again for the pathological case of spawning a box while the message box is up
+        local boxOrSheet = Population_survivorBoxesBySurvivor[survivor] or Population_survivorSheetsBySurvivor[survivor]
+        if boxOrSheet then
+            Population_HideUi()
+            Log.Broadcastf("Please delete this survivor's sheet / box from the game board first.")
+            Util.Highlight(boxOrSheet:Object())
+            return
+        end
 
-    Log.Debugf("Spawned survivor sheet %s for survivor %d", survivorSheet:Object().getGUID(), survivor:Id())
+        local index = nil
+        for i, s in ipairs(Population_survivors) do
+            if s == survivor then
+                index = i
+                break
+            end
+        end
 
-    return survivorSheet
+        if not index then
+            return Log.Debugf("Survivor %d not found, it must have already been deleted", survivor:Id())
+        end
+
+        table.remove(Population_survivors, index)
+        Population_survivorsById[survivor:Id()] = nil
+
+        local maxPage = Population_MaxUiPage()
+        if Population_ui.page > maxPage then
+            Log.Debugf("Deleted last survivor from last page %d, moving to page %d", Population_ui.page, maxPage)
+            Population_SetUiPage(maxPage)
+        else
+            Population_SetUiPage(Population_ui.page)
+        end
+
+        Population_UpdateLivingDead()
+
+        EventManager.FireEvent("onDeleteSurvivor", survivor)
+
+        Log.Printf("Deleted survivor '%s'", survivor:NameOrUnnamed())
+    end)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_MoveSurvivorUp(survivorUi)
+    local index = (Population_ui.page - 1) * POPULATION_MAX_UI_ROWS + survivorUi.row
+    if index <= 1 then
+        return
+    end
+
+    local survivor = Population_survivors[index]
+    local otherSurvivor = Population_survivors[index - 1]
+
+    assert(survivorUi.survivor == survivor)
+
+    Population_survivors[index] = otherSurvivor
+    Population_survivors[index - 1] = survivor
+
+    local page = math.ceil((index - 1) / POPULATION_MAX_UI_ROWS)
+    Population_SetUiPage(page)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_MoveSurvivorDown(survivorUi)
+    local index = (Population_ui.page - 1) * POPULATION_MAX_UI_ROWS + survivorUi.row
+    if index >= #Population_survivors then
+        return
+    end
+
+    local survivor = Population_survivors[index]
+    local otherSurvivor = Population_survivors[index + 1]
+
+    assert(survivorUi.survivor == survivor)
+
+    Population_survivors[index] = otherSurvivor
+    Population_survivors[index + 1] = survivor
+
+    local page = math.ceil((index + 1) / POPULATION_MAX_UI_ROWS)
+    Population_SetUiPage(page)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_InitUi(ui)
+    local panel = Ui.Panel(ui, { id = "Population", x = 30, y = -20, width = 1600, height = 935, active = false })
+    Population_ui.panel = panel
+    panel.attributes.allowDragging = true
+    panel.attributes.returnToOriginalPositionWhenReleased = false
+
+    Ui.Image(panel, { id = "Population", rectAlignment = "MiddleCenter", width = 1600, height = 935, image = "Population" })
+
+    Ui.InvisibleButton(panel, { id = "Close", x = 1570-2, y = 905-2, width = 30+4, height = 30+4, onClick = function()
+        Population_HideUi()
+    end })
+
+    Population_ui.livingSurvivorsText = Ui.DarkText(panel, { id = "LivingSurvivors", x = 118, y = 830, width = 50, height = 50-5, fontSize = 36, alignment = "MiddleCenter" })
+    Population_ui.deadSurvivorsText = Ui.DarkText(panel, { id = "DeadSurvivors", x = 286, y = 830, width = 50, height = 50-5, fontSize = 36, alignment = "MiddleCenter" })
+
+    Population_ui.newSurvivorBonusesText = Ui.DarkInput(panel, { id = "NewSurvivorBonuses", x = 356, y = 830, width = 700, height = 30, fontSize = 20, text = Population_newSurvivorBonuses, onValueChanged = function(value)
+        Log.Debugf("Setting new survivor bonuses to %s", value)
+        Population_newSurvivorBonuses = value
+        Population_ui.newSurvivorBonusesText:Set(value)
+    end })
+
+    Ui.InvisibleButton(panel, { id = "NewSurvivor", x = 1106, y = 830, width = 220, height = 50, onClick = function()
+        Population_CreateSurvivor()
+    end })
+
+    Population_ui.page = 1
+    Population_ui.pageText = Ui.DarkText(panel, { id = "Page", x = 1416, y = 830, width = 94, height = 50, fontSize = 20, textAlignment = "MiddleCenter", text = "Page 1/"..Population_MaxUiPage() })
+
+    Ui.InvisibleButton(panel, { id = "PrevPage", x = 1346, y = 830, width = 50, height = 50, onClick = function()
+        Population_PreviousUiPage()
+    end })
+
+    Ui.InvisibleButton(panel, { id = "NextPage", x = 1530, y = 830, width = 50, height = 50, onClick = function()
+        Population_NextUiPage()
+    end })
+
+    Population_ui.survivorUiRows = {}
+    for row = 1, POPULATION_MAX_UI_ROWS do
+        local survivorUi = {
+            row = row,
+        }
+        Population_ui.survivorUiRows[row] = survivorUi
+
+        local y = 5 + (5 - row) * 162
+        survivorUi.panel = Ui.Panel(panel, { id = "SurvivorRow"..row, rectAlignment = "LowerLeft", x = 20, y = y, width = 1560, height = 160, active = false })
+
+        Ui.Image(survivorUi.panel, { id = "SurvivorRow", width = 1560, height = 160, image = "PopulationRow" })
+
+        survivorUi.NameInput = Ui.DarkInput(survivorUi.panel, { id = "Name", x = 0, y = 97, width = 260, height = 50, fontSize = 24, fontStyle = "Bold", placeholder = "Enter survivor name...", onValueChanged = function(value)
+            local survivor = survivorUi.survivor
+            Log.Debugf("Setting survivor %d Name to %s", survivor:Id(), value)
+            survivor:SetName(value)
+        end })
+
+        survivorUi.WeaponProficiencyTypeInput = Ui.DarkInput(survivorUi.panel, { id = "WeaponProficiencyType", x = 851, y = 28, width = 150, height = 30, fontSize = 16, fontStyle = "Bold", placeholder = "Enter weapon...", onValueChanged = function(value)
+            local survivor = survivorUi.survivor
+            Log.Debugf("Setting survivor %d WeaponProficiencyType to %s", survivor:Id(), value)
+            survivor:SetWeaponProficiencyType(value)
+        end })
+
+        local notesData = {
+            { stat = "Notes1", y = 97 },
+            { stat = "Notes2", y = 71 },
+            { stat = "Notes3", y = 45 },
+            { stat = "Notes4", y = 19 },
+        }
+        for _, data in ipairs(notesData) do
+            local stat = data.stat
+            survivorUi[stat.."Input"] = Ui.DarkInput(survivorUi.panel, { id = stat, x = 1015, y = data.y, width = 400, height = 26, fontSize = 14, onValueChanged = function(value)
+                local survivor = survivorUi.survivor
+                Log.Debugf("Setting survivor %d %s to %s", survivor:Id(), stat, value)
+                survivor["Set"..stat](survivor, value)
+            end })
+        end
+
+        local checkBoxData = {
+            { stat = "Dead",   x = 281, },
+            { stat = "Male",   x = 327, },
+            { stat = "Female", x = 367, },
+            { stat = "Reroll", x = 416, },
+        }
+        for _, data in ipairs(checkBoxData) do
+            local survivor = survivorUi.survivor
+            local stat = data.stat
+            survivorUi[stat.."CheckBox"] = Ui.CheckBox(survivorUi.panel, { id = stat, x = data.x, y = 101, width = 20, height = 20, onClick = function()
+                local survivor = survivorUi.survivor
+                local value = not survivor[stat](survivor)
+                Log.Debugf("Setting survivor %d %s to %s", survivor:Id(), stat, tostring(value))
+                survivor["Set"..stat](survivor, value)
+            end })
+        end
+
+        local counterData = {
+            { stat = "HuntXp",        x = 465, y = 97 },
+            { stat = "Survival",      x = 515, y = 97 },
+            { stat = "Insanity",      x = 565, y = 97 },
+            { stat = "Courage",       x = 615, y = 97 },
+            { stat = "Understanding", x = 665, y = 97 },
+            { stat = "Movement",      x = 715, y = 97 },
+            { stat = "Speed",         x = 765, y = 97 },
+            { stat = "Accuracy",      x = 815, y = 97 },
+            { stat = "Strength",      x = 865, y = 97 },
+            { stat = "Evasion",       x = 915, y = 97 },
+            { stat = "Luck",          x = 965, y = 97 },
+            { stat = "WeaponProficiencyRank", x = 815, y = 28 },
+        }
+        for i, data in ipairs(counterData) do
+            local stat = data.stat
+            survivorUi[stat.."Counter"] = Ui.Counter(survivorUi.panel, { id = stat, x = data.x, y = data.y, width = 30, height = 30, fontSize = 20, onValueChanged = function(delta)
+                local survivor = survivorUi.survivor
+                local value = survivor[stat](survivor) + delta
+                Log.Debugf("Setting survivor %d %s to %d", survivor:Id(), stat, value)
+                survivor["Set"..stat](survivor, value)
+            end })
+        end
+
+        survivorUi.cards = {}
+        for r = 1, 2 do
+            for c = 1, 5 do
+                local i = (r - 1) * 5 + c
+                local id = "Cards"..i
+                local x = 0 + (c - 1) * 160
+                local y = 39 - (r - 1) * 25
+                survivorUi.cards[i] = {
+                    image = Ui.Image(survivorUi.panel, { id = id, x = x, y = y, width = 24, height = 20, active = false }),
+                    text = Ui.DarkText(survivorUi.panel, { id = id, x = x + 24, y = y, width = 126, height = 20, fontSize = 12, fontStyle = "Bold", active = false }),
+                }
+            end
+        end
+
+        Ui.InvisibleButton(survivorUi.panel, { id = "Up", x = 1460, y = 106, width = 45, height = 35, onClick = function()
+            Population_MoveSurvivorUp(survivorUi)
+        end })
+
+        Ui.InvisibleButton(survivorUi.panel, { id = "Down", x = 1515, y = 106, width = 45, height = 35, onClick = function()
+            Population_MoveSurvivorDown(survivorUi)
+        end })
+
+        Ui.InvisibleButton(survivorUi.panel, { id = "Spawn", x = 1460, y = 60, width = 100, height = 35, onClick = function()
+            Population_HideUi()
+
+            local survivor = survivorUi.survivor
+
+            local survivorBox = Population_survivorBoxesBySurvivor[survivor]
+            if survivorBox then
+                Log.Printf("'%s' is already on the game board", survivor:NameOrUnnamed())
+                Util.Highlight(survivorBox:Object())
+                Util.LookAt({ object = survivorBox:Object() })
+                return
+            end
+
+            local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+            if survivorSheet then
+                Log.Printf("'%s' is already on the game board", survivor:NameOrUnnamed())
+                Util.Highlight(survivorSheet:Object())
+                Util.LookAt({ object = survivorSheet:Object() })
+                return
+            end
+
+            Population_CreateSurvivorBox(survivorUi.survivor, "(11.5, 15.5)")
+        end })
+
+        Ui.InvisibleButton(survivorUi.panel, { id = "Delete", x = 1460, y = 16, width = 100, height = 35, onClick = function()
+            Population_DeleteSurvivor(survivorUi.survivor)
+        end })
+    end
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -67,13 +630,33 @@ end
 local function Population_Init(saveState, expansions, modules, ui)
     Archive = modules.Archive
 
+    Population_newSurvivorBonuses = saveState.newSurvivorBonuses
+
     local saveState = saveState or {}
     for _, survivorSaveState in ipairs(saveState.survivors or {}) do
         local survivor = Survivor.Create(survivorSaveState)
+        table.insert(Population_survivors, survivor)
         Population_survivorsById[survivor:Id()] = survivor
         Population_nextSurvivorId = Util.Max(Population_nextSurvivorId, survivor:Id() + 1)
     end
     Log.Debugf("Population_nextSurvivorId = %d", Population_nextSurvivorId)
+
+    for _, survivorBoxSaveState in ipairs(saveState.survivorBoxes or {}) do
+        local survivor = Population_survivorsById[survivorBoxSaveState.survivorId]
+        if not survivor then
+            return Log.Errorf("SurvivorBox %s was saved with non-existant survivor %d", survivorBoxSaveState.survivorBoxGuid, survivorBoxSaveState.survivorId)
+        end
+
+        local object = getObjectFromGUID(survivorBoxSaveState.objectGuid)
+        if not object then
+            return Log.Errorf("Survivor %d had saves survivor sheet GUID %s, but that object doesn't exist. Try re-creating this survivor's sheet from the Population UI.", survivor:Id(), survivorBoxSaveState.objectGuid)
+        end
+
+        local survivorBox = SurvivorBox.Create(survivor, object)
+
+        Population_survivorBoxesBySurvivor[survivor] = survivorBox
+        Population_survivorBoxesByObject[object] = survivorBox
+    end
 
     for _, survivorSheetSaveState in ipairs(saveState.survivorSheets or {}) do
         local survivor = Population_survivorsById[survivorSheetSaveState.survivorId]
@@ -83,27 +666,28 @@ local function Population_Init(saveState, expansions, modules, ui)
 
         local object = getObjectFromGUID(survivorSheetSaveState.objectGuid)
         if not object then
-            return Log.Errorf("Survivor %d had saves survivor sheet GUID %s, but that object doesn't exist. Try re-spawning this survivor's sheet from the Population UI.", survivor:Id(), survivorSheetSaveState.objectGuid)
+            return Log.Errorf("Survivor %d had saves survivor sheet GUID %s, but that object doesn't exist. Try re-creating this survivor's sheet from the Population UI.", survivor:Id(), survivorSheetSaveState.objectGuid)
         end
 
-        local packedBag = nil
-        if survivorSheetSaveState.packedBagGuid then
-            packedBag = getObjectFromGUID(survivorSheetSaveState.packedBagGuid)
-            if not packedBag then
-                return Log.Errorf("Survivor '%s' (%d) was saved with packed bag GUID %s, but that object doesn't exist. Try re-spawning this survivor's sheet from the Population UI.", survivor:Name(), survivor:Id(), survivorSheetSaveState.packedBagGuid)
-            end
-        end
-
-        local survivorSheet = SurvivorSheet.Create(survivor, object, packedBag, saveState.packedObjects)
+        local survivorSheet = SurvivorSheet.Create(survivor, object)
 
         Population_survivorSheetsBySurvivor[survivor] = survivorSheet
         Population_survivorSheetsByObject[object] = survivorSheet
     end
+
+    Population_InitUi(ui)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Population_OnLeavePlay(object)
+local function Population_OnDestroy(object)
+    local survivorBox = Population_survivorBoxesByObject[object]
+    if survivorBox then
+        Log.Debugf("Survivor box %s for survivor %d left play", object.getGUID(), survivorBox:Survivor():Id())
+        Population_survivorBoxesBySurvivor[survivorBox:Survivor()] = nil
+        Population_survivorBoxesByObject[object] = nil
+    end
+
     local survivorSheet = Population_survivorSheetsByObject[object]
     if survivorSheet then
         Log.Debugf("Survivor sheet %s for survivor %d left play", object.getGUID(), survivorSheet:Survivor():Id())
@@ -114,24 +698,123 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Population_PostInit()
-    EventManager.AddHandler("onObjectDestroy", function(object) Population_OnLeavePlay(object) end)
-    EventManager.AddHandler("onObjectEnterContainer", function(container, object) Population_OnLeavePlay(object) end)
-    EventManager.AddHandler("onSurvivorChangeStat", function(survivor, stat, value)
-        local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
-        if survivorSheet then
-            survivorSheet:UpdateStat(stat, value)
+local function Population_UpdateSurvivorBoxCards(survivorBox)
+    local cards = {}
+    for _, type in ipairs(Survivor.CARD_TYPES) do
+        cards[type] = {}
+    end
+
+    for _, objectInBox in ipairs(survivorBox:Object().getObjects()) do
+        if cards[objectInBox.gm_notes] then
+            table.insert(cards[objectInBox.gm_notes], objectInBox.name)
         end
     end
-)
+    --Log.Debugf("Survivor %d updated cards: %s", survivorBox:Survivor():Id(), cards)
+    survivorBox:Survivor():SetCards(cards)
+end
+
+---------------------------------------------------------------------------------------------------
+
+Population_ui.statSetters = {}
+for _, stat in ipairs({ "Name", "WeaponProficiencyType", "Notes1", "Notes2", "Notes3", "Notes4" }) do
+    Population_ui.statSetters[stat] = function(survivorUi, value)
+        survivorUi[stat.."Input"]:Set(value)
+    end
+end
+for _, stat in ipairs({ "Dead", "Male", "Female", "Reroll" }) do
+    Population_ui.statSetters[stat] = function(survivorUi, value)
+        survivorUi[stat.."CheckBox"]:Set(value)
+    end
+end
+for _, stat in ipairs({ "HuntXp", "Survival", "Insanity", "Courage", "Understanding", "Movement", "Speed", "Accuracy", "Strength", "Evasion", "Luck", "WeaponProficiencyRank" }) do
+    Population_ui.statSetters[stat] = function(survivorUi, value)
+        survivorUi[stat.."Counter"]:Set(value)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Population_PostInit()
+    -- Populate the UI with data
+    for row = 1, Util.Min(#Population_survivors, 5) do
+        Population_SetSurvivorUi(Population_ui.survivorUiRows[row], Population_survivors[row])
+    end
+    Population_UpdateLivingDead()
+
+    EventManager.AddHandler("onObjectDestroy", Population_OnDestroy)
+
+    EventManager.AddHandler("onObjectEnterContainer", function(container, object)
+        local survivorBox = Population_survivorBoxesByObject[container]
+        if survivorBox then
+            Population_UpdateSurvivorBoxCards(survivorBox)
+        end
+    end)
+
+    EventManager.AddHandler("onObjectLeaveContainer", function(container, object)
+        local survivorBox = Population_survivorBoxesByObject[container]
+        if survivorBox then
+            Population_UpdateSurvivorBoxCards(survivorBox)
+        end
+    end)
+
+    EventManager.AddHandler("filterObjectEnterContainer", function(container, object, previousReturnValue)
+        if previousReturnValue == false then
+            return false
+        end
+
+        if Population_survivorBoxesByObject[object] or Population_survivorSheetsByObject[object] then
+            Log.Printf("Survivor sheets and boxes cannot be put into containers.")
+            return false
+        end
+
+        return true
+    end)
+
+    EventManager.AddHandler("onChangeSurvivorStat", function(survivor, stat, value)
+        if stat == "Name" then
+            local survivorBox = Population_survivorBoxesBySurvivor[survivor]
+            if survivorBox then
+                survivorBox:SetName(value)
+            end
+        end
+
+        local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
+        if survivorSheet then
+            survivorSheet:SetStat(stat, value)
+        end
+
+        local survivorUi = Population_survivorUiBySurvivor[survivor]
+        if survivorUi then
+            local setter = Population_ui.statSetters[stat]
+            if setter then  -- some stats we don't have UI/setters for, such as "skip next hunt"
+                setter(survivorUi, value)
+            end
+        end
+
+        if stat == "Dead" then
+            Population_UpdateLivingDead()
+        end
+    end)
+
+    EventManager.AddHandler("onChangeSurvivorCards", function(survivor)
+        local survivorUi = Population_survivorUiBySurvivor[survivor]
+        if survivorUi then
+            Population_UpdateSurvivorUiCards(survivorUi)
+        end
+    end)
 end
 
 ---------------------------------------------------------------------------------------------------
 
 local function Population_Save()
     local survivors = {}
-    for _, survivor in pairs(Population_survivorsById) do
+    for _, survivor in ipairs(Population_survivors) do
         table.insert(survivors, survivor:Save())
+    end
+
+    local survivorBoxes = {}
+    for _, survivorBox in pairs(Population_survivorBoxesBySurvivor) do
+        table.insert(survivorBoxes, survivorBox:Save())
     end
 
     local survivorSheets = {}
@@ -140,12 +823,22 @@ local function Population_Save()
     end
 
     return {
+        newSurvivorBonuses = Population_newSurvivorBonuses,
         survivors = survivors,
+        survivorBoxes = survivorBoxes,
         survivorSheets = survivorSheets,
     }
 end
 
 ---------------------------------------------------------------------------------------------------
+
+local function Population_SurvivorForId(id)
+    return Population_survivorsById[id]
+end
+
+local function Population_SurvivorBoxForObject(object)
+    return Population_survivorBoxesByObject[object]
+end
 
 local function Population_SurvivorSheetForObject(object)
     return Population_survivorSheetsByObject[object]
@@ -153,51 +846,16 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Console.AddCommand("popprint", function(args)
-    assert(args[2])
-    local id = tonumber(args[2])
-    assert(id)
-    local survivor = Population_survivorsById[id]
-    assert(survivor)
-    Log.Printf("%s", survivor)
-end)
-
-Console.AddCommand("popls", function()
-    for survivorId, survivor in pairs(Population_survivorsById) do
-        local survivorSheet = Population_survivorSheetsBySurvivor[survivor]
-        Log.Printf("[%d] %s (sheet = %s)", survivor:Id(), survivor:Name(), survivorSheet and survivorSheet:Object().getGUID() or "nil")
-    end
-end)
-
-Console.AddCommand("popadd", function(args)
-    local survivor = Population_AddSurvivor()
-    Log.Printf("Added survivor %d", survivor:Id())
-end)
-
-Console.AddCommand("popspawn", function(args)
-    if #args != 2 then
-        return Log.Errorf("usage: popspawn <survivorId>")
-    end
-
-    local id = tonumber(args[2])
-    local survivor = Population_survivorsById[id]
-    if not survivor then
-        return Log.Errorf("No Survivor for id %s", tostring(args[2]))
-    end
-
-    local survivorSheet = Population_SpawnSurvivorSheet(survivor)
-    if not survivorSheet then
-        return
-    end
-
-    Log.Printf("Spawned survivor sheet %s", survivorSheet:Object().getGUID())
-end)
-
----------------------------------------------------------------------------------------------------
-
 return {
     Init = Population_Init,
     PostInit = Population_PostInit,
     Save = Population_Save,
+    SurvivorForId = Population_SurvivorForId,
     SurvivorSheetForObject = Population_SurvivorSheetForObject,
+    SurvivorBoxForObject = Population_SurvivorBoxForObject,
+    ReplaceSurvivorBoxWithSheet = Population_ReplaceSurvivorBoxWithSheet,
+    DestroySurvivorSheetAndCreatePackedSurvivorBox = Population_DestroySurvivorSheetAndCreatePackedSurvivorBox,
+    ShowUi = Population_ShowUi,
+    HideUi = Population_HideUi,
+    IsUiOpen = Population_IsUiOpen,
 }

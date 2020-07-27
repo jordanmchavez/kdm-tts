@@ -239,7 +239,7 @@ local function Setup_Setup(campaign, expansionsMap)
         end
     end
 
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 
     Setup_SetupArchiveOverrides(expansionsMap)
 
@@ -290,7 +290,7 @@ local function Setup_Setup(campaign, expansionsMap)
     Archive.Take({ name = "Starting Gear", type = "Gear", location = Location.Get("Starting Gear"), rotation = FACE_DOWN })
     Archive.Take({ name = "Promo Gear", type = "Gear", location = Location.Get("Promo Gear"), rotation = FACE_DOWN })
 
-    Archive.CleanupBags()
+    Archive.CleanUpContainers()
 
     Log.Broadcastf("Campaign setup complete.")
 
@@ -308,16 +308,20 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Setup_OpenCampaignSetup()
+local function Setup_ShowUi()
     Log.Debugf("Opening campaign setup")
     Setup_campaignSetup.panel:Show()
     Setup_campaignSetup.open = true
 end
 
-local function Setup_CloseCampaignSetup()
+local function Setup_HideUi()
     Log.Debugf("Closing campaign setup")
     Setup_campaignSetup.panel:Hide()
-    Setup_campaignSetup.open = false
+    Setup_campaignSetup.open = nil
+end
+
+local function Setup_IsUiOpen()
+    return Setup_campaignSetup.open
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -356,20 +360,11 @@ local function Setup_Init(saveState, expansions, modules, ui)
         end
     end
 
-    Ui.ImageButton(ui, { id = "Setup", rectAlignment = "UpperLeft", x = 80, y = -10, width = 100, height = 30, image = "SetupButton", onClick = function()
-        if Setup_campaignSetup.open then
-            Setup_CloseCampaignSetup()
-        else
-            Setup_OpenCampaignSetup()
-        end
-    end })
-
-    Setup_campaignSetup.open = false
     local panel = Ui.Panel(ui, { id = "CampaignSetup", width = 885, height = 723, active = false })
     Setup_campaignSetup.panel = panel
-    Ui.Image(panel, { id = "CampaignSetup", image = "CampaignSetup", width = 885, height = 723 })
+    Ui.Image(panel, { id = "CampaignSetup", rectAlignment = "MiddleCenter", image = "Setup", width = 885, height = 723 })
 
-    Ui.InvisibleButton(panel, { id = "Close", x = 845, y = 683, width = 30, height = 30, onClick = Setup_CloseCampaignSetup})
+    Ui.InvisibleButton(panel, { id = "Close", x = 845, y = 683, width = 30, height = 30, onClick = Setup_HideUi })
 
     Setup_campaignSetup.selectedCampaignIndex = 1
     local x = 128
@@ -414,10 +409,10 @@ local function Setup_Init(saveState, expansions, modules, ui)
             return
         end
 
-        Setup_CloseCampaignSetup()
+        Setup_HideUi()
         Setup_Setup(campaign, Setup_campaignSetup.selectedExpansions)
     end })
-    Ui.InvisibleButton(panel, { id = "Cancel", x = 468, y = 20, width = 300, height = 60, onClick = Setup_CloseCampaignSetup })
+    Ui.InvisibleButton(panel, { id = "Cancel", x = 468, y = 20, width = 300, height = 60, onClick = Setup_HideUi })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -445,4 +440,7 @@ return {
     Save = Setup_Save,
     HasDeck = Setup_HasDeck,
     EnabledExpansions = Setup_EnabledExpansions,
+    ShowUi = Setup_ShowUi,
+    HideUi = Setup_HideUi,
+    IsUiOpen = Setup_IsUiOpen,
 }

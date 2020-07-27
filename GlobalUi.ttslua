@@ -1,0 +1,45 @@
+local Ui = require("Kdm/Ui")
+local Setup = nil
+local Hunt = nil
+local Showdown = nil
+local Settlement = nil
+local Population = nil
+
+---------------------------------------------------------------------------------------------------
+
+local function GlobalUi_Init(saveState, expansions, modules, ui)
+    Setup = modules.Setup
+    Hunt = modules.Hunt
+    Showdown = modules.Showdown
+    Settlement = modules.Settlement
+    Population = modules.Population
+
+    local buttons = {
+        { name = "Setup", module = Setup, image = "SetupButton" },
+        { name = "Hunt", module = Hunt, image = "HuntButton" },
+        { name = "Showdown", module = Showdown, image = "ShowdownButton" },
+        { name = "Settlement", module = Settlement, image = "TimelineButton" },
+        { name = "Population", module = Population, image = "PopulationButton" },
+    }
+    for i, button in ipairs(buttons) do
+        Ui.ImageButton(ui, { id = button.name, rectAlignment = "UpperLeft", x = 80, y = -10 - (i - 1) * 40, width = 100, height = 30, image = button.image, onClick = function()
+            if button.module.IsUiOpen() then
+                button.module.HideUi()
+
+            else
+                for _, other in ipairs(buttons) do
+                    if other.name != button.name then
+                        other.module.HideUi()
+                    end
+                end
+                button.module.ShowUi()
+            end
+        end })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = GlobalUi_Init,
+}

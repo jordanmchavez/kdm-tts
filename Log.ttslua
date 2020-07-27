@@ -4,7 +4,7 @@ local Util = require("Kdm/Util")
 
 local Log = {
     debugEnabled = true,
-    --debugEnableAll = true,
+    --debugEnableAll = true,    -- makes Init take a *long* time since TTS is very slow with console i/o
 }
 
 Log.debugPackages = {
@@ -13,16 +13,8 @@ Log.debugPackages = {
     ["SurvivorSheet"] = true,
     ["Population"] = true,
     ["PlayerBoard"] = true,
-    --["BattleReference"] = true,
-    --["Ui3d"] = true,
-    --["Zone"] = true,
-    -- ["Action"] = true,
-    --["Location"] = true,
-    --["Showdown"] = true,
-    -- ["Hunt"] = true,
-    --["Grid"] = true,
-    --["Overlay"] = true,
-    --["Setup"] = true,
+    ["BattleReference"] = true,
+    --["Ui"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

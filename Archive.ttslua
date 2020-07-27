@@ -1,67 +1,54 @@
 require("Kdm/Check")
 require("Kdm/Constants")
 local Log = require("Kdm/Log").ForPackage("Archive")
+local Util = require("Kdm/Util")
 local Location = require("Kdm/Location")
 local NamedObject = require("Kdm/NamedObject")
+local Container = require("Kdm/Container")
+
+---------------------------------------------------------------------------------------------------
+
+local function Archive_Key(name, type)
+    return type.."."..name
+end
 
 ---------------------------------------------------------------------------------------------------
 
 local Archive_index = {}
+local Archive_direct = {}
 
-local Archive_reverseIndex = {
-    ["Abilities Archive"] = { { "Abilities", "Abilities" } },
-    ["Fighting Arts Archive"] = { { "Fighting Arts", "Fighting Arts" } },
-    ["Secret Fighting Arts Archive"] = { { "Secret Fighting Arts", "Secret Fighting Arts" } },
-    ["Disorders Archive"] = { { "Disorders", "Disorders" } },
-    ["Severe Injuries Archive"] = { { "Severe Injuries", "Severe Injuries" } },
-    ["Tactics Archive"] = { { "Tactics", "Tactics" } },
-    ["Weapon Proficiencies Archive"] = { { "Weapon Proficiencies", "Weapon Proficiencies" } },
-    ["Armor Sets Archive"] = { { "Armor Sets", "Armor Sets" } },
-    ["Vermin Archive"] = { { "Vermin", "Vermin" } },
-    ["Strange Resources Archive"] = { { "Strange Resources", "Strange Resources" } },
-    ["Basic Resources Archive"] = { { "Basic Resources", "Basic Resources" } },
-    ["Terrain Archive"] = { { "Terrain", "Terrain" } },
-    ["Terrain Tiles Archive"] = { { "Terrain Tiles", "Terrain Tiles" } },
-    ["Hunt Events Archive"] = { { "Hunt Events", "Hunt Events" } },
-    ["Settlement Events Archive"] = { { "Settlement Events", "Settlement Events" } },
-    ["Rare Gear Archive"] = { { "Rare Gear", "Gear" } },
-    ["Survivor Sheets Archive"] = { { "Survivor Sheet", "Survivor Sheet" }}
+-- "Direct" entries are the items directly contained by the infinite container archive, such as the "Disorders" deck in the "Disorders Archive".
+-- For such items we just a flag telling us to take the item directly, no need to search inside it.
+local Archive_directData = {
+    { "Abilities", "Abilities", "Abilities Archive" },
+    { "Fighting Arts", "Fighting Arts", "Fighting Arts Archive" },
+    { "Secret Fighting Arts", "Secret Fighting Arts", "Secret Fighting Arts Archive" },
+    { "Disorders", "Disorders", "Disorders Archive" },
+    { "Severe Injuries", "Severe Injuries", "Severe Injuries Archive" },
+    { "Tactics", "Tactics", "Tactics Archive" },
+    { "Weapon Proficiencies", "Weapon Proficiencies", "Weapon Proficiencies Archive" },
+    { "Armor Sets", "Armor Sets", "Armor Sets Archive" },
+    { "Vermin", "Vermin", "Vermin Archive" },
+    { "Strange Resources", "Strange Resources", "Strange Resources Archive" },
+    { "Basic Resources", "Basic Resources", "Basic Resources Archive" },
+    { "Terrain", "Terrain", "Terrain Archive" },
+    { "Terrain Tiles", "Terrain Tiles", "Terrain Tiles Archive" },
+    { "Hunt Events", "Hunt Events", "Hunt Events Archive" },
+    { "Settlement Events", "Settlement Events", "Settlement Events Archive" },
+    { "Rare Gear", "Gear", "Rare Gear Archive" },
+    { "Survivor Sheet", "Survivor Sheet", "Survivor Sheets Archive" },
+    { "Survivor Box", "Survivor Box", "Survivor Boxes Archive" },
 }
-
--- These archives have no intermediate bag...you just pull the object directly
-local Archive_singleItemArchives = {
-    ["Abilities Archive"]            = true,
-    ["Fighting Arts Archive"]        = true,
-    ["Secret Fighting Arts Archive"] = true,
-    ["Disorders Archive"]            = true,
-    ["Severe Injuries Archive"]      = true,
-    ["Tactics Archive"]              = true,
-    ["Weapon Proficiencies Archive"] = true,
-    ["Armor Sets Archive"]           = true,
-    ["Vermin Archive"]               = true,
-    ["Strange Resources Archive"]    = true,
-    ["Basic Resources Archive"]      = true,
-    ["Terrain Archive"]              = true,
-    ["Terrain Tiles Archive"]        = true,
-    ["Hunt Events Archive"]          = true,
-    ["Settlement Events Archive"]    = true,
-    ["Rare Gear Archive"]            = true,
-    ["Survivor Sheets Archive"]      = true,
-}
-
-local Archive_bags = {}
-local Archive_bagX = -150
-local Archive_bagZ = 120
-
-for archive, entries in pairs(Archive_reverseIndex) do
-    for _, entry in ipairs(entries) do
-        local name, type = entry[1], entry[2]
-        if not Archive_index[type] then
-            Archive_index[type] = {}
-        end
-        Archive_index[type][name] = archive
-    end
+for _, entry in ipairs(Archive_directData) do
+    local name, type, archive = entry[1], entry[2], entry[3]
+    local key = Archive_Key(name, type)
+    Archive_index[key] = archive
+    Archive_direct[key] = true
 end
+
+local Archive_containers = {}
+local Archive_containerX = -150
+local Archive_containerZ = 120
 
 ---------------------------------------------------------------------------------------------------
 
@@ -70,15 +57,16 @@ local function Archive_RegisterEntries(archiveEntries, allowOverrides)
         return
     end
     archive = archiveEntries.archive
+    assert(archive)
     for _, entry in ipairs(archiveEntries.entries) do
         local name, type = entry[1], entry[2]
-        if not Archive_index[type] then
-            Archive_index[type] = {}
-        end
+        assert(name)
+        assert(type)
+        local key = Archive_Key(name, type)
         if not allowOverrides then
-            assert(Check(Archive_index[type][name] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive_index[type][name]))
+            assert(Check(Archive_index[key] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive_index[key]))
         end
-        Archive_index[type][name] = archive
+        Archive_index[key] = archive
     end
 end
 
@@ -92,92 +80,109 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_FindInContainer(name, type, container)
-    for _, entry in ipairs(container.getObjects()) do
-        if entry.name == name and entry.gm_notes == type then
-            return entry.guid
+local function Archive_NextContainerPosition()
+    local position = { x = Archive_containerX, y = 15, z = Archive_containerZ }
+    Archive_containerX = Archive_containerX + 10
+    if Archive_containerX > 150 then
+        Archive_containerX = -150
+        Archive_containerZ = Archive_containerZ - 10
+        if Archive_containerZ < 70 then
+            Archive_containerZ = 120
         end
     end
-    assert(CheckFail("%s/%s not found in container %s (%s)", name, type, container.getName(), container.getGUID()))
+    return position
 end
 
 ---------------------------------------------------------------------------------------------------
 
 local function Archive_Take(params)
-    local name, type, height, location, rotation, spawnFunc = params.name, params.type, params.height or DEFAULT_SPAWN_HEIGHT, Location.Get(params.location), params.rotation or FACE_UP, params.spawnFunc
+    local archive = params.archive
+    local name = params.name
+    local type = params.type
+    local height = params.height or DEFAULT_SPAWN_HEIGHT
+    local location = Location.Get(params.location)
+    local rotation = params.rotation or FACE_UP
+    local spawnFunc = params.spawnFunc
+    assert(CheckStrOrNil(archive))
     assert(CheckStr(name))
     assert(CheckStr(type))
+    assert(CheckNumOrNil(height))
     assert(CheckVec3OrNil(rotation))
     assert(CheckFuncOrNil(spawnFunc))
 
-    local position = location:Center()
-    position.y = position.y + height
+    if not archive then
+        local key = Archive_Key(name, type)
+        archive = Archive_index[key]
+        assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
-    local typeIndex = Archive_index[type]
-    assert(Check(typeIndex, "Unknown type %s", type))
-    local archive = typeIndex[name]
-    assert(Check(archive, "%s (%s) is not in the archive", name, type))
-
-    Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
-
-    if Archive_singleItemArchives[archive] then
-        -- for single item archives no need to pull intermediate bag
-        Log.Debugf("Using single-item archive %s for %s (%s)", archive, name, type)
-        return NamedObject.Get(archive).takeObject({
-            position = position,
-            rotation = rotation,
-            smooth = false,
-            callback_function = spawnFunc,
-        })
-    end
-
-    local bag = Archive_bags[archive]
-    if bag then
-        Log.Debugf("Re-using already-spawned archive bag %s (%s) for %s (%s)", bag.getName(), bag.getGUID(), name, type)
-    else
-        -- spawn new bag and cache
-        bag = NamedObject.Get(archive).takeObject({
-            position = { x = Archive_bagX, y = 15, z = Archive_bagZ },
-            smooth = false,
-        })
-        assert(Check(bag, "Couldn't take from %s", archive))
-        Log.Debugf("Spawned archive bag %s (%s) at (%f, %f) for %s (%s)", bag.getName(), bag.getGUID(), Archive_bagX, Archive_bagZ, name, type)
-
-        bag.setLock(true)
-        Archive_bags[archive] = bag
-
-        Archive_bagX = Archive_bagX + 10
-        if Archive_bagX > 150 then
-            Archive_bagX = -150
-            Archive_bagZ = Archive_bagZ - 10
-            if Archive_bagZ < 70 then
-                Archive_bagZ = 120
-            end
+        if Archive_direct[key] then
+            -- for single item archives no need to pull intermediate container
+            Log.Debugf("Using direct from archive %s for %s (%s)", archive, name, type)
+            local position = location:Center()
+            position.y = position.y + height
+            return NamedObject.Get(archive).takeObject({
+                position = position,
+                rotation = rotation,
+                smooth = false,
+                callback_function = spawnFunc,
+            })
         end
     end
 
-    local object = bag.takeObject({
-        guid = Archive_FindInContainer(name, type, bag),
-        position = position,
-        rotation = rotation,
-        smooth = false,
-        callback_function = spawnFunc,
-    })
-    assert(Check(object, "Couldn't take %s/%s from archive bag %s (%s)", name, type, bag.getName(), bag.getGUID()))
+    Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
 
-    Log.Debugf("Spawned object %s (%s) at (%f, %f, %f)", object.getName(), object.getGUID(), position.x, position.y, position.z)
+    local container = Archive_containers[archive]
+    if container then
+        Log.Debugf("Re-using already-spawned archive container %) for %s (%s)", container:Guid(), name, type)
+
+    else
+        -- spawn new container and cache
+        local archiveObject = NamedObject.Get(archive)
+        local containerObject = archiveObject.takeObject({
+            position = Archive_NextContainerPosition(),
+            smooth = false,
+        })
+        container = Container(containerObject)
+        if not container then
+            Log.Errorf("Couldn't take from archive %s (%s). If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getName(), archiveObject.getGUID())
+            Util.Highlight(archiveObject)
+            return
+        end
+
+        Log.Debugf("Spawned archive container %s at (%f, %f) for %s (%s)", container:Guid(), Archive_containerX, Archive_containerZ, name, type)
+
+        container:Lock(true)
+        Archive_containers[archive] = container
+    end
+
+    local object = container:Take({
+        name = name,
+        type = type,
+        location = location,
+        height = height,
+        rotation = rotation,
+        spawnFunc = spawnFunc,
+    })
+    if not object then
+        Log.Errorf("Couldn't take %s (%s) from archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
+        Util.Highlight(NamedObject.Get(archive))
+        return
+    end
+
+    Log.Debugf("Spawned object %s (%s) at %s", object.getName(), object.getGUID(), location:Name())
 
     return object
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_CleanupBags()
-    for _, bag in pairs(Archive_bags) do
-        Log.Debugf("Destroying archive bag %s (%s)", bag.getName(), bag.getGUID())
-        bag.destruct()
+local function Archive_CleanUpContainers()
+    for _, container in pairs(Archive_containers) do
+        Log.Debugf("Destroying archive container %s", container:Guid())
+        container:Destruct()
     end
 
+    -- We always scan and clean leftover archive containers from a previous error.
     local hits = Physics.cast({
         origin    = { x = 0, y = 100, z = 95 },
         direction = { x = 0, y = -1, z = 0 },
@@ -190,11 +195,18 @@ local function Archive_CleanupBags()
             Log.Debugf("Destroying leftover archive bag %s (%s)", obj.getName(), obj.getGUID())
             obj.destruct()
         end
+        if obj.tag == "Deck" then
+            local key = Archive_Key(obj.getName(), obj.getGMNotes())
+            if Archive_direct[key] then
+                Log.Debugf("Destroying leftover archive deck %s (%s)", obj.getName(), obj.getGUID())
+                obj.destruct()
+            end
+        end
     end
 
-    Archive_bags = {}
-    Archive_bagX = -150
-    Archive_bagZ = 120
+    Archive_containers = {}
+    Archive_containerX = -150
+    Archive_containerZ = 120
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -203,5 +215,5 @@ return {
     Init = Archive_Init,
     RegisterEntries = Archive_RegisterEntries,
     Take = Archive_Take,
-    CleanupBags = Archive_CleanupBags,
+    CleanUpContainers = Archive_CleanUpContainers,
 }
