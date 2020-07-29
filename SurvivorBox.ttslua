@@ -22,8 +22,10 @@ local function SurvivorBox_Create(survivor, object)
     }
     setmetatable(survivorBox, SurvivorBoxClass)
 
-    local name = Util.TruncateString(survivor:Name(), SURVIVOR_BOX_MAX_NAME)
+    local name = Util.TruncateString(survivor:NameOrUnnamed(), SURVIVOR_BOX_MAX_NAME)
     survivorBox.ui.nameText = Ui.Text({ object = object, id = "Name", topLeft = { x = 1.465516, y = -1.872933 }, bottomRight = { x = -1.495294, y = 0.35 }, y = 0.2, scale = 0.15, text = name, textColor = Ui.DARK_BROWN })
+
+    object.setName(survivor:NameOrUnnamed())
 
     return survivorBox
 end

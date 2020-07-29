@@ -65,7 +65,7 @@ local function BattleReference_CalcWeapons(playerBoard, survivor)
         local strength = stats.strength + survivorStrength
         local luck = (stats.deadly or 0) + survivorLuck
 
-        for _, modifier in ipairs(weapon.modifiers) do
+        for _, modifier in pairs(weapon.modifiers) do
             if modifier.stat == "speed" then
                 speed = speed + modifier.value
             elseif modifier.stat == "accuracy" then
@@ -123,11 +123,14 @@ local function BattleReference_UpdatePlayerInternal(playerBoard)
 
     local survivor = playerBoard:Survivor()
     if not survivor then
+        Log.Debugf("Hiding BattleReference for player %d", playerBoard:Number())
         player.open = false
         player.height = 0
         player.panel:Hide()
         return
     end
+
+    Log.Debugf("Updating BattleReference for player %d", playerBoard:Number())
 
     player.open = true
     player.panel:Show()
@@ -339,12 +342,12 @@ local function BattleReference_PostInit()
     EventManager.AddHandler("onShowdownCleanup", BattleReference_Hide)
     EventManager.AddHandler("onPlayerBoardLinkSurvivor", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
     EventManager.AddHandler("onPlayerBoardUnlinkSurvivor", function(playerBoard) BattleReference_UpdatePlayer(playerBoard) end)
-    EventManager.AddHandler("onMonsterChangeStat", function(attribute)
+    EventManager.AddHandler("onMonsterStatChange", function(attribute)
         if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
             BattleReference_Update()
         end
     end)
-    EventManager.AddHandler("onChangeSurvivorStat", function(survivor, stat, value)
+    EventManager.AddHandler("onSurvivorStatChange", function(survivor, stat, value)
         if BATTLE_UI_RELEVANT_ATTRIBUTES[attribute] then
             BattleReference_Update()
         end

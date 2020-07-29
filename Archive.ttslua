@@ -36,6 +36,7 @@ local Archive_directData = {
     { "Hunt Events", "Hunt Events", "Hunt Events Archive" },
     { "Settlement Events", "Settlement Events", "Settlement Events Archive" },
     { "Rare Gear", "Gear", "Rare Gear Archive" },
+    { "All Gear", "Gear", "All Gear Archive" },
     { "Survivor Sheet", "Survivor Sheet", "Survivor Sheets Archive" },
     { "Survivor Box", "Survivor Box", "Survivor Boxes Archive" },
 }
@@ -100,7 +101,18 @@ local function Archive_Take(params)
     local name = params.name
     local type = params.type
     local height = params.height or DEFAULT_SPAWN_HEIGHT
-    local location = Location.Get(params.location)
+    local location = params.location
+    local position = params.position
+    local location = params.location
+    local position = params.position
+    if location then
+        location = Location.Get(location)
+        position = location:Center()
+        position.y = position.y + (height or DEFAULT_SPAWN_HEIGHT)
+    else
+        assert(position, "Either location or position is required")
+    end
+
     local rotation = params.rotation or FACE_UP
     local spawnFunc = params.spawnFunc
     assert(CheckStrOrNil(archive))
@@ -118,8 +130,6 @@ local function Archive_Take(params)
         if Archive_direct[key] then
             -- for single item archives no need to pull intermediate container
             Log.Debugf("Using direct from archive %s for %s (%s)", archive, name, type)
-            local position = location:Center()
-            position.y = position.y + height
             return NamedObject.Get(archive).takeObject({
                 position = position,
                 rotation = rotation,
@@ -129,7 +139,11 @@ local function Archive_Take(params)
         end
     end
 
-    Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
+    if location then
+        Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
+    else
+        Log.Debugf("Taking item %s (%s) in archive %s to %s", name, type, archive, position)
+    end
 
     local container = Archive_containers[archive]
     if container then
@@ -158,8 +172,7 @@ local function Archive_Take(params)
     local object = container:Take({
         name = name,
         type = type,
-        location = location,
-        height = height,
+        position = position,
         rotation = rotation,
         spawnFunc = spawnFunc,
     })
@@ -169,7 +182,7 @@ local function Archive_Take(params)
         return
     end
 
-    Log.Debugf("Spawned object %s (%s) at %s", object.getName(), object.getGUID(), location:Name())
+    Log.Debugf("Spawned object %s (%s)", object.getName(), object.getGUID())
 
     return object
 end

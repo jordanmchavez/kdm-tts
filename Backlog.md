@@ -47,24 +47,43 @@ scan:
 * Updated Shield Proficiency to add =1 all armor
 * re-enable non-nemesis monsters in showdown event search
     * changed hunt vs showdown
-* fixed a bug with terrain spawning with wrong rotating
+* fixed a bug with terrain spawning with wrong rotation
 
 -------------------------------------------------------------------------
 
-potstars spawn constellations somewhere
-potstars constellation grid: spawn near reference boards
+scan objects
+    player boards
+        gear, armor set
+    settlement board
+        innovation
+        weapon mastery
+        gear
+        resource
+        strange resource
+        monster resource
+        settlement location
+timeline
 
-ren "survivor box archive" -> survivor boxes
-descriptive text on survivor box, how it works, what you can do with it
-"survivor sheet" -> "survivor sheet/box" or a giant lantern symbol, or better yet an image of the box
-survivor box sizes
+settlement:
+    name
+    surv limit
+    depart/arrive bonuses
+    surv actions and checked
+    milestones and checked
+    quarries
+    notes
 
-hidden weapons to battle reference
+survivors:
+    new survivor stats
+    each one
+new save needs to clear all of these area
+
+* import/export
+* fix vespertine bow
+
 * misc combat stuff: twilight sword
-spiderlings/lonely fruit/shades are not snapping
-* Constellation Tracker
+* spiderlings/lonely fruit/shades are not snapping
 
-* depart/arrive bonuses
 * Config menu
     * Lock/unlock boards
     * Player movement overlays
@@ -80,13 +99,8 @@ spiderlings/lonely fruit/shades are not snapping
     * Terrain Grid Snapping
 
 * Spawn severe injuries
-* Menus should be mutually exclusive: clicking on one should close the others
-* Fix broken multi-line notes        
-* two armor sets keep one forever
-
 * Quick camera nav locations on the bottom (hotkeyed?)
 * Video tutorial
-* Export/Import saves
 * Add a Settlement Phase Board:
     * Endeavor tokens
     * Phase guide
@@ -95,10 +109,7 @@ spiderlings/lonely fruit/shades are not snapping
 * Scan all gear
 * Limit all deck grids to 4k
 * Test scripting
-* Hunt/showdown camera movement
 * UI only visible to player who clicked?
-* Test Script
-* Add "right click to delete" somewhere on the settlement timeline
 * Improve search to "find/spawn anything"
 * Once population sheet is gone, re-add the "show"/"layout" buttons for gear that will lay them out above the settlement board
 

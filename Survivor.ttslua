@@ -128,7 +128,7 @@ local function Survivor_FireStatChangeEvent(survivor, stat, value)
     local statName = SURVIVOR_STAT_NAMES[stat]
     Log.Debugf("firing event for stat %s/%s change", stat, statName)
     assert(Check(statName, "Unknown stat: %s", stat))
-    EventManager.FireEvent("onChangeSurvivorStat", survivor, statName, value)
+    EventManager.FireEvent("onSurvivorStatChange", survivor, statName, value)
 end
 
 ---------------------------------------------------------------------------------------------------

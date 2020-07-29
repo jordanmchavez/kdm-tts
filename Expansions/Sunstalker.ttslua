@@ -46,7 +46,9 @@ return {
             },
             removedFightingArts = { "Leader" },
             removedInnovations = { "Language", "Inner Lantern - Language Consequence" },
-            startingInnovation = "Sun Language",
+            startingInnovations = {
+                ["Innovation 1"] = "Sun Language",
+            },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
                 "Drums - Language Consequence",
@@ -58,7 +60,10 @@ return {
             startingPrinciples = {
                 ["Principle: New Life"] = "Survival of the Fittest - New Life Principle",
             },
-            startingSettlementLocations = { "The Sun", "Sacred Pool" },
+            startingSettlementLocations = {
+                ["Settlement Location 1"] = "The Sun",
+                ["Settlement Location 2"] = "Sacred Pool",
+            },
             references = {
                 ["Age Reference"] = "Age Reference",
                 ["Intimacy Reference"] = "Intimacy (People of the Sun) Reference",

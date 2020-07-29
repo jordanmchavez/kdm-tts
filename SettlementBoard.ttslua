@@ -17,11 +17,10 @@ local SettlementBoard_settlementLocationGear = {}
 
 local function SettlementBoard_ResetGear(gear, locationName)
     assert(CheckStr(gear))
-    assert(CheckStr(locationName))
+    local location = Location.Get(locationName)
 
     Log.Debugf("Resetting gear %s at %s", gear, locationName)
 
-    local location = Location.Get(locationName)
     local blocking = location:RayClean({ types = { "Gear" } })
     if #blocking > 0 then
         Log.Broadcastf("Something is blocking the gear slot. Please move the highlighted objects out of the way and try again.")
@@ -40,11 +39,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function SettlementBoard_ResetSlocGear(col, row)
-    assert(CheckNum(col))
-    assert(CheckNum(row))
+local function SettlementBoard_ResetSlocGear(index)
+    assert(CheckNum(index))
 
-    local slocLocation = Location.Get(string.format("Settlement Location %d %d", col, row))
+    local slocLocation = Location.Get(string.format("Settlement Location %d", index))
 
     local slocObject = slocLocation:FindFirst("Settlement Locations")
     if slocObject == nil then
@@ -58,12 +56,12 @@ local function SettlementBoard_ResetSlocGear(col, row)
         return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
     end
 
-    SettlementBoard_ResetGear(gear, string.format("Gear %d %d", col, row))
+    SettlementBoard_ResetGear(gear, "Settlement Location Gear "..index)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function SettlementBoard_OnDrop(col, row, object)
+local function SettlementBoard_OnDrop(index, object)
     if object.getGMNotes() != "Settlement Locations" then
         return
     end
@@ -73,14 +71,14 @@ local function SettlementBoard_OnDrop(col, row, object)
         return
     end
 
-    Log.Debugf("Settlement location %s (%s) was dropped on settlement location (%d, %d) for gear", object.getName(), object.getGUID(), col, row, gear)
+    Log.Debugf("Settlement location %s (%s) was dropped on settlement location %d for gear", object.getName(), object.getGUID(), index, gear)
 
-    SettlementBoard_ResetGear(gear, string.format("Gear %d %d", col, row))
+    SettlementBoard_ResetGear(gear, "Settlement Location Gear "..index)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function SettlementBoard_OnPickUp(col, row, object)
+local function SettlementBoard_OnPickUp(index, object)
     if object.getGMNotes() != "Settlement Locations" then
         return
     end
@@ -89,9 +87,9 @@ local function SettlementBoard_OnPickUp(col, row, object)
         return
     end
 
-    Log.Debugf("Settlement location %s (%s) removed from settlement location (%d, %d)", object.getName(), object.getGUID(), col, row)
+    Log.Debugf("Settlement location %s (%s) removed from settlement location %d", object.getName(), object.getGUID(), index)
 
-    Location.Get(string.format("Gear %d %d", col, row)):RayClean({ types = { "Gear" } })
+    Location.Get("Settlement Location Gear "..index):RayClean({ types = { "Gear" } })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -134,8 +132,9 @@ local function SettlementBoard_Init(saveState, expansions, modules)
     local dy = y2 - y1
     for col = 1, 10 do
         for row = 1, 2 do
-            local name = string.format("Reset Settlement Location Gear %s %s", col, row)
-            createButton(name, x1 + (col - 1) * dx, y1 + (row - 1)* dy, function() SettlementBoard_ResetSlocGear(col, row) end)
+            local i = (row - 1) * 10 + col
+            local name = string.format("Reset Settlement Location Gear %d", i)
+            createButton(name, x1 + (col - 1) * dx, y1 + (row - 1)* dy, function() SettlementBoard_ResetSlocGear(i) end)
         end
     end
 end
@@ -145,11 +144,11 @@ end
 function Settlement_PostInit()
     for col = 1, 10 do
         for row = 1, 2 do
-            Zone.Add({
-                name = string.format("Reset Settlement Location Gear %s %s", col, row),
-                location = Location.Get(string.format("Settlement Location %d %d", col, row)),
-                dropHandler = function(object) SettlementBoard_OnDrop(col, row, object) end,
-                pickUpHandler = function(object) SettlementBoard_OnPickUp(col, row, object) end,
+            local i = (row - 1) * 10 + col
+            Zone.AddHandler({
+                location = "Settlement Location Gear "..i,
+                dropHandler = function(object) SettlementBoard_OnDrop(i, object) end,
+                pickUpHandler = function(object) SettlementBoard_OnPickUp(i, object) end,
             })
         end
     end

@@ -12,6 +12,7 @@ local Archive = nil
 local Settlement = nil
 local Rules = nil
 local Action = nil
+local Population = nil
 
 -------------------------------------------------------------------------------------------------
 
@@ -109,7 +110,7 @@ end
 
 local function Setup_SetupDeck(params)
     local deck = params.deck
-    local location = Location.Get(deck)
+    local location = Location.Get(params.location or deck)
     local type = params.type or deck
     local name = params.name or deck
 
@@ -157,8 +158,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local function Setup_SetupStartingInnovations(innovationDeck, startingInnovations)
+    Log.Debugf("Setting up starting innovations %s", startingInnovations)
+    for location, card in pairs(startingInnovations or {}) do
+        innovationDeck:Take({ name = card, type = "Innovations", location = location})
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 local function Setup_SetupStartingInnovationDeck(innovationDeck, startingInnovationDeck)
-    Log.Debugf("Setting up starting innovation deck: %s", Util.TabStr(startingInnovationDeck))
+    Log.Debugf("Setting up starting innovation deck: %s", startingInnovationDeck)
 
     local sources = {}
     for _, card in ipairs(startingInnovationDeck) do
@@ -208,23 +218,89 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Setup_SetupStartingSettlementLocations(settlementLocationDeck, startingSettlementLocations)
-    for i, settlementLocation in ipairs(startingSettlementLocations) do
-        Log.Debugf("Setting up starting settlement location %s", settlementLocation)
-        settlementLocationDeck:Take({ name = settlementLocation, type = "Settlement Locations", location = Location.Get("Settlement Location "..i.." 1") })
+    for location, settlementLocation in pairs(startingSettlementLocations or {}) do
+        Log.Debugf("Setting up starting settlement location %s at %s", settlementLocation, location)
+        settlementLocationDeck:Take({ name = settlementLocation, type = "Settlement Locations", location = location })
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function SpawnWithCache(cache, params)
+    local key = params.name.."_"..params.type
+    local existing = cache[key]
+    if existing then
+        params.object = existing
+        return Action.Clone(params)
+    end
+    local object = Archive.Take(params)
+    cache[key] = object
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Setup_SetupStartingGear(settlementLocationDeck, startingGear)
+    if not startingGear then
+        startingGear = { players = {} }
+        for i = 1, 4 do
+            local playerPrefix = "Player "..i
+            startingGear.players[i] = { gear = {
+                [playerPrefix.." Fist & Tooth"] = "Fist & Tooth",
+                [playerPrefix.." Gear 1"] = "Founding Stone",
+                [playerPrefix.." Gear 2"] = "Cloth",
+            } }
+        end
+    end
+
+    local cache = {}
+
+    for playerNumber = 1, 4 do
+        for location, gear in pairs(startingGear.players[playerNumber].gear or {}) do
+            SpawnWithCache(cache, { archive = "All Gear Archive", name = gear, type = "Gear", location = location, rotation = FACE_UP })
+        end
+
+        local armorSet = startingGear.players[playerNumber].armorSet
+        if armorSet then
+            SpawnWithCache(cache, { archive = "Armor Set Archive", name = gear, type = "Armor Set", location = location, rotation = FACE_UP })
+        end
+    end
+
+    for location, gear in pairs(startingGear.settlement or {}) do
+        SpawnWithCache(cache, { archive = "All Gear Archive", name = gear, type = "Gear", location = location, rotation = FACE_UP })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Setup_SetupStartingResources(settlementLocationDeck, startingResources)
 end
 
 ---------------------------------------------------------------------------------------------------
 
 local function Setup_SetupReferences(references)
     for _, reference in ipairs({
+        "Misc Reference",
         "Age Reference",
         "Intimacy Reference",
         "Bold Reference",
         "Insight Reference",
     }) do
-        Log.Debugf("Setting up reference %s at %s", references[reference], reference)
-        Archive.Take({ name = references[reference], type = "Reference", location = Location.Get(reference) })
+        if references[reference] then
+            Log.Debugf("Setting up reference %s at %s", references[reference], reference)
+            -- height 0 because we lock these immediately after spawning
+            Archive.Take({ name = references[reference], type = "Reference", location = Location.Get(reference), height = 0, spawnFunc = function(spawnedObject)
+                spawnedObject.setLock(true)
+            end })
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+local function Setup_SetupCustomSpawns(customSpawns)
+    for _, customSpawn in ipairs(customSpawns or {}) do
+        Archive.Take(customSpawn)
     end
 end
 
@@ -245,19 +321,22 @@ local function Setup_Setup(campaign, expansionsMap)
 
     Setup_SetupTimeline(campaign, expansions)
 
+    for i = 1, 4 do
+        Location.Get("Player "..i.." Board"):BoxClean({ tags = { "Card", "Deck", "Token" }})
+    end
     Location.Get("Deck Board"):BoxClean({ tags = { "Card", "Deck" }, ignoreTypes = { "Monster Resources" }, })
     Location.Get("Terrain"):BoxClean({ tags = { "Card", "Deck" } })
     Location.Get("Settlement Events"):BoxClean({ tags = { "Card", "Deck" } })
-    Location.Get("Settlement Location Board"):BoxClean({ tags = { "Card", "Deck" } })
-    Location.Get("Settlement Locations"):BoxClean({ tags = { "Card", "Deck" } })
-    Location.Get("Innovation Board"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Settlement Board"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Settlement Location Deck"):BoxClean({ tags = { "Card", "Deck" } })
     for _, reference in ipairs({
         "Age Reference",
         "Intimacy Reference",
         "Bold Reference",
         "Insight Reference",
+        "Misc Reference",
     }) do
-        Location.Get(reference):RayClean({ tags = { "Tile" }, types = { "Reference" } })
+        Location.Get(reference):BoxClean({ tags = { "Tile", "Card" }, types = { "Reference", "Abilities" } })   -- concession for DK constellations
     end
     Location.Get("Hunt Events"):BoxClean({ tags = { "Card", "Deck" } })
 
@@ -275,17 +354,17 @@ local function Setup_Setup(campaign, expansionsMap)
     Setup_SetupDeck({ expansions = expansions, deck = "Terrain", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     Setup_SetupDeck({ expansions = expansions, deck = "Settlement Events", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true })
     local innovationDeck = Setup_SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", rotation = FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = campaign.removedInnovations })
-    local settlementLocationDeck = Setup_SetupDeck({ expansions = expansions, deck = "Settlement Locations", resetArchive = false, respawnDeck = false, shuffleDeck = false })
+    local settlementLocationDeck = Setup_SetupDeck({ expansions = expansions, deck = "Settlement Locations", location = "Settlement Location Deck", resetArchive = false, respawnDeck = false, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Rare Gear", type = "Gear", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
     Setup_SetupDeck({ expansions = expansions, deck = "Hunt Events", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-
-    Log.Debugf("Setting up starting innovation %s", campaign.startingInnovation)
-    innovationDeck:Take({ name = campaign.startingInnovation, type = "Innovations", location = Location.Get("Starting Innovation") })
-
+    Setup_SetupStartingInnovations(innovationDeck, campaign.startingInnovations)
     Setup_SetupStartingInnovationDeck(innovationDeck, campaign.startingInnovationDeck)
     Setup_SetupPrinciples(innovationDeck, campaign.startingPrinciples)
     Setup_SetupStartingSettlementLocations(settlementLocationDeck, campaign.startingSettlementLocations)
+    Setup_SetupStartingGear(settlementLocationDeck, campaign.startingGear)
+    Setup_SetupStartingResources(settlementLocationDeck, campaign.startingResources)
     Setup_SetupReferences(campaign.references)
+    Setup_SetupCustomSpawns(campaign.customSpawns)
 
     Archive.Take({ name = "Starting Gear", type = "Gear", location = Location.Get("Starting Gear"), rotation = FACE_DOWN })
     Archive.Take({ name = "Promo Gear", type = "Gear", location = Location.Get("Promo Gear"), rotation = FACE_DOWN })
@@ -328,13 +407,10 @@ end
 
 local function Setup_Init(saveState, expansions, modules, ui)
     Archive = modules.Archive
-    assert(Archive)
     Settlement = modules.Settlement
-    assert(Settlement)
     Rules = modules.Rules
-    assert(Rules)
     Action = modules.Action
-    assert(Action)
+    Population = modules.Population
 
     for _, expansion in ipairs(expansions) do
         table.insert(Setup_expansions, expansion.name)

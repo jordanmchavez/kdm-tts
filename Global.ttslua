@@ -65,10 +65,10 @@ function onLoad(saveJson)
 
     Log.Init()
     Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
-    Zone.Init()
     NamedObject.Init(saveState, expansions)
     Location.Init(saveState, expansions)
-
+    Zone.Init()
+    
     local modules = {
         ["Armor"] = Armor,
         ["Weapon"] = Weapon,
@@ -106,6 +106,7 @@ function onLoad(saveJson)
                 module.PostInit()
             end
         end
+        Zone.InitObjectsInZones()
     end, 5)
 
 end

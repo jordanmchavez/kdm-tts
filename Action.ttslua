@@ -68,7 +68,6 @@ end
 
 local function Action_Clone(params)
     local object, location, rotation = params.object, Location.Get(params.location), params.rotation
-    assert(CheckTagged(location, "Location"))
     local height = params.height or DEFAULT_SPAWN_HEIGHT
     local position = location:Center()
     position.y = position.y + height

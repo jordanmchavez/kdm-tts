@@ -80,7 +80,9 @@ return {
                 { name = "15 Population", event = "Principle: Society" },
                 { name = "5 Innovations", event = "Hooded Knight" },
             },
-            startingInnovation = "Language",
+            startingInnovations = {
+                ["Innovation 1"] = "Language",
+            },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
                 "Drums - Language Consequence",
@@ -89,7 +91,9 @@ return {
                 "Paint - Language Consequence",
                 "Symposium - Language Consequence",
             },
-            startingSettlementLocations = { "Lantern Hoard" },
+            startingSettlementLocations = {
+                ["Settlement Location 1"] = "Lantern Hoard",
+            },
             references = {
                 ["Age Reference"] = "Age Reference",
                 ["Intimacy Reference"] = "Intimacy Reference",

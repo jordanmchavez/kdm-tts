@@ -62,6 +62,16 @@ local function Showdown_MonsterLuck()      return Showdown_MonsterStat("luck") e
 
 ---------------------------------------------------------------------------------------------------
 
+local SHOWDOWN_EVENT_STATS = {
+    ["movement"] = "Movement",
+    ["toughness"] = "Toughness",
+    ["damage"] = "Damage",
+    ["speed"] = "Speed",
+    ["accuracy"] = "Accuracy",
+    ["evasion"] = "Evasion",
+    ["luck"] = "Luck",
+}
+
 local function Showdown_SetMonsterStat(stat, value)
     assert(CheckStr(stat))
     assert(CheckNum(value))
@@ -72,7 +82,7 @@ local function Showdown_SetMonsterStat(stat, value)
     if oldValue != value then
         Showdown_stats[stat] = value
         Showdown_statCounters[stat]:Set(value + Showdown_tokenStats[stat])
-        EventManager.FireEvent("onMonsterChangeStat", stat, value + Showdown_tokenStats[stat])
+        EventManager.FireEvent("onMonsterStatChange", SHOWDOWN_EVENT_STATS[stat], value + Showdown_tokenStats[stat])
     end
 end
 
@@ -92,7 +102,7 @@ local function Showdown_UpdateMonsterTokenStat(stat)
 
     Showdown_tokenStats[stat] = total
     Showdown_statCounters[stat]:Set(Showdown_stats[stat] + total)
-    EventManager.FireEvent("onMonsterChangeStat", stat, Showdown_stats[stat] + total)
+    EventManager.FireEvent("onMonsterStatChange", stat, Showdown_stats[stat] + total)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -877,12 +887,12 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Showdown_PostInit()
-    Zone.Add({
-        name = "Monster Tokens",
-        location = Location.Get("Monster Tokens"),
+    Zone.AddHandler({
+        location = "Monster Tokens",
         dropHandler = function(object) Showdown_OnDroppedOnMonsterTokens(object) end,
         pickUpHandler = function(object) Showdown_OnObjectPickedUpFromMonsterTokens(object) end,
     })
+
     EventManager.AddHandler("onObjectCollisionEnter", Showdown_OnObjectCollisionEnter)
     EventManager.AddHandler("onObjectPickUp", Showdown_OnObjectPickUp)
     EventManager.AddHandler("onObjectDrop", Showdown_OnObjectDrop)

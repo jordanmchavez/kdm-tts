@@ -185,8 +185,8 @@ local function Population_ReplaceSurvivorBoxWithSheet(survivorBox, location)
 
     local survivorSheetObject = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = location, height = 0, rotation = FACE_UP, spawnFunc = function(spawnedObject)
         spawnedObject.setLock(true)
+        spawnedObject.interactable = false
     end })
-    survivorSheetObject.interactable = false
     Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
 
     local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
@@ -460,8 +460,6 @@ end
 local function Population_InitUi(ui)
     local panel = Ui.Panel(ui, { id = "Population", x = 30, y = -20, width = 1600, height = 935, active = false })
     Population_ui.panel = panel
-    panel.attributes.allowDragging = true
-    panel.attributes.returnToOriginalPositionWhenReleased = false
 
     Ui.Image(panel, { id = "Population", rectAlignment = "MiddleCenter", width = 1600, height = 935, image = "Population" })
 
@@ -770,11 +768,12 @@ local function Population_PostInit()
         return true
     end)
 
-    EventManager.AddHandler("onChangeSurvivorStat", function(survivor, stat, value)
+    EventManager.AddHandler("onSurvivorStatChange", function(survivor, stat, value)
         if stat == "Name" then
             local survivorBox = Population_survivorBoxesBySurvivor[survivor]
             if survivorBox then
                 survivorBox:SetName(value)
+                survivorBox:Object().setName(value)
             end
         end
 
@@ -832,6 +831,30 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+local function Population_Reset()
+    for object, survivorBox in pairs(Population_survivorBoxesByObject) do
+        object.destruct()
+    end
+    Population_survivorBoxesBySurvivor = {}
+    Population_survivorBoxesByObject = {}
+
+    for _, survivorSheet in pairs(Population_survivorSheetsByObject) do
+        object.destruct()
+    end
+    Population_survivorSheetsBySurvivor = {}
+    Population_survivorSheetsByObject = {}
+
+    Population_survivors = {}
+    Population_survivorsById = {}
+    Population_survivorUiBySurvivor = {}
+
+    Population_UpdateLivingDead()
+
+    Population_nextSurvivorId = 1
+end
+
+---------------------------------------------------------------------------------------------------
+
 local function Population_SurvivorForId(id)
     return Population_survivorsById[id]
 end
@@ -850,6 +873,7 @@ return {
     Init = Population_Init,
     PostInit = Population_PostInit,
     Save = Population_Save,
+    Reset = Population_Reset,
     SurvivorForId = Population_SurvivorForId,
     SurvivorSheetForObject = Population_SurvivorSheetForObject,
     SurvivorBoxForObject = Population_SurvivorBoxForObject,

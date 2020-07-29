@@ -48,7 +48,9 @@ return {
                 "Family - Hovel Consequence",
                 "Clan of Death - Family Consequence",
             },
-            startingInnovation = "Dragon Speech",
+            startingInnovations = {
+                ["Innovation 1"] = "Dragon Speech",
+            },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
                 "Drums - Language Consequence",
@@ -57,12 +59,18 @@ return {
                 "Paint - Language Consequence",
                 "Symposium - Language Consequence",
             },
-            startingSettlementLocations = { "Throne" },
+            startingSettlementLocations = {
+                ["Settlement Location 1"] = "Throne",
+            },
             references = {
+                ["Misc Reference"] = "Constellations Reference",
                 ["Age Reference"] = "Age Reference",
                 ["Intimacy Reference"] = "Intimacy (People of the Stars) Reference",
                 ["Bold Reference"] = "Awake (Courage) Reference",
                 ["Insight Reference"] = "Awake (Understanding) Reference",
+            },
+            customSpawns = {
+                { name = "Constellations", type = "Abilities", position = { x = 110.875267, y = 4, z = -62.095192 }, rotation = { x = 0, y = 180, z = 180} },
             },
         },
     },
@@ -118,6 +126,8 @@ return {
         entries = {
             { "Dragon King Rules", "Rulebook" },
 
+            { "Constellations", "Abilities" },
+            { "Constellations Reference", "Reference" },
             { "Intimacy (People of the Stars) Reference", "Reference" },
             { "Awake (Courage) Reference", "Reference" },
             { "Awake (Understanding) Reference", "Reference" },
