@@ -632,7 +632,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Showdown_Init(saveState, expansions, modules, ui)
+local function Showdown_Init(modules, saveState, expansions, ui)
     PlayerBoard = modules.PlayerBoard
     assert(PlayerBoard)
     Terrain = modules.Terrain
@@ -667,7 +667,7 @@ local function Showdown_Init(saveState, expansions, modules, ui)
             if monster.specialAiDeck == nil then monster.specialAiDeck = monster.name.." Special AI" end
             if monster.hitLocationsDeck == nil then monster.hitLocationsDeck = monster.name.." Hit Locations" end
             table.insert(Showdown_monsters, monster)
-            Showdown_monsterExpansions[monster.name] = expansion.name
+            Showdown_monsterExpansions[monster.name] = expansion
             Showdown_monsterSizes[monster.name] = { x = monster.size.x, y = monster.size.y }
         end
     end

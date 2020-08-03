@@ -212,24 +212,38 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Util.Unique(sortedArray, eqFunc)
-    local n = #sortedArray
-    if n <= 1 then
-        return
-    end
-    local u = 1
-    for i = 2, n do
-        if not eqFunc(sortedArray[i], sortedArray[u]) then
-            u = u + 1
-            sortedArray[u] = sortedArray[i]
-        end
-    end
+-- sorted array method
+-- function Util.Unique(sortedArray, eqFunc)
+--     local n = #sortedArray
+--     if n <= 1 then
+--         return
+--     end
+--     local u = 1
+--     for i = 2, n do
+--         if not eqFunc(sortedArray[i], sortedArray[u]) then
+--             u = u + 1
+--             sortedArray[u] = sortedArray[i]
+--         end
+--     end
+--
+--     u = u + 1
+--     while u <= n do
+--         sortedArray[u] = nil
+--         u = u + 1
+--     end
+-- end
 
-    u = u + 1
-    while u <= n do
-        sortedArray[u] = nil
-        u = u + 1
+-- table method
+function Util.Unique(array, keyField)
+    local table = {}
+    for _, elem in ipairs(array) do
+        table[elem[keyField]] = elem
     end
+    local results = {}
+    for _, elem in pairs(table) do
+        table.insert(results, elem)
+    end
+    return results
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -298,6 +312,22 @@ function Util.LookAt(params)
             distance = params.distance or 60,
         })
     end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.DeepCopy(source)
+    local copy
+    if type(source) != "table" then
+        return source
+    end
+
+    local copy = {}
+    for key, value in next, source, nil do
+        copy[Util.DeepCopy(key)] = Util.DeepCopy(value)
+    end
+
+    return copy
 end
 
 ---------------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ local Weapon_stats = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Weapon_Init(saveState, expansions, modules)
+local function Weapon_Init(modules, saveState, expansions)
     for _, expansion in ipairs(expansions) do
         for weapon, stats in pairs(expansion.weaponStats or {}) do
             assert(Check(Weapon_stats[weapon] == nil, "Weapon %s is already registered", weapon))

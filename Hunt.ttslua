@@ -169,7 +169,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Hunt_Init(saveState, expansions, modules, ui)
+local function Hunt_Init(modules, saveState, expansions, ui)
     Action = modules.Action
     assert(Action)
     Archive = modules.Archive
@@ -200,7 +200,7 @@ local function Hunt_Init(saveState, expansions, modules, ui)
                 end
                 table.insert(Hunt_monsters, huntSetup)
                 Hunt_setupMap[monster.name] = huntSetup
-                Hunt_monsterExpansions[monster.name] = expansion.name
+                Hunt_monsterExpansions[monster.name] = expansion
             end
         end
     end

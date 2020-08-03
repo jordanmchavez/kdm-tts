@@ -1,6 +1,5 @@
 local Util = require("Kdm/Util")
 
-
 local REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
 local SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 local SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
@@ -547,7 +546,7 @@ local locationData = {
         size = CARD_SIZE,
         board = "Settlement Board",
     },
-    ["Innovations"] = {
+    ["Innovation Archive"] = {
         center = { x = -3.052947, y = 0.595169, z = -7.423294 },
         size = CARD_SIZE,
         board = "Settlement Board",
@@ -705,7 +704,7 @@ local locationGrids = {
     {
         name = "Settlement Resource",
         NAME = "SETTLEMENT_RESOURCE",
-        cols = 18, rows = 2,
+        cols = 18, rows = 3,
         topLeft     = { x = 7.410852, y = 0.602996, z = -1.253595 },
         bottomRight = { x = -7.411582, y = 0.602996, z = 0.829436 },
     },

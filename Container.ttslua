@@ -18,7 +18,7 @@ local ContainerClass = {}
 ContainerClass.__index = ContainerClass
 
 local function Container_Create(object)
-    assert(CheckObject(object))
+    assert(CheckObjectOrNil(object))
 
     local container  = {
         tag = "Container",
@@ -31,12 +31,28 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function ContainerClass.Name(container)
+    if container.object == nil then
+        return "<container destroyed>"
+    end
+
+    return container.object.getName()
+end
+
+---------------------------------------------------------------------------------------------------
+
 function ContainerClass.Guid(container)
     if container.object == nil then
         return "<container destroyed>"
     end
 
     return container.object.getGUID()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function ContainerClass.Object(container)
+    return container.object
 end
 
 ---------------------------------------------------------------------------------------------------

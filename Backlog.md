@@ -48,37 +48,14 @@ scan:
 * re-enable non-nemesis monsters in showdown event search
     * changed hunt vs showdown
 * fixed a bug with terrain spawning with wrong rotation
+* import/export Feature
 
 -------------------------------------------------------------------------
 
-scan objects
-    player boards
-        gear, armor set
-    settlement board
-        innovation
-        weapon mastery
-        gear
-        resource
-        strange resource
-        monster resource
-        settlement location
-timeline
-
-settlement:
-    name
-    surv limit
-    depart/arrive bonuses
-    surv actions and checked
-    milestones and checked
-    quarries
-    notes
-
-survivors:
-    new survivor stats
-    each one
-new save needs to clear all of these area
-
-* import/export
+* when you link a surv sheet or box and the PB already has a figurine, make sure to update the fig name
+* align the new archives
+* make menu collapsible
+* tips
 * fix vespertine bow
 
 * misc combat stuff: twilight sword
@@ -241,3 +218,4 @@ lowerleft by default for all ui
 
 
 * UI to use attributes.id for parents instead of .id
+* Setup to do survival actions

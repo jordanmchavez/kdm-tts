@@ -36,7 +36,12 @@ return {
                 { year = 23, type = "ShowdownEvent", level = "Level 3" },
                 { year = 25, type = "RulebookEvent", name = "Death of the Dragon King" },
             },
-            survivalActions = { "Dodge", "Encourage", "Dash", "Surge" },
+            survivalActions = {
+                { name = "Dodge" },
+                { name = "Encourage" },
+                { name = "Dash" },
+                { name = "Surge" },
+            },
             milestones = {
                 { name = "First Birth", event = "Principle: New Life" },
                 { name = "First Death", event = "Principle: Death" },

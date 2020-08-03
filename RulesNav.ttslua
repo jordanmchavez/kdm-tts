@@ -7,7 +7,7 @@ local RULES_NAV_UI_HEIGHT = 0.11
 
 ---------------------------------------------------------------------------------------------------
 
-local function RulesNav_Init(saveState, expansions, modules)
+local function RulesNav_Init(modules, saveState, expansions)
     local Rules = modules.Rules
     assert(Rules)
 

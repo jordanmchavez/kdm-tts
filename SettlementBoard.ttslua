@@ -94,7 +94,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function SettlementBoard_Init(saveState, expansions, modules)
+local function SettlementBoard_Init(modules, saveState, expansions)
     Archive = modules.Archive
     assert(Archive)
 
@@ -142,15 +142,12 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Settlement_PostInit()
-    for col = 1, 10 do
-        for row = 1, 2 do
-            local i = (row - 1) * 10 + col
-            Zone.AddHandler({
-                location = "Settlement Location Gear "..i,
-                dropHandler = function(object) SettlementBoard_OnDrop(i, object) end,
-                pickUpHandler = function(object) SettlementBoard_OnPickUp(i, object) end,
-            })
-        end
+    for i = 1, Location.MAX_SETTLEMENT_LOCATION_LOCATIONS do
+        Zone.AddHandler({
+            location = "Settlement Location "..i,
+            dropHandler = function(object) SettlementBoard_OnDrop(i, object) end,
+            pickUpHandler = function(object) SettlementBoard_OnPickUp(i, object) end,
+        })
     end
 end
 

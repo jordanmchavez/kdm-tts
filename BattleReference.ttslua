@@ -199,16 +199,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function BattleReference_Init(saveState, expansions, modules, ui)
+local function BattleReference_Init(modules, saveState, expansions, ui)
     PlayerBoard = modules.PlayerBoard
     Showdown = modules.Showdown
+    Population = modules.Population
 
     -----------------------------------------------------------------------------------------------
 
     for survivorId, hiddenWeapons in pairs(saveState or {}) do
         local survivor = Population.SurvivorForId(survivorId)
         if survivor == nil then
-            Log.Debug("No survivor with ID %d doesn't exist", survivorId)
+            Log.Debugf("No survivor with ID %d doesn't exist", survivorId)
         else
             BattleReference_hiddenWeaponsBySurvivor[survivor] = hiddenWeapons
         end

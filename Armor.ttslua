@@ -5,7 +5,7 @@ local Armor_stats = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Armor_Init(saveState, expansions, modules)
+local function Armor_Init(modules, saveState, expansions)
     for _, expansion in ipairs(expansions) do
         for armor, stats in pairs(expansion.armorStats or {}) do
             assert(Check(Armor_stats[armor] == nil, "Armor %s is already registered", armor))

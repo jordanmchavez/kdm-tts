@@ -18,11 +18,11 @@ local SurvivorSheet = require("Kdm/SurvivorSheet")
 local Population = require("Kdm/Population")
 local PlayerBoard = require("Kdm/PlayerBoard")
 local SettlementBoard = require("Kdm/SettlementBoard")
-local Settlement = require("Kdm/Settlement")
+local Timeline = require("Kdm/Timeline")
 local Setup = require("Kdm/Setup")
 local Showdown = require("Kdm/Showdown")
 local Hunt = require("Kdm/Hunt")
-local BattleReference = require("Kdm/BattleReference")
+--local BattleReference = require("Kdm/BattleReference")
 local MessageBox = require("Kdm/MessageBox")
 local GlobalUi = require("Kdm/GlobalUi")
 
@@ -48,10 +48,10 @@ function onSave()
     local saveState = {
         Population = Population.Save(),
         PlayerBoard = PlayerBoard.Save(),
-        Settlement = Settlement.Save(),
+        Timeline = Timeline.Save(),
         Setup = Setup.Save(),
         Showdown = Showdown.Save(),
-        BattleReference = BattleReference.Save(),
+--        BattleReference = BattleReference.Save(),
     }
 
     return JSON.encode(saveState)
@@ -65,10 +65,10 @@ function onLoad(saveJson)
 
     Log.Init()
     Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
-    NamedObject.Init(saveState, expansions)
-    Location.Init(saveState, expansions)
+    NamedObject.Init(expansions)
+    Location.Init(expansions)
     Zone.Init()
-    
+
     local modules = {
         ["Armor"] = Armor,
         ["Weapon"] = Weapon,
@@ -80,11 +80,11 @@ function onLoad(saveJson)
         ["Population"] = Population,
         ["PlayerBoard"] = PlayerBoard,
         ["SettlementBoard"] = SettlementBoard,
-        ["Settlement"] = Settlement,
+        ["Timeline"] = Timeline,
         ["Setup"] = Setup,
         ["Showdown"] = Showdown,
         ["Hunt"] = Hunt,
-        ["BattleReference"] = BattleReference,
+--        ["BattleReference"] = BattleReference,
         ["GlobalUi"] = GlobalUi,
         ["MessageBox"] = MessageBox,
     }
@@ -92,7 +92,7 @@ function onLoad(saveJson)
     local ui = { id = "UI", children = self.UI.getXmlTable() }
     for name, module in pairs(modules) do
         Log.Debugf("Initializing %s", name)
-        module.Init(saveState[name], expansions, modules, ui)
+        module.Init(modules, saveState[name], expansions, ui)
     end
 
     if #ui.children > 0 then
@@ -108,7 +108,6 @@ function onLoad(saveJson)
         end
         Zone.InitObjectsInZones()
     end, 5)
-
 end
 
 ---------------------------------------------------------------------------------------------------

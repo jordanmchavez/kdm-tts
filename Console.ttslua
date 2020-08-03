@@ -91,6 +91,21 @@ Console_AddCommand("help", function(args)
         Log.Printf(name)
     end
 end)
+
+Console_AddCommand("log_on", function(args)
+    if #args != 2 then
+        return Log.Printf("Usage: log_on <module>")
+    end
+    Log.EnableModule(args[2], true)
+end)
+
+Console_AddCommand("log_off", function(args)
+    if #args != 2 then
+        return Log.Printf("Usage: log_off <module>")
+    end
+    Log.EnableModule(args[2], nil)
+end)
+
 ---------------------------------------------------------------------------------------------------
 
 return {

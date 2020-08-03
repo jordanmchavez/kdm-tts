@@ -201,7 +201,7 @@ function Location_Clean(location, params, castFunc)
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
 
-        if Location_Matches(obj, LOCATION_CLEAN_IGNORE_TAGS, params.ignoreTypes) then
+        if Location_Matches(obj, LOCATION_CLEAN_IGNORE_TAGS, params.ignoreTypes) or not obj.interactable then
             -- ignore
 
         elseif Location_Matches(obj, tags, types) then
@@ -219,6 +219,12 @@ end
 
 function LocationClass.BoxClean(location, params) return Location_Clean(location, params, location.BoxCast) end
 function LocationClass.RayClean(location, params) return Location_Clean(location, params, location.RayCast) end
+
+---------------------------------------------------------------------------------------------------
+
+function LocationClass.Highlight(location)
+    Location_BoxClean(location)
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -241,7 +247,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Init(saveState, expansions, modules)
+local function Location_Init(expansions)
     for name, data in pairs(LocationData.data) do
         if data.fromObject then
             Location_Add(Location_CreateFromObject(NamedObject.Get(data.fromObject)))

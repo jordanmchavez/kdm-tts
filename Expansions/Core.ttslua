@@ -53,7 +53,6 @@ return {
     campaigns = {
         {
             name = "People of the Lantern",
-            years = 30,
             timeline = {
                 { year = 1, type = "RulebookEvent", name = "Returning Survivors" },
                 { year = 2, type = "RulebookEvent", name = "Endless Screams" },
@@ -73,7 +72,13 @@ return {
                 { year = 28, type = "ShowdownEvent", monster = "King's Man", level = "Level 3" },
                 { year = 30, type = "ShowdownEvent", monster = "Gold Smoke Knight" },
             },
-            survivalActions = { "Dodge", "Encourage", "Dash", "Surge", "Endure" },
+            survivalActions = {
+                { name = "Dodge" },
+                { name = "Encourage" },
+                { name = "Dash" },
+                { name = "Surge" },
+                { name = "Endure" },
+            },
             milestones = {
                 { name = "First Birth", event = "Principle: New Life" },
                 { name = "First Death", event = "Principle: Death" },
@@ -81,7 +86,7 @@ return {
                 { name = "5 Innovations", event = "Hooded Knight" },
             },
             startingInnovations = {
-                ["Innovation 1"] = "Language",
+                { name = "Language", location = "Innovation 1" },
             },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
@@ -92,13 +97,13 @@ return {
                 "Symposium - Language Consequence",
             },
             startingSettlementLocations = {
-                ["Settlement Location 1"] = "Lantern Hoard",
+                { name = "Lantern Hoard", location = "Settlement Location 1" },
             },
             references = {
-                ["Age Reference"] = "Age Reference",
-                ["Intimacy Reference"] = "Intimacy Reference",
-                ["Bold Reference"] = "Bold Reference",
-                ["Insight Reference"] = "Insight Reference",
+                { name = "Age Reference", location = "Age Reference" },
+                { name = "Intimacy Reference", location = "Intimacy Reference" },
+                { name = "Bold Reference", location = "Bold Reference" },
+                { name = "Insight Reference", location = "Insight Reference" },
             },
         },
     },

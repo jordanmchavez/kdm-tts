@@ -60,6 +60,7 @@ SurvivorClass.__index = SurvivorClass
 ---------------------------------------------------------------------------------------------------
 
 local function Survivor_Create(saveState)
+    saveState = saveState or {}
     Log.Debugf("Creating Survivor %d", saveState.id)
 
     local survivor = {

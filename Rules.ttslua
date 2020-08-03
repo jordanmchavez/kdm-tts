@@ -225,7 +225,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_Init(saveState, expansions, modules, ui)
+local function Rules_Init(modules, saveState, expansions, ui)
     Archive = modules.Archive
     assert(Archive)
 

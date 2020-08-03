@@ -37,6 +37,7 @@ local Archive_directData = {
     { "Settlement Events", "Settlement Events", "Settlement Events Archive" },
     { "Rare Gear", "Gear", "Rare Gear Archive" },
     { "All Gear", "Gear", "All Gear Archive" },
+    { "Monster Resources", "Monster Resources", "Monster Resources Archive" },
     { "Survivor Sheet", "Survivor Sheet", "Survivor Sheets Archive" },
     { "Survivor Box", "Survivor Box", "Survivor Boxes Archive" },
 }
@@ -53,18 +54,19 @@ local Archive_containerZ = 120
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_RegisterEntries(archiveEntries, allowOverrides)
-    if not archiveEntries then
+local function Archive_RegisterEntries(params)
+    if not params then
         return
     end
-    archive = archiveEntries.archive
+
+    archive = params.archive
     assert(archive)
-    for _, entry in ipairs(archiveEntries.entries) do
+    for _, entry in ipairs(params.entries) do
         local name, type = entry[1], entry[2]
         assert(name)
         assert(type)
         local key = Archive_Key(name, type)
-        if not allowOverrides then
+        if not params.allowOverrides then
             assert(Check(Archive_index[key] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive_index[key]))
         end
         Archive_index[key] = archive
@@ -73,9 +75,9 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_Init(saveState, expansions, modules)
+local function Archive_Init(modules, saveState, expansions)
     for _, expansion in ipairs(expansions) do
-        Archive_RegisterEntries(expansion.archiveEntries, false)
+        Archive_RegisterEntries(expansion.archiveEntries)
     end
 end
 
@@ -103,8 +105,6 @@ local function Archive_Take(params)
     local height = params.height or DEFAULT_SPAWN_HEIGHT
     local location = params.location
     local position = params.position
-    local location = params.location
-    local position = params.position
     if location then
         location = Location.Get(location)
         position = location:Center()
@@ -112,9 +112,9 @@ local function Archive_Take(params)
     else
         assert(position, "Either location or position is required")
     end
-
     local rotation = params.rotation or FACE_UP
     local spawnFunc = params.spawnFunc
+    local allowMissing = params.allowMissing
     assert(CheckStrOrNil(archive))
     assert(CheckStr(name))
     assert(CheckStr(type))
@@ -125,6 +125,9 @@ local function Archive_Take(params)
     if not archive then
         local key = Archive_Key(name, type)
         archive = Archive_index[key]
+        if allowMissing then
+            return nil
+        end
         assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
         if Archive_direct[key] then
@@ -147,7 +150,7 @@ local function Archive_Take(params)
 
     local container = Archive_containers[archive]
     if container then
-        Log.Debugf("Re-using already-spawned archive container %) for %s (%s)", container:Guid(), name, type)
+        Log.Debugf("Re-using already-spawned archive container %s for %s (%s)", container:Guid(), name, type)
 
     else
         -- spawn new container and cache
@@ -160,7 +163,7 @@ local function Archive_Take(params)
         if not container then
             Log.Errorf("Couldn't take from archive %s (%s). If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getName(), archiveObject.getGUID())
             Util.Highlight(archiveObject)
-            return
+            return nil
         end
 
         Log.Debugf("Spawned archive container %s at (%f, %f) for %s (%s)", container:Guid(), Archive_containerX, Archive_containerZ, name, type)
@@ -175,11 +178,14 @@ local function Archive_Take(params)
         position = position,
         rotation = rotation,
         spawnFunc = spawnFunc,
+        allowMissing = allowMissing,
     })
     if not object then
-        Log.Errorf("Couldn't take %s (%s) from archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
-        Util.Highlight(NamedObject.Get(archive))
-        return
+        if not allowMissing then
+            Log.Errorf("Couldn't find %s (%s) in archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
+            Util.Highlight(NamedObject.Get(archive))
+        end
+        return nil
     end
 
     Log.Debugf("Spawned object %s (%s)", object.getName(), object.getGUID())
@@ -195,7 +201,7 @@ local function Archive_CleanUpContainers()
         container:Destruct()
     end
 
-    -- We always scan and clean leftover archive containers from a previous error.
+    -- scan and clean orphaned containers from a previous error
     local hits = Physics.cast({
         origin    = { x = 0, y = 100, z = 95 },
         direction = { x = 0, y = -1, z = 0 },

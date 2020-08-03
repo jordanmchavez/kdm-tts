@@ -249,12 +249,13 @@ local function Ui_Input(parent, params)
             colors = params.colors,
             placeholder = params.placeholder or " " ,
             text = params.text,
+            readOnly = params.readOnly,
             fontSize = params.fontSize or 16,
             fontStyle = params.fontStyle,
             textColor = params.textColor,
             lineType = params.lineType,
             onValueChanged = onValueChanged,
-            selectionColor = "#44444488",
+            selectionColor = params.selectionColor or "#44444488",
             textAlignment = params.textAlignment or "MiddleLeft",
             textOffset = params.textOffset or "0 0 0 0",
         }
@@ -272,6 +273,7 @@ end
 local function Ui_LightInput(parent, params)
     params.textColor = UI_LIGHT_BROWN
     params.colors = UI_INVISIBLE_COLORS
+    params.selectionColor = "#888888"
     return Ui_Input(parent, params)
 end
 
@@ -317,32 +319,36 @@ local function Ui_Button(parent, params)
     assert(CheckFuncOrNil(params.onClick))
 
     local id = parent.id.."_"..params.id.."Button"
-    local textColor = params.textColor or UI_LIGHT_BROWN
 
     Log.Debugf("Creating Button %s", id)
 
     local button = {
         id = id,
         object = params.object or self,
-        textColor = textColor,
+        textColor = params.textColor or UI_LIGHT_BROWN,
         onClick = params.onClick,
-        attributes = params,
     }
     setmetatable(button, Ui_ButtonClass)
 
-    local onClick = id.."_OnClick"
-    button.object.setVar(onClick, function(_, mouseButton) button.onClick(mouseButton) end)
-
-    params.id = id
-    params.rectAlignment = params.rectAlignment or "LowerLeft"
-    params.offsetXY = params.x.." "..params.y
-    params.fontSize = params.fontSize or 12
-    params.textAlignment = params.textAlignment or "MiddleLeft"
-    params.onClick = onClick
+    local onClickFunctionName = id.."_OnClick"
+    button.object.setVar(onClickFunctionName, function(_, mouseButton) button.onClick(mouseButton) end)
 
     table.insert(parent.children, {
         tag = "Button",
-        attributes = params,
+        attributes = {
+            id = id,
+            rectAlignment = params.rectAlignment or "LowerLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            image = params.image,
+            colors = params.colors,
+            text = params.text,
+            textColor = button.textColor,
+            fontSize = params.fontSize or 12,
+            textAlignment = params.textAlignment or "MiddleLeft",
+            onClick = onClickFunctionName,
+        },
     })
 
     return button

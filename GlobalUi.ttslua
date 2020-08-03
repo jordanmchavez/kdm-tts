@@ -2,23 +2,23 @@ local Ui = require("Kdm/Ui")
 local Setup = nil
 local Hunt = nil
 local Showdown = nil
-local Settlement = nil
+local Timeline = nil
 local Population = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local function GlobalUi_Init(saveState, expansions, modules, ui)
+local function GlobalUi_Init(modules, saveState, expansions, ui)
     Setup = modules.Setup
     Hunt = modules.Hunt
     Showdown = modules.Showdown
-    Settlement = modules.Settlement
+    Timeline = modules.Timeline
     Population = modules.Population
 
     local buttons = {
         { name = "Setup", module = Setup, image = "SetupButton" },
         { name = "Hunt", module = Hunt, image = "HuntButton" },
         { name = "Showdown", module = Showdown, image = "ShowdownButton" },
-        { name = "Settlement", module = Settlement, image = "TimelineButton" },
+        { name = "Timeline", module = Timeline, image = "TimelineButton" },
         { name = "Population", module = Population, image = "PopulationButton" },
     }
     for i, button in ipairs(buttons) do

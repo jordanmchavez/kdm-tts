@@ -38,7 +38,12 @@ return {
                 { year = 24, type = "ShowdownEvent", monster = "The Hand", level = "Level 3" },
                 { year = 25, type = "RulebookEvent", name = "The Great Devourer" },
             },
-            survivalActions = { "Dodge", "Embolden", "Dash", "Overcharge" },
+            survivalActions = {
+                { name = "Dodge" },
+                { name = "Embolden" },
+                { name = "Dash" },
+                { name = "Overcharge" },
+            },
             milestones = {
                 { name = "First Death", event = "Principle: Death" },
                 { name = "15 Population", event = "Principle: Society" },

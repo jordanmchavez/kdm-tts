@@ -23,7 +23,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function MessageBox_Init(saveState, expansions, modules, ui)
+local function MessageBox_Init(modules, saveState, expansions, ui)
     MessageBox_ui.panel = Ui.Panel(ui, { id = "MessageBox", width = 300, height = 150, active = false })
     Ui.Image(MessageBox_ui.panel, { id = "MessageBox", width = 300, height = 150, image = "MessageBox" })
 

@@ -4,165 +4,28 @@ local Util = require("Kdm/Util")
 local EventManager = require("Kdm/EventManager")
 local Location = require("Kdm/Location")
 
-local ZONE_CELL_SIZE = 1
-
-local Zone_cells = {}
-local Zone_zonesByLocation = {}
-local Zone_objectZones = {}
-
 ---------------------------------------------------------------------------------------------------
 
-local function Zone_ColRow(x, z)
-    local col = math.floor(x / ZONE_CELL_SIZE)
-    local row = math.floor(z / ZONE_CELL_SIZE)
+local Zone = {
+    CELL_SIZE = 1,
+    cells = {},
+    zonesByLocation = {},
+    objectZones = {},
+}
+
+function Zone.ColRow(x, z)
+    local col = math.floor(x / Zone.CELL_SIZE)
+    local row = math.floor(z / Zone.CELL_SIZE)
     return col, row
 end
 
----------------------------------------------------------------------------------------------------
-
-local function Zone_Index(col, row)
+function Zone.Index(col, row)
     return row.." "..col
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Zone_Create(location)
-    location = Location.Get(location)
-    assert(Check(not Zone_zonesByLocation[location], "Zone for location '%s' already exists", location:Name()))
-
-    local left, top, right, bottom = location:Rect()
-    Log.Debugf("Creating zone %s (%.2f, %.2f) to (%.2f, %.2f)", location:Name(), left, top, right, bottom)
-
-    local zone = {
-        location = location,
-        left = left,
-        top = top,
-        right = right,
-        bottom = bottom,
-        dropHandlers = {},
-        pickUpHandlers = {},
-        objects = {},
-    }
-    Zone_zonesByLocation[location] = zone
-
-    local leftCol, topRow = Zone_ColRow(left, top)
-    local rightCol, bottomRow = Zone_ColRow(right, bottom)
-    for row = topRow, bottomRow do
-        for col = leftCol, rightCol do
-            local index = Zone_Index(col, row)
-            if not Zone_cells[index] then
-                Zone_cells[index] = { zone }
-            else
-                table.insert(Zone_cells[index], zone)
-            end
-        end
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_AddHandler(params)
-    local location, dropHandler, pickUpHandler = Location.Get(params.location), params.dropHandler, params.pickUpHandler
-    assert(CheckFuncOrNil(dropHandler))
-    assert(CheckFuncOrNil(pickUpHandler))
-
-    local zone = Zone_zonesByLocation[location]
-    assert(Check(zone, "No zone for location '%s'", location:Name()))
-
-    if dropHandler then
-        table.insert(zone.dropHandlers, dropHandler)
-    end
-    if pickUpHandler then
-        table.insert(zone.pickUpHandlers, pickUpHandler)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_GetZonesAtPosition(position)
-    local results = {}
-
-    local x, z = position.x, position.z
-    local col, row = Zone_ColRow(x, z)
-    for _, zone in ipairs(Zone_cells[Zone_Index(col, row)] or {}) do
-        if x >= zone.left and x <= zone.right and z >= zone.top and z <= zone.bottom then
-            table.insert(results, zone)
-        end
-    end
-
-    return results
-end
-
-local function Zone_GetZoneNamesAtPosition(position)
-    return Util.Map(Zone_GetZonesAtPosition(position), function(z) return z.name end)
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_GetObjectsInZone(location)
-    local location = Location.Get(location)
-    local zone = Zone_zonesByLocation[location]
-    assert(Check(zone, "No zone for location %s", location:Name()))
-    return zone.objects
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_Drop(object, verb)
-    local zones = Zone_GetZonesAtPosition(object.getPosition())
-    if #zones == 0 then
-        Zone_objectZones[object] = nil
-        return
-    end
-
-    -- Link the object with all zones *before* calling handlers, in case the handlers do their own zone queries
-    local objectZones = {}
-    for _, zone in ipairs(zones) do
-        Log.Debugf("Object %s (%s) %s in %s", object.getName(), object.getGUID(), verb, zone.name)
-        table.insert(objectZones, zone)
-        zone.objects[object] = true
-    end
-    Zone_objectZones[object] = objectZones
-
-    for _, zone in ipairs(zones) do
-        for _, dropHandler in ipairs(zone.dropHandlers) do
-            dropHandler(object, zone.location)
-        end
-    end
-end
-
-local function Zone_OnObjectDrop(_, object) Zone_Drop(object, "dropped") end
-local function Zone_OnObjectSpawn(object) Zone_Drop(object, "spawned") end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_PickUp(object, verb)
-    local zones = Zone_objectZones[object]
-    if not zones then
-        return
-    end
-
-    -- Unlink the object with all zones *before* calling handlers, in case the handlers do their own zone queries
-    Zone_objectZones[object] = nil
-    for _, zone in ipairs(zones) do
-        Log.Debugf("Object %s (%s) %s, removing from %s", object.getName(), object.getGUID(), verb, zone.name)
-        zone.objects[object] = nil
-    end
-
-    for _, zone in ipairs(zones) do
-        for _, pickUpHandler in ipairs(zone.pickUpHandlers) do
-            pickUpHandler(object, zone.location)
-        end
-    end
-end
-
-local function Zone_OnObjectPickUp(_, object) Zone_PickUp(object, "picked up") end
-local function Zone_OnObjectEnterContainer(_, object) Zone_PickUp(object, "entered container") end
-local function Zone_OnObjectDestroy(object) Zone_PickUp(object, "destroyed") end
-
----------------------------------------------------------------------------------------------------
-
-local function Zone_Init()
+function Zone.Init()
     for _, location in ipairs({
         "Monster Tokens",
         "Innovation Deck",
@@ -170,9 +33,9 @@ local function Zone_Init()
         "Principle: New Life",
         "Principle: Society",
         "Principle: Conviction",
-        "Innovations",
+        "Innovation Archive",
     }) do
-        Zone_Create(location)
+        Zone.Create(location)
     end
 
     for _, data in ipairs({
@@ -184,7 +47,7 @@ local function Zone_Init()
         { max = Location.MAX_SETTLEMENT_LOCATION_GEAR_LOCATIONS, name = "Settlement Location Gear " },
     }) do
         for i = 1, data.max do
-            Zone_Create(data.name..i)
+            Zone.Create(data.name..i)
         end
     end
 
@@ -216,49 +79,216 @@ local function Zone_Init()
     for player = 1, 4 do
         local prefix = "Player "..player.." "
         for _, location in ipairs(playerLocations) do
-            Zone_Create(prefix..location)
+            Zone.Create(prefix..location)
         end
 
         local gearPrefix = prefix.."Gear "
         for i = 1, Location.MAX_PLAYER_GEAR_GRID_LOCATIONS do
-            Zone_Create(gearPrefix..i)
+            Zone.Create(gearPrefix..i)
         end
     end
 
-    EventManager.AddHandler("onObjectDrop", Zone_OnObjectDrop)
-    EventManager.AddHandler("onObjectPickUp", Zone_OnObjectPickUp)
-    EventManager.AddHandler("onObjectEnterContainer", Zone_OnObjectEnterContainer)
-    EventManager.AddHandler("onObjectSpawn", Zone_OnObjectSpawn)
-    EventManager.AddHandler("onObjectDestroy", Zone_OnObjectDestroy)
+    EventManager.AddHandler("onObjectDrop", Zone.OnObjectDrop)
+    EventManager.AddHandler("onObjectPickUp", Zone.OnObjectPickUp)
+    EventManager.AddHandler("onObjectEnterContainer", Zone.OnObjectEnterContainer)
+    EventManager.AddHandler("onObjectSpawn", Zone.OnObjectSpawn)
+    EventManager.AddHandler("onObjectDestroy", Zone.OnObjectDestroy)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Zone_InitObjectsInZones()
+function Zone.InitObjectsInZones()
     for _, object in ipairs(getAllObjects()) do
-        local zones = Zone_GetZonesAtPosition(object.getPosition())
-        for _, zone in ipairs(zones) do
-            Log.Debugf("Object %s (%s) started in zone %s", object.getName(), object.getGUID(), zone.location:Name())
-            for _, dropHandler in ipairs(zone.dropHandlers) do
-                dropHandler(object, zone.location)
-            end
+        if object.interactable then
+            local zones = Zone.ZonesAtPosition(object.getPosition())
+            for _, zone in ipairs(zones) do
+                Log.Debugf("Object %s (%s) started in zone %s", object.getName(), object.getGUID(), zone.location:Name())
+                for _, dropHandler in ipairs(zone.dropHandlers) do
+                    dropHandler(object, zone.location)
+                end
 
-            if not Zone_objectZones[object] then
-                Zone_objectZones[object] = { zone }
-            else
-                table.insert(Zone_objectZones[object], zone)
+                if not Zone.objectZones[object] then
+                    Zone.objectZones[object] = { zone }
+                else
+                    table.insert(Zone.objectZones[object], zone)
+                end
+                zone.objects[object] = true
             end
-            zone.objects[object] = true
         end
     end
 end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.Create(location)
+    location = Location.Get(location)
+    assert(Check(not Zone.zonesByLocation[location], "Zone for location '%s' already exists", location:Name()))
+
+    local left, top, right, bottom = location:Rect()
+    Log.Debugf("Creating zone %s (%.2f, %.2f) to (%.2f, %.2f)", location:Name(), left, top, right, bottom)
+
+    local zone = {
+        location = location,
+        left = left,
+        top = top,
+        right = right,
+        bottom = bottom,
+        dropHandlers = {},
+        pickUpHandlers = {},
+        objects = {},
+    }
+    Zone.zonesByLocation[location] = zone
+
+    local leftCol, topRow = Zone.ColRow(left, top)
+    local rightCol, bottomRow = Zone.ColRow(right, bottom)
+    for row = topRow, bottomRow do
+        for col = leftCol, rightCol do
+            local index = Zone.Index(col, row)
+            if not Zone.cells[index] then
+                Zone.cells[index] = { zone }
+            else
+                table.insert(Zone.cells[index], zone)
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.AddHandler(params)
+    local location, dropHandler, pickUpHandler = Location.Get(params.location), params.dropHandler, params.pickUpHandler
+    assert(CheckFuncOrNil(dropHandler))
+    assert(CheckFuncOrNil(pickUpHandler))
+
+    local zone = Zone.zonesByLocation[location]
+    assert(Check(zone, "No zone for location '%s'", location:Name()))
+
+    if dropHandler then
+        table.insert(zone.dropHandlers, dropHandler)
+    end
+    if pickUpHandler then
+        table.insert(zone.pickUpHandlers, pickUpHandler)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.ZonesAtPosition(position)
+    local results = {}
+
+    local x, z = position.x, position.z
+    local col, row = Zone.ColRow(x, z)
+    for _, zone in ipairs(Zone.cells[Zone.Index(col, row)] or {}) do
+        if x >= zone.left and x <= zone.right and z >= zone.top and z <= zone.bottom then
+            table.insert(results, zone)
+        end
+    end
+
+    return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.LocationsAtPosition(position)
+    return Util.Map(Zone.ZonesAtPosition(position), function(z) return z.location end)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.Objects(location)
+    local location = Location.Get(location)
+    local zone = Zone.zonesByLocation[location]
+    assert(Check(zone, "No zone for location %s", location:Name()))
+    local objects = {}
+    for object, _ in pairs(zone.objects) do
+        table.insert(objects, object)
+    end
+    return objects
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.FindFirst(params)
+    local location = Location.Get(params.location)
+    local zone = Zone.zonesByLocation[location]
+    assert(Check(zone, "No zone for location %s", location:Name()))
+    for object, _ in pairs(zone.objects) do
+        if Zone.Matches(object, params.tags, params.types) then
+            return object
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.Matches(obj, tags, types)
+    local matchesTags = tags and Util.ArrayContains(tags, obj.tag)
+    local matchesTypes = types and Util.ArrayContains(types, obj.getGMNotes())
+
+    return matchesTags or matchesTypes
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.Drop(object, verb)
+    local zones = Zone.ZonesAtPosition(object.getPosition())
+    if #zones == 0 then
+        Zone.objectZones[object] = nil
+        return
+    end
+
+    -- Link the object with all zones *before* calling handlers, in case the handlers do their own zone queries
+    local objectZones = {}
+    for _, zone in ipairs(zones) do
+        Log.Debugf("Object %s (%s) %s in %s", object.getName(), object.getGUID(), verb, zone.name)
+        table.insert(objectZones, zone)
+        zone.objects[object] = true
+    end
+    Zone.objectZones[object] = objectZones
+
+    for _, zone in ipairs(zones) do
+        for _, dropHandler in ipairs(zone.dropHandlers) do
+            dropHandler(object, zone.location)
+        end
+    end
+end
+
+function Zone.OnObjectDrop(_, object) Zone.Drop(object, "dropped") end
+function Zone.OnObjectSpawn(object) Zone.Drop(object, "spawned") end
+
+---------------------------------------------------------------------------------------------------
+
+function Zone.PickUp(object, verb)
+    local zones = Zone.objectZones[object]
+    if not zones then
+        return
+    end
+
+    -- Unlink the object with all zones *before* calling handlers, in case the handlers do their own zone queries
+    Zone.objectZones[object] = nil
+    for _, zone in ipairs(zones) do
+        Log.Debugf("Object %s (%s) %s, removing from %s", object.getName(), object.getGUID(), verb, zone.name)
+        zone.objects[object] = nil
+    end
+
+    for _, zone in ipairs(zones) do
+        for _, pickUpHandler in ipairs(zone.pickUpHandlers) do
+            pickUpHandler(object, zone.location)
+        end
+    end
+end
+
+function Zone.OnObjectPickUp(_, object) Zone.PickUp(object, "picked up") end
+function Zone.OnObjectEnterContainer(_, object) Zone.PickUp(object, "entered container") end
+function Zone.OnObjectDestroy(object) Zone.PickUp(object, "destroyed") end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = Zone_Init,
-    InitObjectsInZones = Zone_InitObjectsInZones,
-    AddHandler = Zone_AddHandler,
-    GetZoneNamesAtPosition = Zone_GetZoneNamesAtPosition,
-    GetObjectsInZone = Zone_GetObjectsInZone,
+    Init = Zone.Init,
+    InitObjectsInZones = Zone.InitObjectsInZones,
+    AddHandler = Zone.AddHandler,
+    LocationsAtPosition = Zone.LocationsAtPosition,
+    Objects = Zone.Objects,
+    FindFirst = Zone.FindFirst,
 }

@@ -345,7 +345,7 @@ end
 local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLocations)
     if gmNotes == "Disorders" then
         for i = 1, 3 do
-            local key = playerPrefix.." Disorder "..i
+            local key = Location.Get(playerPrefix.." Disorder "..i)
             if availableLocations[key] then
                 availableLocations[key] = nil
                 return key
@@ -354,7 +354,7 @@ local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLoca
 
     elseif gmNotes == "Fighting Arts" or gmNotes == "Secret Fighting Arts" then
         for i = 1, 3 do
-            local key = playerPrefix.." Fighting Art "..i
+            local key = Location.Get(playerPrefix.." Fighting Art "..i)
             if availableLocations[key] then
                 availableLocations[key] = nil
                 return key
@@ -362,7 +362,7 @@ local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLoca
         end
 
     elseif gmNotes == "Weapon Proficiencies" then
-        local key = playerPrefix.." Weapon Proficiency"
+        local key = Location.Get(playerPrefix.." Weapon Proficiency")
         if availableLocations[key] then
             availableLocations[key] = nil
             return key
@@ -370,7 +370,7 @@ local function PlayerBoard_TakeNextLocation(playerPrefix, gmNotes, availableLoca
     end
 
     for i = 1, 9 do
-        local key = playerPrefix.." Ability/Impairment "..i
+        local key = Location.Get(playerPrefix.." Ability/Impairment "..i)
         if availableLocations[key] then
             availableLocations[key] = nil
             return key
@@ -435,10 +435,10 @@ function PlayerBoardClass.UnpackSurvivorBox(playerBoard, survivorBox)
     local playerBoardObject = playerBoard:Object()
 
     local availableLocations = {}
-    for i = 1, 3 do availableLocations[playerPrefix.." Disorder "..i] = true end
-    for i = 1, 3 do availableLocations[playerPrefix.." Fighting Art "..i] = true end
-    availableLocations[playerPrefix.." Weapon Proficiency"] = true
-    for i = 1, 9 do availableLocations[playerPrefix.." Ability/Impairment "..i] = true end
+    for i = 1, 3 do availableLocations[Location.Get(playerPrefix.." Disorder "..i)] = true end
+    for i = 1, 3 do availableLocations[Location.Get(playerPrefix.." Fighting Art "..i)] = true end
+    availableLocations[Location.Get(playerPrefix.." Weapon Proficiency")] = true
+    for i = 1, 9 do availableLocations[Location.Get(playerPrefix.." Ability/Impairment "..i)] = true end
 
     for _, entry in ipairs(survivorBoxContainer:Objects()) do
         if entry.gm_notes == "Player Figurine" then
@@ -461,9 +461,9 @@ function PlayerBoardClass.UnpackSurvivorBox(playerBoard, survivorBox)
                 })
                 table.remove(positions)
 
-                for _, zone in ipairs(Zone.GetZoneNamesAtPosition(position)) do
-                    Log.Debugf("Card %s (%s) now occupies location %s", entry.name, entry.guid, zone)
-                    availableLocations[zone] = false
+                for _, location in ipairs(Zone.LocationsAtPosition(position)) do
+                    Log.Debugf("Card %s (%s) now occupies location %s", entry.name, entry.guid, location:Name())
+                    availableLocations[location] = false
                 end
             end
         end
@@ -498,6 +498,15 @@ function PlayerBoardClass.UnpackSurvivorBox(playerBoard, survivorBox)
     end
 
     local survivorSheet = Population.ReplaceSurvivorBoxWithSheet(survivorBox, Location.Get(playerPrefix.." Survivor Sheet"))
+    playerBoard:LinkSurvivorSheet(survivorSheet)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function PlayerBoardClass.LinkSurvivorSheet(playerBoard, survivorSheet)
+    assert(CheckTagged(survivorSheet, "Survivor Sheet"))
+    assert(Check(not playerBoard:SurvivorSheet(), "PlayerBoard %d is already linked to SurvivorSheet", playerBoard:Number()))
+
     playerBoard.linkedSurvivorSheet = survivorSheet
     Log.Debugf("Linking SurvivorSheet %s to player board %d", survivorSheet:Object().getGUID(), playerBoard:Number())
     EventManager.FireEvent("onPlayerBoardLinkSurvivor", playerBoard, survivor)
@@ -753,7 +762,8 @@ local function PlayerBoard_UpdateSurvivorCards(playerBoard)
         cards[type] = {}
     end
 
-    for object, _ in pairs(Zone.GetObjectsInZone("Player "..playerBoard:Number().." Cards")) do
+    local n = playerBoard:Number()
+    for _, object in ipairs(Zone.Objects("Player "..n.." Cards")) do
         local type = object.getGMNotes()
         if Survivor.CARD_TYPES_MAP[type] then
             table.insert(cards[type], object.getName())
@@ -946,7 +956,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function PlayerBoard_Init(saveState, expansions, modules)
+local function PlayerBoard_Init(modules, saveState, expansions)
     Armor = modules.Armor
     Weapon = modules.Weapon
     Population = modules.Population

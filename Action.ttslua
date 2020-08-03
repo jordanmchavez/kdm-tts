@@ -31,17 +31,27 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Action_CreateDeck(params)
-    local sources, location, rotation = params.sources,  Location.Get(params.location), (params.rotation or FACE_UP)
+    local sources, location, rotation, allowMissing = params.sources,  Location.Get(params.location), (params.rotation or FACE_UP), params.allowMissing
 
     local objects = {}
     for i, source in ipairs(sources) do
-        local takeParams = { name = source.name, type = source.type, location = location, height = (i - 1) * 0.5, rotation = rotation }
+        local takeParams = { name = source.name, type = source.type, location = location, height = (i - 1) * 0.5, rotation = rotation, allowMissing = allowMissing }
+        local object = nil
         if source.source == "Archive" then
-            table.insert(objects, Archive.Take(takeParams))
+            object = Archive.Take(takeParams)
+            if not object then
+                Log.Errorf("Couldn't find '%s' in archive", source.name)
+            end
         elseif source.source == "Container" then
-            table.insert(objects, source.container:Take(takeParams))
+            object = source.container:Take(takeParams)
+            if not object then
+                Log.Errorf("Couldn't find '%s' in container '%s' (%s)", source.name, container:Name(), container:Guid())
+            end
         else
             assert(CheckFail("Unrecognized source: %s", source))
+        end
+        if object then
+            table.insert(objects, object)
         end
     end
 
@@ -85,7 +95,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_Init(saveState, expansions, modules)
+local function Action_Init(modules, saveState, expansions)
     Archive = modules.Archive
     assert(Archive)
 end

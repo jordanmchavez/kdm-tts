@@ -1,26 +1,22 @@
+require("Kdm/Check")
 local Util = require("Kdm/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local Log = {
-    debugEnabled = true,
-    --debugEnableAll = true,    -- makes Init take a *long* time since TTS is very slow with console i/o
-}
-
-Log.debugPackages = {
+local Log_debugModules = {
     ["G"] = true,
     ["Survivor"] = true,
     ["SurvivorSheet"] = true,
     ["Population"] = true,
-    ["PlayerBoard"] = true,
+    --["PlayerBoard"] = true,
     ["BattleReference"] = true,
-    --["Zone"] = true,
-    --["Ui"] = true,
+    ["Timeline"] = true,
+    ["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Printf(package, fmt, ...)
+local function Log_Printf(package, fmt, ...)
     fmt = fmt or ""
     local msg = Util.SafeFormat(fmt or "", ...)
     log(Util.SafeFormat("[%s] "..fmt or "", package, ...), nil, "print")
@@ -29,8 +25,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Debugf(package, fmt, ...)
-    if Log.debugEnabled and (Log.debugEnableAll or Log.debugPackages[package]) then
+local function Log_Debugf(package, fmt, ...)
+    if Log_debugModules[package] then
         fmt = fmt or ""
         local s = Util.SafeFormat("[%s] "..fmt, package, ...)
         log(s, nil, "debug")
@@ -39,15 +35,15 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Errorf(package, fmt, ...)
+local function Log_Errorf(package, fmt, ...)
     fmt = fmt or ""
     log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "error")
-    broadcastToAll(Util.SafeFormat(fmt, ...))
+    printToAll(Util.SafeFormat("[ff4444]"..fmt, ...))
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Broadcastf(package, fmt, ...)
+local function Log_Broadcastf(package, fmt, ...)
     fmt = fmt or ""
     log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
     broadcastToAll(Util.SafeFormat(fmt, ...))
@@ -55,7 +51,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Init()
+local function Log_Init()
     logStyle("debug", { r = 1.0, g = 1.0, b = 1.0 }, "", "")
     logStyle("print", { r = 0.0, g = 1.0, b = 1.0 }, "", "")
     logStyle("error", { r = 1.0, g = 0.0, b = 0.0 }, "", "")
@@ -63,16 +59,21 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.ForPackage(package)
-    return {
-        Printf = function(fmt, ...) Log.Printf(package, fmt, ...) end,
-        Debugf = function(fmt, ...) Log.Debugf(package, fmt, ...) end,
-        Errorf = function(fmt, ...) Log.Errorf(package, fmt, ...) end,
-        Broadcastf = function(fmt, ...) Log.Broadcastf(package, fmt, ...) end,
-        Init = Log.Init,
-    }
+local function Log_EnableModule(module, enabled)
+    Log_debugModules[module] = enabled
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Log
+return {
+    ForPackage = function(package)
+        return {
+            Printf = function(fmt, ...) Log_Printf(package, fmt, ...) end,
+            Debugf = function(fmt, ...) Log_Debugf(package, fmt, ...) end,
+            Errorf = function(fmt, ...) Log_Errorf(package, fmt, ...) end,
+            Broadcastf = function(fmt, ...) Log_Broadcastf(package, fmt, ...) end,
+            Init = Log_Init,
+            EnableModule = Log_EnableModule,
+        }
+    end
+}

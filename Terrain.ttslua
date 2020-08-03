@@ -8,7 +8,7 @@ local Terrain_tileSizes = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Terrain_Init(saveState, expansions)
+local function Terrain_Init(modules, saveState, expansions)
     for _, expansion in ipairs(expansions) do
         for terrain, data in pairs(expansion.terrain or {}) do
             assert(Check(Terrain_data[terrain] == nil, "Terrain %s is already registered with data %s", terrain, Terrain_data[terrain]))

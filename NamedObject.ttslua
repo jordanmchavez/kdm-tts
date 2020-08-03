@@ -27,6 +27,7 @@ local NamedObject_guidNames = {
     ["916de5"] = "Settlement Events Archive",
     ["7a04ec"] = "Rare Gear Archive",
     ["166a4f"] = "All Gear Archive",
+    ["26dc61"] = "Monster Resources Archive",
     ["5d72f3"] = "Hunt Events Archive",
     ["174926"] = "Survivor Sheets Archive",
     ["9b15e7"] = "Survivor Boxes Archive",
@@ -101,7 +102,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function NamedObject_Init(saveState, expansions)
+local function NamedObject_Init(expansions)
     for guid, name in pairs(NamedObject_guidNames) do
         NamedObject_Set(name, guid)
     end
