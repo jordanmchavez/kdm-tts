@@ -507,9 +507,14 @@ function PlayerBoardClass.LinkSurvivorSheet(playerBoard, survivorSheet)
     assert(CheckTagged(survivorSheet, "Survivor Sheet"))
     assert(Check(not playerBoard:SurvivorSheet(), "PlayerBoard %d is already linked to SurvivorSheet", playerBoard:Number()))
 
-    playerBoard.linkedSurvivorSheet = survivorSheet
     Log.Debugf("Linking SurvivorSheet %s to player board %d", survivorSheet:Object().getGUID(), playerBoard:Number())
-    EventManager.FireEvent("onPlayerBoardLinkSurvivor", playerBoard, survivor)
+    playerBoard.linkedSurvivorSheet = survivorSheet
+    if playerBoard.figurine then
+        local name = survivorSheet:Survivor():NameOrUnnamed()
+        Log.Debugf("Setting linked figurine %s name to %s", playerBoard.figurine.getGUID(), name)
+        playerBoard.figurine.setName(name)
+    end
+    EventManager.FireEvent("onPlayerBoardLinkSurvivor", playerBoard, survivorSheet:Survivor())
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -944,9 +949,9 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function PlayerBoard_OnSurvivorChangeStat(survivor, stat, value)
-    if stat == "name" then
+    if stat == "Name" then
         for _, playerBoard in ipairs(PlayerBoard_playerBoards) do
-            if playerBoard.linkedSurvivorSheet and playerBoard.linkedSurvivorSheet:Survivor() == survivor and playerBoard:Figurine() then
+            if playerBoard:Survivor() == survivor and playerBoard:Figurine() then
                 Log.Debugf("Updating linked figurine %s for player %s to %s", playerBoard:Figurine().getGUID(), playerBoard:Number(), value)
                 playerBoard:Figurine().setName(value)
             end

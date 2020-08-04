@@ -405,8 +405,8 @@ function Setup.Export()
 
         local objects = Zone.Objects(location)
         if #objects > 1 then
-            Log.Errorf("Found multiple objects at %s: please make sure there's only one object in each card slot.")
-            Location.Get(location):Highlight()
+            Log.Errorf("Found multiple objects at %s: please make sure there's only one object in each card slot.", location)
+            Util.HighlightAll(objects)
             Setup.HideUi()
             return
         end
@@ -502,13 +502,10 @@ function Setup.Setup(params)
     Timeline.Import(params.timeline or Setup.BuildTimelineImportData(params.expansions, params.campaign))
 
     Population.Import(params.population or Setup.DEFAULT_POPULATION)
-    if not params.timeline then
-        -- wait 1 frame so any deleted objects on the survivor sheets are out of the way
-        Wait.frames(function()
-            for playerNumber = 1, 4 do
-                Population.CreateAndLinkSurvivorSheet(Population.SurvivorForId(playerNumber), playerNumber)
-            end
-        end, 1)
+    if not params.population then
+        for i = 1, 4 do
+            Population.CreateAndLinkSurvivorSheet(Population.SurvivorForId(i), i)
+        end
     end
 
     Archive.CleanUpContainers()
@@ -747,20 +744,13 @@ end
 -------------------------------------------------------------------------------------------------
 
 function Setup.SetupReferences(references)
-    for _, location in ipairs({
-        "Misc Reference",
-        "Age Reference",
-        "Intimacy Reference",
-        "Bold Reference",
-        "Insight Reference",
-    }) do
-        if references[location] then
-            Log.Debugf("Adding reference %s at %s", references[location], location)
-            -- height 0 because we lock these immediately after spawning
-            Archive.Take({ name = references[location], type = "Reference", location = location, height = 0, spawnFunc = function(spawnedObject)
-                spawnedObject.setLock(true)
-            end })
-        end
+    for _, data in ipairs(references) do
+        local name, location = data.name, data.location
+        Log.Debugf("Adding reference %s at %s", name, location)
+        -- height 0 because we lock these immediately after spawning
+        Archive.Take({ name = name, type = "Reference", location = location, height = 0, spawnFunc = function(spawnedObject)
+            spawnedObject.setLock(true)
+        end })
     end
 end
 

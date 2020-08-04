@@ -52,7 +52,7 @@ return {
             removedFightingArts = { "Leader" },
             removedInnovations = { "Language", "Inner Lantern - Language Consequence" },
             startingInnovations = {
-                ["Innovation 1"] = "Sun Language",
+                { name = "Sun Language", location = "Innovation 1" },
             },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
@@ -63,17 +63,17 @@ return {
                 "Hands of the Sun", -- may be a typo, but Hands of the Sun doesn't actually have "language consequence" on the card
             },
             startingPrinciples = {
-                ["Principle: New Life"] = "Survival of the Fittest - New Life Principle",
+                { name = "Survival of the Fittest - New Life Principle", location = "Principle: New Life" },
             },
             startingSettlementLocations = {
-                ["Settlement Location 1"] = "The Sun",
-                ["Settlement Location 2"] = "Sacred Pool",
+                { name = "The Sun", location = "Settlement Location 1" },
+                { name = "Sacred Pool", location = "Settlement Location 2" },
             },
             references = {
-                ["Age Reference"] = "Age Reference",
-                ["Intimacy Reference"] = "Intimacy (People of the Sun) Reference",
-                ["Bold Reference"] = "Bold Reference",
-                ["Insight Reference"] = "Insight Reference",
+                { name = "Age Reference", location = "Age Reference" },
+                { name = "Intimacy (People of the Sun) Reference", location = "Intimacy Reference" },
+                { name = "Bold Reference", location = "Bold Reference" },
+                { name = "Insight Reference", location = "Insight Reference" },
             },
         },
     },

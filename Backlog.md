@@ -49,14 +49,17 @@ scan:
     * changed hunt vs showdown
 * fixed a bug with terrain spawning with wrong rotation
 * import/export Feature
+* make menu collapsible
 
 -------------------------------------------------------------------------
 
-* when you link a surv sheet or box and the PB already has a figurine, make sure to update the fig name
+*** overlays are no longer relative to the overlay object...need to redo this as buttons are getting destroyed
+* get rid of survivor sheets entirely...just have static/two-state ones on the palyer boards
+* when highlighting a single item, always pan the camera to it (make it part of Util.highlight)
 * align the new archives
-* make menu collapsible
 * tips
 * fix vespertine bow
+* entering 's' into the search bar produces a long list
 
 * misc combat stuff: twilight sword
 * spiderlings/lonely fruit/shades are not snapping
@@ -89,6 +92,7 @@ scan:
 * UI only visible to player who clicked?
 * Improve search to "find/spawn anything"
 * Once population sheet is gone, re-add the "show"/"layout" buttons for gear that will lay them out above the settlement board
+* Hunt guide
 
 
 # High Priority

@@ -222,12 +222,6 @@ function LocationClass.RayClean(location, params) return Location_Clean(location
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Highlight(location)
-    Location_BoxClean(location)
-end
-
----------------------------------------------------------------------------------------------------
-
 local function Location_Add(location)
     local name = location:Name()
     assert(Check(not Location_index[name], "Location %s already registered: %s", name, Location_index[name]))

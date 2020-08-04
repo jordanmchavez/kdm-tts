@@ -366,19 +366,20 @@ function Population.CreateAndLinkSurvivorSheet(survivor, playerNumber)
         return Log.Errorf("Survivor sheet %s already exists for survivor '%s' (%d)", survivorSheet:Object().getGUID(), survivor:Name(), survivor:Id())
     end
 
-    local survivorSheetObject = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = "Player "..playerNumber.." Survivor Sheet", height = 0, rotation = FACE_UP, spawnFunc = function(spawnedObject)
-        spawnedObject.setLock(true)
-        spawnedObject.interactable = false
+    return Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = "Player "..playerNumber.." Survivor Sheet", height = 0, rotation = FACE_UP, spawnFunc = function(survivorSheetObject)
+        -- We have to wait a single frame when taking from an infinite container or the objects will have the same equality/identity value as any other objects taken that frame
+        Wait.frames(function()
+            Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
+            local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
+            Population.survivorSheetsBySurvivor[survivor] = survivorSheet
+            Population.survivorSheetsByObject[survivorSheetObject] = survivorSheet
+
+            PlayerBoard.ForPlayer(playerNumber):LinkSurvivorSheet(survivorSheet)
+
+            survivorSheetObject.setLock(true)
+            survivorSheetObject.interactable = false
+        end, 1)
     end })
-    Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
-
-    local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
-    Population.survivorSheetsBySurvivor[survivor] = survivorSheet
-    Population.survivorSheetsByObject[survivorSheetObject] = survivorSheet
-
-    PlayerBoard.ForPlayer(playerNumber):LinkSurvivorSheet(survivorSheet)
-
-    return survivorSheet
 end
 
 ---------------------------------------------------------------------------------------------------

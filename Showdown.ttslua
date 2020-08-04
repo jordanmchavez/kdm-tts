@@ -802,7 +802,7 @@ local function Showdown_Init(modules, saveState, expansions, ui)
         rows = 16,
     })
     Showdown_overlay = Overlay({
-        object = showdownBoard,
+        object = NamedObject.Get("Overlay"),
         grid = Showdown_grid,
         height = 10.75,
     })

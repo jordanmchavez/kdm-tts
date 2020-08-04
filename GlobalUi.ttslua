@@ -5,9 +5,11 @@ local Showdown = nil
 local Timeline = nil
 local Population = nil
 
+GlobalUi = {}
+
 ---------------------------------------------------------------------------------------------------
 
-local function GlobalUi_Init(modules, saveState, expansions, ui)
+function GlobalUi.Init(modules, saveState, expansions, ui)
     Setup = modules.Setup
     Hunt = modules.Hunt
     Showdown = modules.Showdown
@@ -21,8 +23,9 @@ local function GlobalUi_Init(modules, saveState, expansions, ui)
         { name = "Timeline", module = Timeline, image = "TimelineButton" },
         { name = "Population", module = Population, image = "PopulationButton" },
     }
+    GlobalUi.buttons = {}
     for i, button in ipairs(buttons) do
-        Ui.ImageButton(ui, { id = button.name, rectAlignment = "UpperLeft", x = 80, y = -10 - (i - 1) * 40, width = 100, height = 30, image = button.image, onClick = function()
+        GlobalUi.buttons[button.name] = Ui.ImageButton(ui, { id = button.name, rectAlignment = "UpperLeft", x = 70, y = -10 - (i - 1) * 40, width = 100, height = 30, image = button.image, onClick = function()
             if button.module.IsUiOpen() then
                 button.module.HideUi()
 
@@ -36,10 +39,27 @@ local function GlobalUi_Init(modules, saveState, expansions, ui)
             end
         end })
     end
+
+    GlobalUi.open = true
+    GlobalUi.collapseExpandButton = Ui.ImageButton(ui, { id = "CollapseExpand", rectAlignment = "UpperLeft", x = 180, y = -10, width = 30, height = 30, image = "CollapseButton", onClick = function()
+        if GlobalUi.open then
+            GlobalUi.open = false
+            GlobalUi.collapseExpandButton:SetImage("ExpandButton")
+            for _, button in pairs(GlobalUi.buttons) do
+                button:Hide()
+            end
+        else
+            GlobalUi.open = true
+            GlobalUi.collapseExpandButton:SetImage("CollapseButton")
+            for _, button in pairs(GlobalUi.buttons) do
+                button:Show()
+            end
+        end
+    end })
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = GlobalUi_Init,
+    Init = GlobalUi.Init,
 }

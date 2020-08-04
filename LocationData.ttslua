@@ -645,32 +645,32 @@ local gridRight  = -5.735014
 local gridTop    = -2.8629885
 local gridBottom =  5.5242755
 local y = 10.741001
-local cellWidth  = math.abs(gridRight - gridLeft) / 21
-local cellHeight = math.abs(gridBottom - gridTop) / 16
+local cellWidth  = (gridRight - gridLeft) / (locationMaxes.MAX_SHOWDOWN_GRID_COLS - 1)
+local cellHeight = (gridBottom - gridTop) / (locationMaxes.MAX_SHOWDOWN_GRID_ROWS - 1)
 local size = { x = cellWidth, y = cellWidth, z = cellHeight }
 for col = 1, 22 do
     for row = 1, 16 do
-        local x = gridLeft - ((col - 1) * cellWidth)
-        local xHalf = x - (cellWidth / 2)
+        local x = gridLeft + ((col - 1) * cellWidth)
+        local xHalf = x + (cellWidth / 2)
         local z = gridTop + ((row - 1) * cellHeight)
         local zHalf = z + (cellHeight / 2)
         locationData[string.format("(%d, %d)", col, row)] = {
-            center = { x = x, y = y, z = z},
+            center = { x = x, y = y, z = z },
             size = size,
             board = "Showdown Board",
         }
         locationData[string.format("(%d, %d.5)", col, row)] = {
-            center = { x = x, y = y, z = zHalf},
+            center = { x = x, y = y, z = zHalf },
             size = size,
             board = "Showdown Board",
         }
         locationData[string.format("(%d.5, %d)", col, row)] = {
-            center = { x = xHalf, y = y, z = z},
+            center = { x = xHalf, y = y, z = z },
             size = size,
             board = "Showdown Board",
         }
         locationData[string.format("(%d.5, %d.5)", col, row)] = {
-            center = { x = xHalf, y = y, z = zHalf},
+            center = { x = xHalf, y = y, z = zHalf },
             size = size,
             board = "Showdown Board",
         }

@@ -644,6 +644,7 @@ function Timeline.AddTimelineEvent(year, event, params)
         type = type,
         custom = params.custom,
         monster = params.monster,
+        nemesis = params.nemesis,
         level = params.level,
     }
 end
@@ -673,10 +674,10 @@ function Timeline.ShowdownEventTimelineName(monster, level, nemesis)
             return monster
         end
     elseif level then
-        assert(nemesis)
+        --assert(nemesis)
         return "Nemesis - "..level
     else
-        assert(nemesis)
+        --assert(nemesis)
         return "Nemesis"
     end
 end

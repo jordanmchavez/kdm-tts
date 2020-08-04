@@ -54,7 +54,7 @@ return {
                 "Clan of Death - Family Consequence",
             },
             startingInnovations = {
-                ["Innovation 1"] = "Dragon Speech",
+                { name = "Dragon Speech", location = "Innovation 1" },
             },
             startingInnovationDeck = {
                 "Ammonia - Language Consequence",
@@ -65,17 +65,17 @@ return {
                 "Symposium - Language Consequence",
             },
             startingSettlementLocations = {
-                ["Settlement Location 1"] = "Throne",
+                { name = "Throne", location = "Settlement Location 1" },
             },
             references = {
-                ["Misc Reference"] = "Constellations Reference",
-                ["Age Reference"] = "Age Reference",
-                ["Intimacy Reference"] = "Intimacy (People of the Stars) Reference",
-                ["Bold Reference"] = "Awake (Courage) Reference",
-                ["Insight Reference"] = "Awake (Understanding) Reference",
+                { name = "Constellations Reference", location = "Misc Reference" },
+                { name = "Age Reference", location = "Age Reference" },
+                { name = "Intimacy (People of the Stars) Reference", location = "Intimacy Reference"  },
+                { name = "Awake (Courage) Reference", location = "Bold Reference"  },
+                { name = "Awake (Understanding) Reference", location = "Insight Reference" },
             },
             customSpawns = {
-                { name = "Constellations", type = "Abilities", position = { x = 110.875267, y = 4, z = -62.095192 }, rotation = { x = 0, y = 180, z = 180} },
+                { name = "Constellations", type = "Abilities", position = { x = 110.875267, y = 4, z = -62.095192 }, rotation = { x = 0, y = 180, z = 180 } },
             },
         },
     },
