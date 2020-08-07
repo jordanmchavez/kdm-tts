@@ -778,18 +778,22 @@ local function Showdown_Init(modules, saveState, expansions, ui)
 
     -----------------------------------------------------------------------------------------------
 
-    local showdownBoard = NamedObject.Get("Showdown Board")
-    local left = 6.363780
-    local top = -3.159184
-    local right = -6.015290
-    local bottom = 5.837886
+    local overlayObject = NamedObject.Get("Overlay")
+    local left = 27.011892
+    local top = -15.859633
+    local right = 76.526237
+    local bottom  = -51.838516
+    -- local left = 6.363780
+    -- local top = -3.159184
+    -- local right = -6.015290
+    -- local bottom = 5.837886
     local width = right - left
     local cellWidth = width / 21
     local height = bottom - top
     local cellHeight = height / 15
 
     Showdown_grid = Grid({
-        object = showdownBoard,
+        object = overlayObject,
         left = left + cellWidth / 2,
         right = right - cellWidth / 2,
         top = top + cellHeight / 2,
@@ -802,9 +806,11 @@ local function Showdown_Init(modules, saveState, expansions, ui)
         rows = 16,
     })
     Showdown_overlay = Overlay({
-        object = NamedObject.Get("Overlay"),
+        object = overlayObject,
         grid = Showdown_grid,
-        height = 10.75,
+        --height = 10.75,
+        height = 11.750850,
+
     })
 end
 

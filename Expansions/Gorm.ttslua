@@ -26,12 +26,12 @@ return {
     },
 
     armorStats = {
-        ["Gorment Armor"]      = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
-        ["Gorment Mask"]       = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
-        ["Gorment Sleeves"]    = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
-        ["Regeneration Suite"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
-        ["Gorment Suit"]       = { head = 0, arms = 0, body = 2, waist = 2, legs = 0 },
-        ["Gorment Boots"]      = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
+        ["Gorment Armor"]     = { head = 1, arms = 1, body = 1, waist = 1, legs = 1, modifier = true },
+        ["Gorment Mask"]      = { head = 2, arms = 0, body = 0, waist = 0, legs = 0 },
+        ["Gorment Sleeves"]   = { head = 0, arms = 2, body = 0, waist = 0, legs = 0 },
+        ["Regeneration Suit"] = { head = 0, arms = 0, body = 2, waist = 0, legs = 0 },
+        ["Gorment Suit"]      = { head = 0, arms = 0, body = 2, waist = 2, legs = 0 },
+        ["Gorment Boots"]     = { head = 0, arms = 0, body = 0, waist = 0, legs = 2 },
     },
 
     weaponStats = {

@@ -49,7 +49,7 @@ local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local centerRow = top + (bottom - top) / 2
     local x, z = grid:XZ(centerCol, centerRow)
     local l = overlay.object.positionToLocal(grid:Object().positionToWorld({ x, overlay.height, z }))
-    local squareSize = 2730
+    local squareSize = 10900
     overlay.object.createButton({
         function_owner = self,
         position = { x = -l.x, y = l.y, z = l.z },

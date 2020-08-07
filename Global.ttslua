@@ -1,4 +1,4 @@
-local KDM_VERSION = "0.27 Beta"
+local KDM_VERSION = "0.28 Beta"
 
 local Log = require("Kdm/Log").ForPackage("G")
 local Console = require("Kdm/Console")
@@ -22,7 +22,7 @@ local Timeline = require("Kdm/Timeline")
 local Setup = require("Kdm/Setup")
 local Showdown = require("Kdm/Showdown")
 local Hunt = require("Kdm/Hunt")
---local BattleReference = require("Kdm/BattleReference")
+local BattleUi = require("Kdm/BattleUi")
 local MessageBox = require("Kdm/MessageBox")
 local GlobalUi = require("Kdm/GlobalUi")
 
@@ -51,7 +51,7 @@ function onSave()
         Timeline = Timeline.Save(),
         Setup = Setup.Save(),
         Showdown = Showdown.Save(),
---        BattleReference = BattleReference.Save(),
+--        BattleUi = BattleUi.Save(),
     }
 
     return JSON.encode(saveState)
@@ -84,7 +84,7 @@ function onLoad(saveJson)
         ["Setup"] = Setup,
         ["Showdown"] = Showdown,
         ["Hunt"] = Hunt,
---        ["BattleReference"] = BattleReference,
+        ["BattleUi"] = BattleUi,
         ["GlobalUi"] = GlobalUi,
         ["MessageBox"] = MessageBox,
     }

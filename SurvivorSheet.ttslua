@@ -154,7 +154,7 @@ local function SurvivorSheet_SetCheckBoxSequence(survivorSheet, stat, value)
     for i = 1, Util.Min(value, max) do
         survivorSheet.ui[stat..i.."CheckBox"]:Set(true)
     end
-    for i = Util.Min(1, value + 1), max do
+    for i = Util.Max(1, value + 1), max do
         survivorSheet.ui[stat..i.."CheckBox"]:Set(false)
     end
 end

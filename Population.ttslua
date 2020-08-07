@@ -304,7 +304,6 @@ function Population.CreateSurvivorBox(survivor, location)
     end
 
     local blocking = location:BoxClean({ size = Population.SURVIVOR_BOX_SIZE })
-    for _, o in ipairs(blocking) do log(o.getName()) end
     if #blocking > 0 then
         Log.Broadcastf("Please move the highlighted objects out of the way and try creating the survivor box again.")
         Util.HighlightAll(blocking)

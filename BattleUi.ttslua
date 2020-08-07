@@ -1,0 +1,399 @@
+require("Kdm/Check")
+local Log = require("Kdm/Log").ForPackage("BattleUi")
+local Util = require("Kdm/Util")
+local NamedObject = require("Kdm/NamedObject")
+local EventManager = require("Kdm/EventManager")
+local Ui = require("Kdm/Ui")
+local Location = require("Kdm/Location")
+
+local BattleUi = {}
+
+---------------------------------------------------------------------------------------------------
+
+BattleUi.MAX_WEAPONS = 3
+
+BattleUi.hiddenWeaponsBySurvivor = {}
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.Init(modules, saveState, expansions, ui)
+    BattleUi.InitModules(modules)
+    BattleUi.InitSaveState(saveState)
+    BattleUi.InitUi(ui)
+end
+
+---------------------------------------------------------------------------------------------------
+
+local PlayerBoard = nil
+local Showdown = nil
+
+function BattleUi.InitModules(modules)
+    PlayerBoard = modules.PlayerBoard
+    Showdown = modules.Showdown
+    Population = modules.Population
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.InitSaveState(saveState)
+    for survivorId, hiddenWeapons in pairs(saveState or {}) do
+        local survivor = Population.SurvivorForId(survivorId)
+        if survivor == nil then
+            Log.Debugf("No survivor with ID %d doesn't exist", survivorId)
+        else
+            BattleUi.hiddenWeaponsBySurvivor[survivor] = hiddenWeapons
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.InitUi(ui)
+    local TEXT_COLOR = "#ffffffdc"
+    local DISABLED_TEXT_COLOR = "#ffffff60"
+
+    local DARK_COLORS = "#00000000|#ffffff10|#ffffff20|#ffffffff"
+    local DARK_SELECTED_COLORS = "#ffffff20|#ffffff30|#ffffff40|#ffffffff"
+
+    BattleUi.ui = {}
+
+    Ui.Image(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "BattleUi" })
+    Ui.Button(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+        if BattleUi.ui.open then
+            BattleUi.Hide()
+        else
+            BattleUi.Show()
+        end
+    end })
+
+    local playerCircleImages = {
+        "RedCircle",
+        "GreenCircle",
+        "BlueCircle",
+        "WhiteCircle",
+    }
+
+    Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
+    Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+        Log.Printf("Resetting survival actions")
+        for i = 1, 4 do
+            local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):FindAll("Survival Token")
+            for _, token in ipairs(survivalTokens) do
+                rot = token.getRotation()
+                if rot.z >= 15 and rot.z <= 345    then
+                    token.flip()
+                end
+            end
+        end
+
+        Log.Printf("Resetting player turns")
+        for i = 1, 4 do
+            local player = BattleUi.ui.players[i]
+            player.turnEnded = false
+            player.playerCircleImage:SetImage(playerCircleImages[i])
+            player.nameText:SetColor(TEXT_COLOR)
+            player.nameText:SetFontStyle("Normal")
+            player.endTurnButton:SetColors(DARK_COLORS)
+        end
+    end })
+
+    BattleUi.ui.open = false
+    BattleUi.ui.panel = Ui.Panel(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 80, y = 70, width = 436, height = 608, color = "#00000000", active = BattleUi.ui.open })
+    BattleUi.ui.panel.attributes.allowDragging = true
+    BattleUi.ui.panel.attributes.returnToOriginalPositionWhenReleased = false
+
+    BattleUi.ui.players = {}
+    for playerNumber = 1, 4 do
+        local playerBoard = PlayerBoard.ForPlayer(playerNumber)
+        local player = { height = 140 }
+        BattleUi.ui.players[playerNumber] = player
+
+        player.open = true
+        player.panel = Ui.Panel(BattleUi.ui.panel, { id = "Player"..playerNumber, rectAlignment = "UpperLeft", x = 0, y = -(player.height + 16) * (playerNumber - 1), width = 436, height = player.height, color = "#121212ff" })
+        player.playerCircleImage = Ui.Image(player.panel, { id = "PlayerCircle", rectAlignment = "UpperLeft", x = 8, y = -8, width = 25, height = 25, image = playerCircleImages[playerNumber] })
+        player.nameText = Ui.Text(player.panel, { id = "Name", rectAlignment = "UpperLeft", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = TEXT_COLOR, text = "Survivor with a very long name" })
+
+        player.turnEnded = false
+        Ui.Image(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324, y = -8, width = 48, height = 25, image = "BR_Sleep" })
+        player.endTurnButton = Ui.Button(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            player.turnEnded = not player.turnEnded
+            if player.turnEnded then
+                Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:Survivor():NameOrUnnamed())
+                player.playerCircleImage:SetImage("GreyCircle")
+                player.nameText:SetColor(DISABLED_TEXT_COLOR)
+                player.nameText:SetFontStyle("Italic")
+                player.endTurnButton:SetColors(DARK_SELECTED_COLORS)
+            else
+                Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:Survivor():NameOrUnnamed())
+                player.playerCircleImage:SetImage(playerCircleImages[playerNumber])
+                player.nameText:SetColor(TEXT_COLOR)
+                player.nameText:SetFontStyle("Normal")
+                player.endTurnButton:SetColors(DARK_COLORS)
+            end
+        end})
+
+        player.showWeaponsImage = Ui.Image(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380, y = -8, width = 48, height = 25, image = "BR_Show" })
+        player.showWeaponsButton = Ui.Button(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            local survivor = playerBoard:Survivor()
+            Log.Printf("Showing all weapons for %s", survivor:NameOrUnnamed())
+            BattleUi.hiddenWeaponsBySurvivor[survivor] = nil
+            BattleUi.UpdatePlayer(playerBoard)
+        end})
+
+        player.weaponImages = {}
+        player.weaponShowWeaponsButtons = {}
+        player.weaponNameTexts = {}
+        player.weaponSpeedTexts = {}
+        player.weaponHitTexts = {}
+        player.weaponWoundTexts = {}
+        player.weaponCritTexts = {}
+        local y = -41
+        for i = 1, BattleUi.MAX_WEAPONS do
+            player.weaponImages[i] = Ui.Image(player.panel, { id = "Weapon"..i, rectAlignment = "UpperLeft", x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
+            player.weaponShowWeaponsButtons[i] = Ui.Button(player.panel, { id = "WeaponName"..i, rectAlignment = "UpperLeft", x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+                local weaponName = player.weaponNameTexts[i]:Text()
+                local survivor = playerBoard:Survivor()
+                Log.Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
+                if not BattleUi.hiddenWeaponsBySurvivor[survivor] then
+                    BattleUi.hiddenWeaponsBySurvivor[survivor] = {}
+                end
+                BattleUi.hiddenWeaponsBySurvivor[survivor][weaponName] = true
+                BattleUi.UpdatePlayer(playerBoard)
+            end })
+            player.weaponNameTexts[i]  = Ui.Text(player.panel, { id = "WeaponName"..i,  rectAlignment = "UpperLeft", x =  43, y = y, width = 172, height = 25, color = TEXT_COLOR, fontSize = 14, text = "Calcified Juggernaut Blade" })
+            player.weaponSpeedTexts[i] = Ui.Text(player.panel, { id = "WeaponSpeed"..i, rectAlignment = "UpperLeft", x = 243, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            player.weaponHitTexts[i]   = Ui.Text(player.panel, { id = "WeaponHit"..i,   rectAlignment = "UpperLeft", x = 288, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            player.weaponWoundTexts[i] = Ui.Text(player.panel, { id = "WeaponWound"..i, rectAlignment = "UpperLeft", x = 334, y = y, width = 55, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
+            player.weaponCritTexts[i]  = Ui.Text(player.panel, { id = "WeaponCrit"..i,  rectAlignment = "UpperLeft", x = 407, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            y = y - 33
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+BattleUi.RELEVANT_STATS = {
+    ["Name"] = true,
+    ["Toughness"] = true,
+    ["Speed"] = true,
+    ["Accuracy"] = true,
+    ["Strength"] = true,
+    ["Evasion"] = true,
+    ["Luck"] = true,
+}
+
+function BattleUi.PostInit()
+    EventManager.AddHandler("onShowdownStart", BattleUi.Show)
+    EventManager.AddHandler("onShowdownCleanup", BattleUi.Hide)
+    EventManager.AddHandler("onPlayerBoardLinkSurvivor", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUnlinkSurvivor", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onMonsterStatChange", function(stat)
+        if BattleUi.RELEVANT_STATS[stat] then
+            BattleUi.Update()
+        end
+    end)
+    EventManager.AddHandler("onSurvivorStatChange", function(survivor, stat, value)
+        if BattleUi.RELEVANT_STATS[stat] then
+            BattleUi.Update()
+        end
+    end)
+    EventManager.AddHandler("onPlayerBoardLinkWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUpdateWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+
+    EventManager.AddHandler("onDeleteSurvivor", function(survivor)
+        BattleUi.hiddenWeaponsBySurvivor[survivor] = nil
+    end)
+
+
+    BattleUi.Update()
+--    BattleUi.Show()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.Save()
+    local hiddenWeaponsBySurvivorId = {}
+    for survivor, hiddenWeapons in pairs(BattleUi.hiddenWeaponsBySurvivor) do
+        hiddenWeaponsBySurvivorId[survivor:Id()] = hiddenWeapons
+    end
+    return hiddenWeaponsBySurvivorId
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.CalcWeapons(playerBoard, survivor)
+    -- dedup and consolidate weapons
+    local hiddenWeapons = BattleUi.hiddenWeaponsBySurvivor[survivor] or {}
+    local weapons = {}
+    local weaponCounts = {}
+    setmetatable(weaponCounts, {  __index = function() return 0 end })
+    for _, weapon in pairs(playerBoard:Weapons()) do
+        local name = weapon.name
+        if not hiddenWeapons[name] then
+            local count = weaponCounts[name]
+            weaponCounts[name] = count + 1
+            if count == 0 then
+                table.insert(weapons, weapon)
+            end
+        end
+    end
+    table.sort(weapons, function(w1, w2) return w1.name < w2.name end)
+
+    local survivorSpeed = survivor:Speed()
+    local survivorAccuracy = survivor:Accuracy()
+    local survivorStrength = survivor:Strength()
+    local survivorLuck = survivor:Luck()
+    local monsterEvasion = Showdown.MonsterEvasion()
+    local monsterToughness = Showdown.MonsterToughness()
+    local monsterLuck = Showdown.MonsterLuck()
+
+    local results = {}
+    for _, weapon in ipairs(weapons) do
+        local name, stats = weapon.name, weapon.stats
+
+        local speed = stats.speed + survivorSpeed
+        -- accuracy goes the opposite way
+        local accuracy = stats.accuracy - survivorAccuracy
+        local strength = stats.strength + survivorStrength
+        local luck = (stats.deadly or 0) + survivorLuck
+
+        for _, modifier in pairs(weapon.modifiers) do
+            if modifier.stat == "speed" then
+                speed = speed + modifier.value
+            elseif modifier.stat == "accuracy" then
+                -- accuracy goes the opposite way
+                accuracy = accuracy - modifier.value
+            elseif modifier.stat == "strength" then
+                strength = strength + modifier.value
+            elseif modifier.stat == "luck" then
+                luck = luck + modifier.value
+            end
+        end
+
+        hit = Util.Clamp(accuracy + monsterEvasion, 2, 10)
+        wound = Util.Max(monsterToughness - strength, 2)    -- sharp weapons means we need to show the target roll if it's past 10
+        crit = Util.Clamp(10 - luck + monsterLuck, 2, 10)
+
+        if stats.paired and weaponCounts[name] > 1 then
+            speed = speed + stats.speed
+        end
+        if stats.slow then
+            speed = 1
+        end
+
+        table.insert(results, {
+            name = name,
+            speed = speed,
+            hit = hit,
+            wound = wound,
+            strength = strength,
+            crit = crit,
+        })
+    end
+
+    return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.UpdatePositions()
+    local y = 0
+    for i = 1, 4 do
+        local player = BattleUi.ui.players[i]
+        player.panel:SetOffsetXY("0 "..y)
+        if player.open then
+            y = y - BattleUi.ui.players[i].height - 16
+        end
+    end
+    BattleUi.ui.panel:SetHeight(-y - 16)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.UpdatePlayerInternal(playerBoard)
+    local player = BattleUi.ui.players[playerBoard:Number()]
+
+    local survivor = playerBoard:Survivor()
+    if not survivor then
+        Log.Debugf("Hiding BattleUi for player %d", playerBoard:Number())
+        player.open = false
+        player.height = 0
+        player.panel:Hide()
+        return
+    end
+
+    Log.Debugf("Updating BattleUi for player %d", playerBoard:Number())
+
+    player.open = true
+    player.panel:Show()
+
+    player.nameText:SetText(survivor:NameOrUnnamed())
+    player.showWeaponsButton:Show()
+    local weapons = BattleUi.CalcWeapons(playerBoard, survivor)
+    local numShownWeapons = Util.Min(#weapons, BattleUi.MAX_WEAPONS)
+    for i = 1, numShownWeapons do
+        local weapon = weapons[i]
+        player.weaponImages[i]:Show()
+        player.weaponShowWeaponsButtons[i]:Show()
+        player.weaponNameTexts[i]:Show()
+        player.weaponNameTexts[i]:SetText(weapon.name)
+        player.weaponSpeedTexts[i]:Show()
+        player.weaponSpeedTexts[i]:SetText(weapon.speed)
+        player.weaponHitTexts[i]:Show()
+        player.weaponHitTexts[i]:SetText(weapon.hit)
+        player.weaponWoundTexts[i]:Show()
+        player.weaponWoundTexts[i]:SetText(string.format("%d (%s%d)", weapon.wound, weapon.strength > 0 and "+" or "", weapon.strength))
+        player.weaponCritTexts[i]:Show()
+        player.weaponCritTexts[i]:SetText(weapon.crit)
+    end
+    for i = numShownWeapons + 1, BattleUi.MAX_WEAPONS do
+        player.weaponImages[i]:Hide()
+        player.weaponShowWeaponsButtons[i]:Hide()
+        player.weaponNameTexts[i]:Hide()
+        player.weaponSpeedTexts[i]:Hide()
+        player.weaponHitTexts[i]:Hide()
+        player.weaponWoundTexts[i]:Hide()
+        player.weaponCritTexts[i]:Hide()
+    end
+    player.height = 8 + (numShownWeapons + 1) * 33
+    player.panel:SetHeight(player.height)
+end
+
+function BattleUi.UpdatePlayer(playerBoard)
+    BattleUi.UpdatePlayerInternal(playerBoard)
+    BattleUi.UpdatePositions()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.Update()
+    for i = 1, 4 do
+        BattleUi.UpdatePlayerInternal(PlayerBoard.ForPlayer(i))
+    end
+    BattleUi.UpdatePositions()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.Show()
+    Log.Debugf("Showing battle reference")
+    BattleUi.ui.panel:Show()
+    BattleUi.ui.open = true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.Hide()
+    Log.Debugf("Hiding battle reference")
+    BattleUi.ui.panel:Hide()
+    BattleUi.ui.open = false
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = BattleUi.Init,
+    PostInit = BattleUi.PostInit,
+    Save = BattleUi.Save,
+}

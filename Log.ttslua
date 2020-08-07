@@ -4,14 +4,14 @@ local Util = require("Kdm/Util")
 ---------------------------------------------------------------------------------------------------
 
 local Log_debugModules = {
-    ["G"] = true,
-    ["Survivor"] = true,
-    ["SurvivorSheet"] = true,
-    ["Population"] = true,
-    ["PlayerBoard"] = true,
-    ["BattleReference"] = true,
-    ["Timeline"] = true,
-    ["Setup"] = true,
+    -- ["G"] = true,
+    --["Survivor"] = true,
+    --["SurvivorSheet"] = true,
+    -- ["Population"] = true,
+    -- ["PlayerBoard"] = true,
+    --["BattleUi"] = true,
+    -- ["Timeline"] = true,
+    -- ["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
