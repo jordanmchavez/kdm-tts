@@ -8,6 +8,7 @@ local SurvivorBox = require("Kdm/SurvivorBox")
 local SurvivorSheet = require("Kdm/SurvivorSheet")
 local Ui = require("Kdm/Ui")
 local MessageBox = require("Kdm/MessageBox")
+local Console = require("Kdm/Console")
 
 local Archive = nil
 local PlayerBoard = nil
@@ -193,12 +194,6 @@ function Population.InitUi(ui)
             { stat = "Insanity",      x = 565, y = 97 },
             { stat = "Courage",       x = 615, y = 97 },
             { stat = "Understanding", x = 665, y = 97 },
-            { stat = "Movement",      x = 715, y = 97 },
-            { stat = "Speed",         x = 765, y = 97 },
-            { stat = "Accuracy",      x = 815, y = 97 },
-            { stat = "Strength",      x = 865, y = 97 },
-            { stat = "Evasion",       x = 915, y = 97 },
-            { stat = "Luck",          x = 965, y = 97 },
             { stat = "WeaponProficiencyRank", x = 815, y = 28 },
         }
         for i, data in ipairs(counterData) do
@@ -206,6 +201,24 @@ function Population.InitUi(ui)
             survivorUi[stat.."Counter"] = Ui.Counter(survivorUi.panel, { id = stat, x = data.x, y = data.y, width = 30, height = 30, fontSize = 20, onValueChanged = function(delta)
                 local survivor = survivorUi.survivor
                 local value = survivor[stat](survivor) + delta
+                Log.Debugf("Setting survivor %d %s to %d", survivor:Id(), stat, value)
+                survivor["Set"..stat](survivor, value)
+            end })
+        end
+
+        local counterData = {
+            { stat = "Movement",      x = 715, y = 97 },
+            { stat = "Speed",         x = 765, y = 97 },
+            { stat = "Accuracy",      x = 815, y = 97 },
+            { stat = "Strength",      x = 865, y = 97 },
+            { stat = "Evasion",       x = 915, y = 97 },
+            { stat = "Luck",          x = 965, y = 97 },
+        }
+        for i, data in ipairs(counterData) do
+            local stat = data.stat
+            survivorUi[stat.."Counter"] = Ui.Counter(survivorUi.panel, { id = stat, x = data.x, y = data.y, width = 30, height = 30, fontSize = 20, onValueChanged = function(delta)
+                local survivor = survivorUi.survivor
+                local value = survivor["Unmodified"..stat](survivor) + delta
                 Log.Debugf("Setting survivor %d %s to %d", survivor:Id(), stat, value)
                 survivor["Set"..stat](survivor, value)
             end })
@@ -376,7 +389,7 @@ function Population.CreateAndLinkSurvivorSheet(survivor, playerNumber)
             PlayerBoard.ForPlayer(playerNumber):LinkSurvivorSheet(survivorSheet)
 
             survivorSheetObject.setLock(true)
-            survivorSheetObject.interactable = false
+            --survivorSheetObject.interactable = false
         end, 1)
     end })
 end
@@ -428,9 +441,9 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Population.ReplaceSurvivorBoxWithSheet(survivorBox, location)
+function Population.ReplaceSurvivorBoxWithSheet(survivorBox, playerBoard)
     assert(CheckTagged(survivorBox, "Survivor Box"))
-    assert(CheckTagged(location, "Location"))
+    assert(CheckTagged(playerBoard, "PlayerBoard"))
 
     local survivor = survivorBox:Survivor()
 
@@ -440,21 +453,25 @@ function Population.ReplaceSurvivorBoxWithSheet(survivorBox, location)
         Population.survivorSheetsByObject[survivorSheet:Object()] = nil
     end
 
-    local survivorSheetObject = Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = location, height = 0, rotation = FACE_UP, spawnFunc = function(spawnedObject)
-        spawnedObject.setLock(true)
-        spawnedObject.interactable = false
+    Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = "Player "..playerBoard:Number().." Survivor Sheet", height = 0, rotation = FACE_UP, spawnFunc = function(survivorSheetObject)
+        -- We have to wait a single frame when taking from an infinite container or the objects will have the same equality/identity value as any other objects taken that frame
+        Wait.frames(function()
+            Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
+
+            local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
+            Population.survivorSheetsBySurvivor[survivor] = survivorSheet
+            Population.survivorSheetsByObject[survivorSheetObject] = survivorSheet
+
+            Population.survivorBoxesBySurvivor[survivor] = nil
+            Population.survivorBoxesByObject[survivorBox:Object()] = nil
+            survivorBox:Object().destruct()
+
+            survivorSheetObject.setLock(true)
+            --survivorSheetObject.interactable = false
+
+            playerBoard:LinkSurvivorSheet(survivorSheet)
+        end, 1)
     end })
-    Log.Debugf("Created survivor sheet %s for survivor %d", survivorSheetObject.getGUID(), survivor:Id())
-
-    local survivorSheet = SurvivorSheet.Create(survivor, survivorSheetObject)
-    Population.survivorSheetsBySurvivor[survivor] = survivorSheet
-    Population.survivorSheetsByObject[survivorSheetObject] = survivorSheet
-
-    Population.survivorBoxesBySurvivor[survivor] = nil
-    Population.survivorBoxesByObject[survivorBox:Object()] = nil
-    survivorBox:Object().destruct()
-
-    return survivorSheet
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -922,6 +939,20 @@ end
 function Population.SurvivorSheetForObject(object)
     return Population.survivorSheetsByObject[object]
 end
+
+---------------------------------------------------------------------------------------------------
+
+Console.AddCommand("pop_boxes", function(args)
+    for object, survivorBox in pairs(Population.survivorBoxesByObject) do
+        Log.Printf("%s -> %d/%s", object.getGUID(), survivorBox:Survivor():Id(), survivorBox:Object().getGUID())
+    end
+end)
+
+Console.AddCommand("pop_sheets", function(args)
+    for object, survivorSheet in pairs(Population.survivorSheetsByObject) do
+        Log.Printf("%s -> %d/%s", object.getGUID(), survivorSheet:Survivor():Id(), survivorSheet:Object().getGUID())
+    end
+end)
 
 ---------------------------------------------------------------------------------------------------
 

@@ -1,21 +1,28 @@
 require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("Console")
 
-local CONSOLE_CHAR = ">"
+local Console = {}
 
-local Console_commandFuncs = {}
+Console.CHAR = ">"
+
+Console.commandFuncs = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Console_AddCommand(name, commandFunc)
-    name = name:lower()
-    assert(Check(not Console_commandFuncs[name], "Command %s already registered", name))
-    Console_commandFuncs[name] = commandFunc
+function Console.Printf(fmt, ...)
+    print(Util.SafeFormat(fmt or "", ...))
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Console_Tokenize(message)
+function Console.AddCommand(name, commandFunc)
+    name = name:lower()
+    assert(Check(not Console.commandFuncs[name], "Command %s already registered", name))
+    Console.commandFuncs[name] = commandFunc
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Console.Tokenize(message)
     local tokens = {}
 
     local dq = 34   -- ascii double quote "
@@ -67,15 +74,15 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function onChat(message, player)
-    if message == "" or message:sub(1, 1) != CONSOLE_CHAR then
+    if message == "" or message:sub(1, 1) != Console.CHAR then
         return
     end
 
-    local args = Console_Tokenize(message)
+    local args = Console.Tokenize(message)
 
-    local commandFunc = Console_commandFuncs[args[1]:lower()]
+    local commandFunc = Console.commandFuncs[args[1]:lower()]
     if not commandFunc then
-        Log.Printf("Unrecognized command: %s", args[1])
+        Console.Printf("Unrecognized command: %s", args[1])
         return false
     end
 
@@ -86,28 +93,15 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-Console_AddCommand("help", function(args)
-    for name, _ in pairs(Console_commandFuncs) do
-        Log.Printf(name)
+Console.AddCommand("help", function(args)
+    for name, _ in pairs(Console.commandFuncs) do
+        Console.Printf(name)
     end
-end)
-
-Console_AddCommand("log_on", function(args)
-    if #args != 2 then
-        return Log.Printf("Usage: log_on <module>")
-    end
-    Log.EnableModule(args[2], true)
-end)
-
-Console_AddCommand("log_off", function(args)
-    if #args != 2 then
-        return Log.Printf("Usage: log_off <module>")
-    end
-    Log.EnableModule(args[2], nil)
 end)
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    AddCommand = Console_AddCommand,
+    AddCommand = Console.AddCommand,
+    Printf = Console.Printf,
 }

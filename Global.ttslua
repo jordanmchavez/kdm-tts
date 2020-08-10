@@ -1,4 +1,4 @@
-local KDM_VERSION = "0.28 Beta"
+local KDM_VERSION = "0.30 Beta"
 
 local Log = require("Kdm/Log").ForPackage("G")
 local Console = require("Kdm/Console")
@@ -51,7 +51,7 @@ function onSave()
         Timeline = Timeline.Save(),
         Setup = Setup.Save(),
         Showdown = Showdown.Save(),
---        BattleUi = BattleUi.Save(),
+        BattleUi = BattleUi.Save(),
     }
 
     return JSON.encode(saveState)

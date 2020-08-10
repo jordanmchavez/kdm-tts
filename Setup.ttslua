@@ -4,6 +4,7 @@ local Util = require("Kdm/Util")
 local Log = require("Kdm/Log").ForPackage("Setup")
 local EventManager = require("Kdm/EventManager")
 local Ui = require("Kdm/Ui")
+local Ui3d = require("Kdm/Ui3d")
 local Container = require("Kdm/Container")
 local Location = require("Kdm/Location")
 local NamedObject = require("Kdm/NamedObject")
@@ -133,6 +134,7 @@ function Setup.InitUi(ui)
     Setup.InitCampaignUi(ui)
     Setup.InitExportUi(ui)
     Setup.InitImportUi(ui)
+    Setup.InitExportImportBoard()
 
     Setup.ui.activeTab = Setup.ui.campaign
 end
@@ -224,14 +226,6 @@ function Setup.InitExportUi(ui)
     Ui.InvisibleButton(panel, { id = "SetupTab", x = 0, y = 721, width = 106, height = 34, onClick = function() Setup.SetTab(Setup.ui.campaign) end })
     Ui.InvisibleButton(panel, { id = "ImportTab", x = 200, y = 721, width = 106, height = 34, onClick = function() Setup.SetTab(Setup.ui.import) end })
     Ui.InvisibleButton(panel, { id = "Close", x = 845, y = 683, width = 30, height = 30, onClick = Setup.HideUi })
-
-    Setup.ui.export.dataInput = Ui.LightInput(panel, { id = "Data", x = 20+2, y = 95+2, width = 845-4, height = 485-4, fontSize = 12, lineType = "MultiLineSubmit", textAlignment = "UpperLeft", readOnly = true, onValueChanged = function() end })
-
-    Ui.InvisibleButton(panel, { id = "Export", x = 117, y = 20, width = 300, height = 60, onClick = function()
-        local data = Setup.Export()
-        Setup.ui.export.dataInput:Set(data)
-    end })
-    Ui.InvisibleButton(panel, { id = "Cancel", x = 468, y = 20, width = 300, height = 60, onClick = Setup.HideUi })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -253,7 +247,7 @@ function Setup.InitImportUi(ui)
 
     Ui.InvisibleButton(panel, { id = "Import", x = 117, y = 20, width = 300, height = 60, onClick = function()
         if Setup.ui.import.data then
-            Setup.Import(Setup.ui.import.data)
+            Setup.ImportEncoded(Setup.ui.import.data)
             Setup.ui.import.data = nil
             Setup.ui.import.dataInput:Set(nil)
             Setup.HideUi()
@@ -268,6 +262,20 @@ function Setup.SetTab(tab)
     Setup.ui.activeTab.panel:Hide()
     tab.panel:Show()
     Setup.ui.activeTab = tab
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.InitExportImportBoard()
+    local object = NamedObject.Get("Export/Import Board")
+
+    Ui3d.Button({ object = object, id = "Export", topLeft = { x = 1.061903, y = 0.651955 }, bottomRight = { x = 0.067542, y = 0.849967 }, scale = 0.07, onClick = function()
+        Setup.Export()
+    end})
+
+    Ui3d.Button({ object = object, id = "Import", topLeft = { x = -0.071813, y = 0.652758 }, bottomRight = { x = -1.065097, y = 0.848203 }, scale = 0.07, onClick = function()
+        Setup.Import()
+    end})
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -288,18 +296,18 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Setup.Import(encodedStr)
+function Setup.ImportEncoded(encodedStr)
     local decodedStr = nil
     local dataStr = nil
     local recordedCrc32 = nil
-    --if not pcall(function()
+    if not pcall(function()
         decodedStr = Base64.Decode(encodedStr)
         dataStr = decodedStr:sub(1, -9)
         recordedCrc32 = tonumber(decodedStr:sub(-8), 16)
         Log.Debugf("%08x", recordedCrc32)
-    --end) then
---        return Log.Errorf("Couldn't import save: text had invalid Base64 encoding.")
---    end
+    end) then
+        return Log.Errorf("Couldn't import save: text had invalid Base64 encoding.")
+    end
 
     local data = nil
     if not pcall(function() data = JSON.decode(dataStr) end) then
@@ -311,6 +319,35 @@ function Setup.Import(encodedStr)
         return Log.Errorf("Couldn't import save: CRC32 doesn't match.")
     end
 
+    Setup.ImportData(data)
+    return data
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.Import()
+    local location = Location.Get("Export/Import")
+    local object = location:FindFirst("Campaign Orb")
+    if not object then
+        Log.Broadcastf("Place your exported campaign orb in the highlighted area, then click 'Import Campaign'.")
+        location:BoxCast({ debug = true })
+        return
+    end
+
+    if object.getGMNotes() != "Campaign Orb" then
+        Log.Errorf("This object is not a campaign orb.")
+        Util.Highlight(object)
+        return
+    end
+
+    local data = JSON.decode(object.script_state)
+    Setup.ImportData(data)
+    Wait.frames(function() Log.Broadcastf("You can now delete the campaign orb.") end, 1)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Setup.ImportData(data)
     local expansions = { Setup.expansionsByName["Core"] }
     for _, expansionName in ipairs(data.expansions) do
         if expansionName != "Core" then
@@ -447,13 +484,22 @@ function Setup.Export()
     data.timeline = Timeline.Export()
     data.population = Population.Export()
 
-    local dataStr = JSON.encode(data)
-    local crc32 = Crc32(dataStr)
-    local encodedStr = Base64.Encode(string.format("%s%08x", dataStr, crc32))
+    local campaignOrb = spawnObject({
+        type = "Metal Ball",
+        position = Location.Get("Export/Import"):Center(),
+        scale = { x = 5, y = 5, z = 5 },
+    })
+    campaignOrb.setLuaScript("--")
+    campaignOrb.script_state = JSON.encode(data)
+    campaignOrb.setName("Campaign Orb")
+    campaignOrb.setGMNotes("Campaign Orb")
 
-    Log.Printf("Done exporting campaign.")
-
-    return encodedStr
+    Log.Broadcastf("Campaign export complete. Instructions are in the chat window.")
+    Log.Printf("1. Save your game.")
+    Log.Printf("2. Copy your campaign orb (right click on the orb -> Copy).")
+    Log.Printf("3. Load the latest version of the mod ('Games' button on the top bar).")
+    Log.Printf("4. Paste (right click anywhere -> Paste) the orb and drop it onto the same spot in the new version.")
+    Log.Printf("5. Click the 'Import Campaign' button.")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -766,7 +812,7 @@ end
 
 function Setup.SetupArchiveOverrides(expansions)
     -- revert everything
-    for _, expansion in ipairs(expansions) do
+    for _, expansion in ipairs(Setup.expansions) do
         local overrides = expansion.archiveOverrides
         if overrides then
             Log.Debugf("Reverting archive entry overrides for %s", expansion.name)

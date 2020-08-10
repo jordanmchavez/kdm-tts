@@ -1,10 +1,13 @@
 require("Kdm/Check")
 local Log = require("Kdm/Log").ForPackage("NamedObject")
 local EventManager = require("Kdm/EventManager")
+local Console = require("Kdm/Console")
 
 ---------------------------------------------------------------------------------------------------
 
-local NamedObject_guidNames = {
+local NamedObject = {}
+
+NamedObject.guidNames = {
     ["0b2ed0"] = "Table",
     ["bafa19"] = "Top Table",
     ["8bf5e2"] = "Left Table",
@@ -37,6 +40,7 @@ local NamedObject_guidNames = {
     ["226d8a"] = "Settlement Board",
     ["456dc5"] = "Rules Board",
     ["58f2b5"] = "Rules Navigation Board",
+    ["05e4ab"] = "Export/Import Board",
 
     ["34bfdb"] = "Player 1 Board",
     ["9f3675"] = "Player 2 Board",
@@ -51,68 +55,31 @@ local NamedObject_guidNames = {
     ["b07b40"] = "Overlay",
 }
 
-local NamedObject_guids = {}
-local NamedObjects_index = {}
+NamedObject.guids = {}
+NamedObjects_index = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function NamedObject_Set(name, guid)
-    local object = getObjectFromGUID(guid)
-    assert(Check(object != nil, "Couldn't find critical component '%s' with guid %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
-    local existing = NamedObjects_index[name]
-    if existing then
-        assert(CheckFail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
-    end
-
-    NamedObjects_index[name] = object
-    NamedObject_guids[guid] = true
-end
-
----------------------------------------------------------------------------------------------------
-
-local function NamedObject_Get(name)
-    local object = NamedObjects_index[name]
-    assert(Check(object, "Unknown object '%s'", name))
-
-    return object
-end
-
----------------------------------------------------------------------------------------------------
-
-local function NamedObject_OnObjectDestroy(object)
-    if NamedObject_guids[object.getGUID()] then
-        Log.Broadcastf("A critical game component '%s' (GUID %s) was just deleted. This may cause the mod to malfunction. Please restore an earlier save game.", object.getName(), object.getGUID())
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function NamedObject_FilterObjectEnterContainer(container, object, previousReturnValue)
-    if previousReturnValue == false then
-        return false
-    end
-
-    if NamedObject_guids[object.getGUID()] then
-        Log.Broadcastf("%s (%s) is a critical game component. The mod may break if it's put in a container.", object.getName(), object.getGUID())
-        return false
-    end
-
-    return true
-end
-
----------------------------------------------------------------------------------------------------
-
-local function NamedObject_Init(expansions)
-    for guid, name in pairs(NamedObject_guidNames) do
-        NamedObject_Set(name, guid)
+function NamedObject.Init(expansions)
+    for guid, name in pairs(NamedObject.guidNames) do
+        NamedObject.Set(name, guid)
     end
 
     for _, expansion in ipairs(expansions) do
         for guid, name in pairs(expansion.guidNames or {}) do
-            NamedObject_Set(name, guid)
+            NamedObject.Set(name, guid)
         end
     end
 
+    NamedObject.MakeInteractable(false)
+
+    EventManager.AddHandler("onObjectDestroy", NamedObject.OnObjectDestroy)
+    EventManager.AddHandler("filterObjectEnterContainer", NamedObject.FilterObjectEnterContainer)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function NamedObject.MakeInteractable(toggle)
     local uninteractable = {
         "Table",
         "Top Table",
@@ -124,6 +91,7 @@ local function NamedObject_Init(expansions)
         "Settlement Board",
         "Rules Board",
         "Rules Navigation Board",
+        "Export/Import Board",
         "Player 1 Board",
         "Player 2 Board",
         "Player 3 Board",
@@ -135,16 +103,69 @@ local function NamedObject_Init(expansions)
         "Overlay",
     }
     for _, name in ipairs(uninteractable) do
-        NamedObject_Get(name).interactable = false
+        NamedObject.Get(name).interactable = toggle
     end
-
-    EventManager.AddHandler("onObjectDestroy", NamedObject_OnObjectDestroy)
-    EventManager.AddHandler("filterObjectEnterContainer", NamedObject_FilterObjectEnterContainer)
 end
 
 ---------------------------------------------------------------------------------------------------
 
+function NamedObject.OnObjectDestroy(object)
+    if NamedObject.guids[object.getGUID()] then
+        Log.Broadcastf("A critical game component '%s' (GUID %s) was just deleted. This may cause the mod to malfunction. Please restore an earlier save game.", object.getName(), object.getGUID())
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function NamedObject.FilterObjectEnterContainer(container, object, previousReturnValue)
+    if previousReturnValue == false then
+        return false
+    end
+
+    if NamedObject.guids[object.getGUID()] then
+        Log.Broadcastf("%s (%s) is a critical game component. The mod may break if it's put in a container.", object.getName(), object.getGUID())
+        return false
+    end
+
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function NamedObject.Set(name, guid)
+    local object = getObjectFromGUID(guid)
+    assert(Check(object != nil, "Couldn't find critical component '%s' with guid %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
+    local existing = NamedObjects_index[name]
+    if existing then
+        assert(CheckFail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
+    end
+
+    NamedObjects_index[name] = object
+    NamedObject.guids[guid] = true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function NamedObject.Get(name)
+    local object = NamedObjects_index[name]
+    assert(Check(object, "Unknown object '%s'", name))
+
+    return object
+end
+
+---------------------------------------------------------------------------------------------------
+
+Console.AddCommand("no_interact", function(args)
+    if #args != 2 or (args[2] != "true" and args[2] != "false") then
+        Console.Printf("Usage: no_interact <true|false>")
+        return
+    end
+    NamedObject.MakeInteractable(args[2] == "true")
+end)
+
+---------------------------------------------------------------------------------------------------
+
 return {
-    Init = NamedObject_Init,
-    Get = NamedObject_Get,
+    Init = NamedObject.Init,
+    Get = NamedObject.Get,
 }

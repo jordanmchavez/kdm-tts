@@ -1,32 +1,43 @@
 require("Kdm/Check")
 local Util = require("Kdm/Util")
+local Console = require("Kdm/Console")
 
 ---------------------------------------------------------------------------------------------------
 
-local Log_debugModules = {
+local Log = {}
+
+Log.debugModules = {
     -- ["G"] = true,
-    --["Survivor"] = true,
-    --["SurvivorSheet"] = true,
+    -- ["Survivor"] = true,
+    -- ["SurvivorSheet"] = true,
     -- ["Population"] = true,
     -- ["PlayerBoard"] = true,
-    --["BattleUi"] = true,
+    -- ["BattleUi"] = true,
     -- ["Timeline"] = true,
     -- ["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_Printf(package, fmt, ...)
+function Log.Init()
+    logStyle("debug", { r = 1.0, g = 1.0, b = 1.0 }, "", "")
+    logStyle("print", { r = 0.0, g = 1.0, b = 1.0 }, "", "")
+    logStyle("error", { r = 1.0, g = 0.0, b = 0.0 }, "", "")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Printf(package, fmt, ...)
     fmt = fmt or ""
-    local msg = Util.SafeFormat(fmt or "", ...)
-    log(Util.SafeFormat("[%s] "..fmt or "", package, ...), nil, "print")
+    local msg = Util.SafeFormat(fmt, ...)
+    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
     printToAll(Util.SafeFormat("[66aaff]"..fmt, ...))
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_Debugf(package, fmt, ...)
-    if Log_debugModules[package] then
+function Log.Debugf(package, fmt, ...)
+    if Log.debugModules[package] then
         fmt = fmt or ""
         local s = Util.SafeFormat("[%s] "..fmt, package, ...)
         log(s, nil, "debug")
@@ -35,7 +46,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_Errorf(package, fmt, ...)
+function Log.Errorf(package, fmt, ...)
     fmt = fmt or ""
     log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "error")
     printToAll(Util.SafeFormat("[ff4444]"..fmt, ...))
@@ -43,7 +54,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_Broadcastf(package, fmt, ...)
+function Log.Broadcastf(package, fmt, ...)
     fmt = fmt or ""
     log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
     broadcastToAll(Util.SafeFormat(fmt, ...))
@@ -51,29 +62,37 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_Init()
-    logStyle("debug", { r = 1.0, g = 1.0, b = 1.0 }, "", "")
-    logStyle("print", { r = 0.0, g = 1.0, b = 1.0 }, "", "")
-    logStyle("error", { r = 1.0, g = 0.0, b = 0.0 }, "", "")
+function Log.EnableModule(module, enabled)
+    Log.debugModules[module] = enabled
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Log_EnableModule(module, enabled)
-    Log_debugModules[module] = enabled
-end
+Console.AddCommand("log_on", function(args)
+    if #args != 2 then
+        return Console.Printf("Usage: log_on <module>")
+    end
+    Log.EnableModule(args[2], true)
+end)
+
+Console.AddCommand("log_off", function(args)
+    if #args != 2 then
+        return Console.Printf("Usage: log_off <module>")
+    end
+    Log.EnableModule(args[2], nil)
+end)
 
 ---------------------------------------------------------------------------------------------------
 
 return {
     ForPackage = function(package)
         return {
-            Printf = function(fmt, ...) Log_Printf(package, fmt, ...) end,
-            Debugf = function(fmt, ...) Log_Debugf(package, fmt, ...) end,
-            Errorf = function(fmt, ...) Log_Errorf(package, fmt, ...) end,
-            Broadcastf = function(fmt, ...) Log_Broadcastf(package, fmt, ...) end,
-            Init = Log_Init,
-            EnableModule = Log_EnableModule,
+            Printf = function(fmt, ...) Log.Printf(package, fmt, ...) end,
+            Debugf = function(fmt, ...) Log.Debugf(package, fmt, ...) end,
+            Errorf = function(fmt, ...) Log.Errorf(package, fmt, ...) end,
+            Broadcastf = function(fmt, ...) Log.Broadcastf(package, fmt, ...) end,
+            Init = Log.Init,
+            EnableModule = Log.EnableModule,
         }
     end
 }

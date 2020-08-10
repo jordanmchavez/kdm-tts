@@ -14,6 +14,7 @@ local SURVIVOR_CARD_TYPES = {
     "Weapon Proficiencies",
 --    "Gear",
 }
+local SURVIVOR_CARD_TYPES_STR = table.concat(SURVIVOR_CARD_TYPES, ", ")
 
 local SURVIVOR_CARD_TYPES_MAP = {}
 for _, type in ipairs(SURVIVOR_CARD_TYPES) do
@@ -196,6 +197,7 @@ function SurvivorClass.SetInsanity(survivor, value) Survivor_SetNum(survivor, "i
 ---------------------------------------------------------------------------------------------------
 
 local function Survivor_GetModified(survivor, stat) return survivor[stat] + survivor[stat.."Temporary"] + survivor[stat.."Permanent"] end
+local function Survivor_GetUnmodified(survivor, stat) return survivor[stat] end
 local function Survivor_SetModified(survivor, stat, value)
     assert(CheckNum(value))
     Log.Debugf("Setting %s to %d for survivor %d", stat, value, survivor.id)
@@ -204,21 +206,27 @@ local function Survivor_SetModified(survivor, stat, value)
     Survivor_FireStatChangeEvent(survivor, stat, modifiedValue)
 end
 
+function SurvivorClass.UnmodifiedMovement(survivor) return Survivor_GetUnmodified(survivor, "movement") end
 function SurvivorClass.Movement(survivor) return Survivor_GetModified(survivor, "movement") end
 function SurvivorClass.SetMovement(survivor, value) Survivor_SetModified(survivor, "movement", value) end
 
+function SurvivorClass.UnmodifiedSpeed(survivor) return Survivor_GetUnmodified(survivor, "speed") end
 function SurvivorClass.Speed(survivor) return Survivor_GetModified(survivor, "speed") end
 function SurvivorClass.SetSpeed(survivor, value) Survivor_SetModified(survivor, "speed", value) end
 
+function SurvivorClass.UnmodifiedAccuracy(survivor) return Survivor_GetUnmodified(survivor, "accuracy") end
 function SurvivorClass.Accuracy(survivor) return Survivor_GetModified(survivor, "accuracy") end
 function SurvivorClass.SetAccuracy(survivor, value) Survivor_SetModified(survivor, "accuracy", value) end
 
+function SurvivorClass.UnmodifiedStrength(survivor) return Survivor_GetUnmodified(survivor, "strength") end
 function SurvivorClass.Strength(survivor) return Survivor_GetModified(survivor, "strength") end
 function SurvivorClass.SetStrength(survivor, value) Survivor_SetModified(survivor, "strength", value) end
 
+function SurvivorClass.UnmodifiedEvasion(survivor) return Survivor_GetUnmodified(survivor, "evasion") end
 function SurvivorClass.Evasion(survivor) return Survivor_GetModified(survivor, "evasion") end
 function SurvivorClass.SetEvasion(survivor, value) Survivor_SetModified(survivor, "evasion", value) end
 
+function SurvivorClass.UnmodifiedLuck(survivor) return Survivor_GetUnmodified(survivor, "luck") end
 function SurvivorClass.Luck(survivor) return Survivor_GetModified(survivor, "luck") end
 function SurvivorClass.SetLuck(survivor, value) Survivor_SetModified(survivor, "luck", value) end
 
@@ -374,4 +382,5 @@ return {
     Create = Survivor_Create,
     CARD_TYPES = SURVIVOR_CARD_TYPES,
     CARD_TYPES_MAP = SURVIVOR_CARD_TYPES_MAP,
+    CARD_TYPES_STR = SURVIVOR_CARD_TYPES_STR
 }

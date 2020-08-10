@@ -181,10 +181,12 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+Util.HIGHLIGHT_COLOR = { r = 1, g = 0, b = 0.5 }
+
 function Util.Highlight(object, seconds)
     seconds = seconds or 10
 
-    object.highlightOn({ r = 1, g = 0, b = 0.5 }, seconds)
+    object.highlightOn(Util.HIGHLIGHT_COLOR, seconds)
     local pos = object.getPosition()
     local size = object.getBounds().size
     Physics.cast({

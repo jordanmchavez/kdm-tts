@@ -246,7 +246,7 @@ local function Hunt_Init(modules, saveState, expansions, ui)
 
         local expansion = Hunt_monsterExpansions[Hunt_ui.monster.name]
         if not Setup.EnabledExpansions()[expansion] then
-            return Log.Broadcastf("%s expansion required. You can add expansions in the 'Setup' menu.", expansion)
+            return Log.Broadcastf("%s expansion required. You can add expansions in the 'Setup' menu.", expansion.name)
         end
 
         Log.Debugf("Begin hunt clicked for monster %s, level %s", Hunt_ui.monster.name, Hunt_ui.level.level)

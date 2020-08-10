@@ -98,7 +98,7 @@ function BattleUi.InitUi(ui)
     end })
 
     BattleUi.ui.open = false
-    BattleUi.ui.panel = Ui.Panel(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 80, y = 70, width = 436, height = 608, color = "#00000000", active = BattleUi.ui.open })
+    BattleUi.ui.panel = Ui.Panel(ui, { id = "BattleUi", rectAlignment = "UpperLeft", x = 70, y = -210, width = 436, height = 608, color = "#00000000", active = BattleUi.ui.open })
     BattleUi.ui.panel.attributes.allowDragging = true
     BattleUi.ui.panel.attributes.returnToOriginalPositionWhenReleased = false
 

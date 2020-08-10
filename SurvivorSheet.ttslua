@@ -62,8 +62,9 @@ local function SurvivorSheet_Create(survivor, object)
         local stat = data.stat
         local tl = { x = x1 + data.col * dx, y = y1 + data.row * dy }
         local br = { x = tl.x + width, y = tl.y + height }
-        survivorSheet.ui[stat.."Counter"] = Ui.Counter({ object = object, id = stat, topLeft = tl, bottomRight = br, scale = 0.09, value = survivor[stat](survivor), onValueChanged = function(delta)
-            survivor["Set"..stat](survivor, survivor[stat](survivor) + delta)
+        local unmodifiedStat = "Unmodified"..stat
+        survivorSheet.ui[stat.."Counter"] = Ui.Counter({ object = object, id = stat, topLeft = tl, bottomRight = br, scale = 0.09, value = survivor[unmodifiedStat](survivor), onValueChanged = function(delta)
+            survivor["Set"..stat](survivor, survivor[unmodifiedStat](survivor) + delta)
         end })
     end
 
