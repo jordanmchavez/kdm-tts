@@ -3,6 +3,7 @@ should we show modified stats on pop?
 all boxcast/cleans should not use interactable, but rather namedobject's special list
 remove space between survivor ui player panels (just use one big panel)
 
+* fix black card backs
 * binge eating hagve
 * get rid of survivor sheets entirely...just have static/two-state ones on the palyer boards
 * when highlighting a single item, always pan the camera to it (make it part of Util.highlight)

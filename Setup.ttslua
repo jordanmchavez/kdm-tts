@@ -110,15 +110,14 @@ function Setup.InitState(saveState)
         assert(Check(expansion, "Setup saveState had unknown expansion %s", expansionName))
         Setup.enabledExpansions[expansion] = true
         Log.Debugf("Enabled expansion: %s", expansionName)
-    end
-    Setup.enabledExpansions[Setup.expansionsByName["Core"]] = true
 
-    for expansion, _ in pairs(Setup.enabledExpansions) do
-        if expansion.overrides then
+        local overrides = expansion.archiveOverrides
+        if overrides then
             Log.Debugf("Overriding archive entries for %s", expansion.name)
-            Archive.RegisterEntries({ archive = overrides.newArchive, entries = expansion.overrides.entries, allowOverrides = true })
+            Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries, allowOverrides = true })
         end
     end
+    Setup.enabledExpansions[Setup.expansionsByName["Core"]] = true
 
     Setup.campaign = Util.FindIf(Setup.campaigns, function(c) return c.name == saveState.campaign end)
     if not Setup.campaign then

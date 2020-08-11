@@ -1,4 +1,4 @@
-local KDM_VERSION = "0.30 Beta"
+local KDM_VERSION = "0.31 Beta"
 
 local Log = require("Kdm/Log").ForPackage("G")
 local Console = require("Kdm/Console")
