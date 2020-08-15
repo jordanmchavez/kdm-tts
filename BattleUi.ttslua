@@ -181,7 +181,7 @@ function BattleUi.InitUi(ui)
             player.weaponWoundTexts[i] = Ui.Text(player.panel, { id = "WeaponWound"..i, rectAlignment = "UpperLeft", x = 334, y = y, width = 55, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
             player.weaponCritTexts[i]  = Ui.Text(player.panel, { id = "WeaponCrit"..i,  rectAlignment = "UpperLeft", x = 407, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
 
-            player.attackWeaponImages[i] = Ui.Image(player.panel, { id = "AttackWeaponImage"..i, rectAlignment = "UpperLeft", x = 440, y = y, width = 50, height = 25, image = "BR_Sleep" })
+            player.attackWeaponImages[i] = Ui.Image(player.panel, { id = "AttackWeaponImage"..i, rectAlignment = "UpperLeft", x = 440, y = y, width = 50, height = 25, image = "BR_Attack" })
             player.attackWeaponButton[i] = Ui.Button(player.panel, { id = "AttackWeaponButton"..i, rectAlignment = "UpperLeft", x = 440+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
                 if not player.attacking then
                     Wait.time(function() player.attacking = false; end, 2)
@@ -200,7 +200,7 @@ function BattleUi.InitUi(ui)
                 end
             end })
 
-            player.attackBlindWeaponImages[i] = Ui.Image(player.panel, { id = "AttackBlindWeaponImage"..i, rectAlignment = "UpperLeft", x = 495, y = y, width = 50, height = 25, image = "BR_Sleep" })
+            player.attackBlindWeaponImages[i] = Ui.Image(player.panel, { id = "AttackBlindWeaponImage"..i, rectAlignment = "UpperLeft", x = 495, y = y, width = 50, height = 25, image = "BR_AttackBlind" })
             player.attackBlindWeaponButton[i] = Ui.Button(player.panel, { id = "AttackBlindWeaponButton"..i, rectAlignment = "UpperLeft", x = 495+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
                 if not player.attacking then
                     Wait.time(function() player.attacking = false; end, 2)
@@ -219,7 +219,7 @@ function BattleUi.InitUi(ui)
                 end
             end })
 
-            player.woundWeaponImages[i] = Ui.Image(player.panel, { id = "WoundWeaponImage"..i, rectAlignment = "UpperLeft", x = 550, y = y, width = 50, height = 25, image = "BR_Sleep" })
+            player.woundWeaponImages[i] = Ui.Image(player.panel, { id = "WoundWeaponImage"..i, rectAlignment = "UpperLeft", x = 550, y = y, width = 50, height = 25, image = "BR_Wound" })
             player.woundWeaponButton[i] = Ui.Button(player.panel, { id = "WoundWeaponButton"..i, rectAlignment = "UpperLeft", x = 550+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
                 if not player.attacking then
                     Wait.time(function() player.attacking = false; end, 2)
