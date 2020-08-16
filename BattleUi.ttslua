@@ -48,6 +48,33 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function BattleUi.GetAICardData(aiCardName)
+    local aiCardStats = {
+
+        -- White Lion
+        ["Basic Action"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+        ["Claw"]          = { speed = 2, accuracy = 2, damage = 1, valid = true },
+        ["Maul"]          = { speed = 2, accuracy = 2, damage = 3, valid = true },
+        ["Grasp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
+        ["Chomp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
+        ["Power Swat"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+        ["Revenge"]       = { speed = 2, accuracy = 2, damage = 2, valid = true },
+        ["Combo Claw"]    = { speed = 2, accuracy = 4, damage = 1, valid = true },
+        ["Bat Around"]    = { speed = 2, accuracy = 5, damage = 1, valid = true },
+        ["Bloddy Claw"]   = { speed = 2, accuracy = 2, damage = 2, valid = true },
+        ["Vanish"]        = { speed = 4, accuracy = 2, damage = 2, valid = true },
+    }
+
+    local cardStat = aiCardStats[aiCardName];
+    if cardStat == nil then
+        return { valid = false, speed = 0, accuracy = 0, damage = 0 }
+    end
+
+    return cardStat
+end
+
+---------------------------------------------------------------------------------------------------
+
 function BattleUi.InitUi(ui)
     local TEXT_COLOR = "#ffffffdc"
     local DISABLED_TEXT_COLOR = "#ffffff60"
@@ -57,8 +84,9 @@ function BattleUi.InitUi(ui)
 
     BattleUi.ui = {}
 
-    Ui.Image(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "BattleUi" })
-    Ui.Button(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+    local yOffset = -80;
+    Ui.Image(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10, y = -20+yOffset, width = 50, height = 50, image = "BattleUi" })
+    Ui.Button(ui, { id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1+yOffset, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
         if BattleUi.ui.open then
             BattleUi.Hide()
         else
@@ -73,8 +101,8 @@ function BattleUi.InitUi(ui)
         "WhiteCircle",
     }
 
-    Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
-    Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+    Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80+yOffset, width = 50, height = 50, image = "NextTurn" })
+    Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1+yOffset, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
         Log.Printf("Resetting survival actions")
         for i = 1, 4 do
             local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):FindAll("Survival Token")
@@ -103,13 +131,20 @@ function BattleUi.InitUi(ui)
     BattleUi.ui.panel.attributes.returnToOriginalPositionWhenReleased = false
 
     BattleUi.ui.players = {}
+
+    local diceRollerGuids = {
+        "08c670",
+        "eda0a0",
+        "53cf34",
+        "56c580"
+    };
     for playerNumber = 1, 4 do
         local playerBoard = PlayerBoard.ForPlayer(playerNumber)
         local player = { height = 140 }
         BattleUi.ui.players[playerNumber] = player
 
         player.open = true
-        player.panel = Ui.Panel(BattleUi.ui.panel, { id = "Player"..playerNumber, rectAlignment = "UpperLeft", x = 0, y = -(player.height + 16) * (playerNumber - 1), width = 436, height = player.height, color = "#121212ff" })
+        player.panel = Ui.Panel(BattleUi.ui.panel, { id = "Player"..playerNumber, rectAlignment = "UpperLeft", x = 0, y = -(player.height + 16) * (playerNumber - 1), width = 606, height = player.height, color = "#121212ff" })
         player.playerCircleImage = Ui.Image(player.panel, { id = "PlayerCircle", rectAlignment = "UpperLeft", x = 8, y = -8, width = 25, height = 25, image = playerCircleImages[playerNumber] })
         player.nameText = Ui.Text(player.panel, { id = "Name", rectAlignment = "UpperLeft", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = TEXT_COLOR, text = "Survivor with a very long name" })
 
@@ -140,6 +175,60 @@ function BattleUi.InitUi(ui)
             BattleUi.UpdatePlayer(playerBoard)
         end})
 
+        player.monAttackImage = Ui.Image(player.panel, { id = "MonAttackImage", rectAlignment = "UpperLeft", x = 436, y = -8, width = 48, height = 25, image = "BR_MonsterAttack" })
+        player.monAttackButton = Ui.Button(player.panel, { id = "MonAttack", rectAlignment = "UpperLeft", x = 436-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            local survivor = playerBoard:Survivor()
+            local diceSpawner = getObjectFromGUID("41f410")
+
+            local monsterToughness = Showdown.MonsterToughness()
+            local monsterEvasion = Showdown.MonsterEvasion()
+            local monsterLuck = Showdown.MonsterLuck()
+
+            local monsterSpeed = Showdown.MonsterSpeed()
+            local monsterAcc = Showdown.MonsterAccuracy()
+            local monsterDamage = Showdown.MonsterDamage()
+
+            local location = Location.Get("AI")
+            local aiCards = location:FindAll("AI")
+            local aiCard;
+            for _, entry in ipairs(aiCards) do
+                rot = entry.getRotation()
+                -- look through everything in AI stack and ignore upside cards since there might only be a single upside down card in deck
+                if not (rot.z >= 15 and rot.z <= 345) then
+                    aiCard = entry;
+                    break;
+                end
+            end
+            local aiCardName;
+            if aiCard then
+                aiCardName = aiCard.getName()
+            elseif #aiCards == 0 then
+                aiCardName = "Basic Action"
+            end
+
+            if aiCardName == nil then
+                Log.Printf("Can not find active AI card.  Turn over top AI card and put it on top of the AI Deck")
+            else
+                Log.Printf("Found AI card %s", aiCardName)
+                local cardData = BattleUi.GetAICardData(aiCardName)
+
+                if cardData.valid then
+                    local totalSpeed = monsterSpeed + cardData.speed;
+
+                    local totalAcc = cardData.accuracy - monsterAcc + survivor.evasion; -- note: positive monster accuracy make it easier to hit player
+                    totalAcc = Util.Max(2, totalAcc); -- but capped at 2+.  1 always misses
+                    totalAcc = Util.Min(10, totalAcc); -- but capped at 10-.  10 always hits
+
+                    local totalDamage = monsterDamage + cardData.damage;
+                    Log.Printf("Monster attacking %s. Speed %d. Needs %d to hit (%d card, %d monster, %d player)", survivor:NameOrUnnamed(), totalSpeed, totalAcc, cardData.accuracy, -monsterAcc, survivor.evasion)
+                    Log.Printf("If hit, monster does %d damage (%d card, %d base)", totalDamage, cardData.damage, monsterDamage)
+                    diceSpawner.call('spawnDice', {playerColor = "White", number = totalSpeed, valueNeeded = totalAcc})
+                else
+                    Log.Printf("AI card %s doesn't have stats. Can not auto-roll against it", aiCardName)
+                end
+            end
+        end})
+
         player.weaponImages = {}
         player.weaponShowWeaponsButtons = {}
         player.weaponNameTexts = {}
@@ -147,6 +236,13 @@ function BattleUi.InitUi(ui)
         player.weaponHitTexts = {}
         player.weaponWoundTexts = {}
         player.weaponCritTexts = {}
+        player.attackWeaponImages = {}
+        player.attackBlindWeaponImages = {}
+        player.woundWeaponImages = {}
+        player.attackWeaponButton = {}
+        player.attackBlindWeaponButton = {}
+        player.woundWeaponButton = {}
+        player.attacking = false
         local y = -41
         for i = 1, BattleUi.MAX_WEAPONS do
             player.weaponImages[i] = Ui.Image(player.panel, { id = "Weapon"..i, rectAlignment = "UpperLeft", x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
@@ -165,6 +261,62 @@ function BattleUi.InitUi(ui)
             player.weaponHitTexts[i]   = Ui.Text(player.panel, { id = "WeaponHit"..i,   rectAlignment = "UpperLeft", x = 288, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
             player.weaponWoundTexts[i] = Ui.Text(player.panel, { id = "WeaponWound"..i, rectAlignment = "UpperLeft", x = 334, y = y, width = 55, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
             player.weaponCritTexts[i]  = Ui.Text(player.panel, { id = "WeaponCrit"..i,  rectAlignment = "UpperLeft", x = 407, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+
+            player.attackWeaponImages[i] = Ui.Image(player.panel, { id = "AttackWeaponImage"..i, rectAlignment = "UpperLeft", x = 440, y = y, width = 50, height = 25, image = "BR_Attack" })
+            player.attackWeaponButton[i] = Ui.Button(player.panel, { id = "AttackWeaponButton"..i, rectAlignment = "UpperLeft", x = 440+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+                if not player.attacking then
+                    Wait.time(function() player.attacking = false; end, 2)
+                    player.attacking = true;
+
+                    local survivor = playerBoard:Survivor()
+                    local weapons = BattleUi.CalcWeapons(playerBoard, survivor)
+                    local weapon = weapons[i]
+                    Log.Printf("Attacking %s for %s", weapon.name, survivor:NameOrUnnamed())
+                    local diceGuid = diceRollerGuids[playerBoard:Number()]
+                    local diceSpawner = getObjectFromGUID(diceGuid)
+                    local playerSpeed = weapon.speed;
+                    local playerToHit = weapon.hit;
+                    Log.Printf("%s attempting to hit with %s. Speed %d. Need %d hit", survivor:NameOrUnnamed(), weapon.name, playerSpeed, playerToHit)
+                	diceSpawner.call('spawnDice', {playerColor = "White", number = playerSpeed, valueNeeded = playerToHit})
+                end
+            end })
+
+            player.attackBlindWeaponImages[i] = Ui.Image(player.panel, { id = "AttackBlindWeaponImage"..i, rectAlignment = "UpperLeft", x = 495, y = y, width = 50, height = 25, image = "BR_AttackBlind" })
+            player.attackBlindWeaponButton[i] = Ui.Button(player.panel, { id = "AttackBlindWeaponButton"..i, rectAlignment = "UpperLeft", x = 495+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+                if not player.attacking then
+                    Wait.time(function() player.attacking = false; end, 2)
+                    player.attacking = true;
+
+                    local survivor = playerBoard:Survivor()
+                    local weapons = BattleUi.CalcWeapons(playerBoard, survivor)
+                    local weapon = weapons[i]
+                    Log.Printf("Attacking %s for %s", weapon.name, survivor:NameOrUnnamed())
+                    local diceGuid = diceRollerGuids[playerBoard:Number()]
+                    local diceSpawner = getObjectFromGUID(diceGuid)
+                    local playerSpeed = weapon.speed;
+                    local playerToHit = weapon.hit - 1;
+                    Log.Printf("%s attempting to hit from blind with %s. Speed %d. Need %d hit", survivor:NameOrUnnamed(), weapon.name, playerSpeed, playerToHit)
+                	diceSpawner.call('spawnDice', {playerColor = "White", number = playerSpeed, valueNeeded = playerToHit})
+                end
+            end })
+
+            player.woundWeaponImages[i] = Ui.Image(player.panel, { id = "WoundWeaponImage"..i, rectAlignment = "UpperLeft", x = 550, y = y, width = 50, height = 25, image = "BR_Wound" })
+            player.woundWeaponButton[i] = Ui.Button(player.panel, { id = "WoundWeaponButton"..i, rectAlignment = "UpperLeft", x = 550+5, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+                if not player.attacking then
+                    Wait.time(function() player.attacking = false; end, 2)
+                    player.attacking = true;
+
+                    local survivor = playerBoard:Survivor()
+                    local weapons = BattleUi.CalcWeapons(playerBoard, survivor)
+                    local weapon = weapons[i]
+                    local diceGuid = diceRollerGuids[playerBoard:Number()]
+                    local diceSpawner = getObjectFromGUID(diceGuid)
+                    local playerToWound = weapon.wound;
+                    local critValue = weapon.crit;
+                    Log.Printf("%s attempting to wound with %s. Need %d wound, %d for crit", survivor:NameOrUnnamed(), weapon.name, playerToWound, critValue)
+                	diceSpawner.call('spawnDice', {playerColor = "White", number = 1, valueNeeded = playerToWound, critValueNeeded = critValue})
+                end
+            end })
             y = y - 33
         end
     end
@@ -207,6 +359,7 @@ function BattleUi.PostInit()
 
 
     BattleUi.Update()
+    Wait.time(function() BattleUi.Update(); end, 0.5) -- sometimes Battle UI doesn't init its data properly since players aren't loaded yet so update again after a bit
 --    BattleUi.Show()
 end
 
@@ -330,12 +483,19 @@ function BattleUi.UpdatePlayerInternal(playerBoard)
 
     player.nameText:SetText(survivor:NameOrUnnamed())
     player.showWeaponsButton:Show()
+    player.monAttackButton:Show()
     local weapons = BattleUi.CalcWeapons(playerBoard, survivor)
     local numShownWeapons = Util.Min(#weapons, BattleUi.MAX_WEAPONS)
     for i = 1, numShownWeapons do
         local weapon = weapons[i]
         player.weaponImages[i]:Show()
+        player.attackWeaponImages[i]:Show()
+        player.attackBlindWeaponImages[i]:Show()
+        player.woundWeaponImages[i]:Show()
         player.weaponShowWeaponsButtons[i]:Show()
+        player.attackWeaponButton[i]:Show()
+        player.attackBlindWeaponButton[i]:Show()
+        player.woundWeaponButton[i]:Show()
         player.weaponNameTexts[i]:Show()
         player.weaponNameTexts[i]:SetText(weapon.name)
         player.weaponSpeedTexts[i]:Show()
@@ -349,7 +509,13 @@ function BattleUi.UpdatePlayerInternal(playerBoard)
     end
     for i = numShownWeapons + 1, BattleUi.MAX_WEAPONS do
         player.weaponImages[i]:Hide()
+        player.attackWeaponImages[i]:Hide()
+        player.attackBlindWeaponImages[i]:Hide()
+        player.woundWeaponImages[i]:Hide()
         player.weaponShowWeaponsButtons[i]:Hide()
+        player.attackWeaponButton[i]:Hide()
+        player.attackBlindWeaponButton[i]:Hide()
+        player.woundWeaponButton[i]:Hide()
         player.weaponNameTexts[i]:Hide()
         player.weaponSpeedTexts[i]:Hide()
         player.weaponHitTexts[i]:Hide()
