@@ -48,29 +48,59 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function BattleUi.GetAICardData(aiCardName)
+function BattleUi.GetAICardData(monsterName, aiCardName)
     local aiCardStats = {
-
-        -- White Lion
-        ["Basic Action"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
-        ["Claw"]          = { speed = 2, accuracy = 2, damage = 1, valid = true },
-        ["Maul"]          = { speed = 2, accuracy = 2, damage = 3, valid = true },
-        ["Grasp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
-        ["Chomp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
-        ["Power Swat"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
-        ["Revenge"]       = { speed = 2, accuracy = 2, damage = 2, valid = true },
-        ["Combo Claw"]    = { speed = 2, accuracy = 4, damage = 1, valid = true },
-        ["Bat Around"]    = { speed = 2, accuracy = 5, damage = 1, valid = true },
-        ["Bloddy Claw"]   = { speed = 2, accuracy = 2, damage = 2, valid = true },
-        ["Vanish"]        = { speed = 4, accuracy = 2, damage = 2, valid = true },
+        ["White Lion"] = {
+            ["Basic Action"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Claw"]          = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Maul"]          = { speed = 2, accuracy = 2, damage = 3, valid = true },
+            ["Grasp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Chomp"]         = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Power Swat"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Revenge"]       = { speed = 2, accuracy = 2, damage = 2, valid = true },
+            ["Combo Claw"]    = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Bat Around"]    = { speed = 2, accuracy = 5, damage = 1, valid = true },
+            ["Bloddy Claw"]   = { speed = 2, accuracy = 2, damage = 2, valid = true },
+            ["Vanish"]        = { speed = 4, accuracy = 2, damage = 2, valid = true },
+        },
+        ["Butcher"] = {
+            ["Basic Action"]    = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Backhand"]        = { speed = 1, accuracy = 4, damage = 2, valid = true },
+            ["Bite"]            = { speed = 2, accuracy = 4, damage = 0, valid = true },
+            ["Kick"]            = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Hew"]             = { speed = 1, accuracy = 3, damage = 3, valid = true },
+            ["Lantern Hunger"]  = { speed = 4, accuracy = 4, damage = 1, valid = true },
+            ["Double Hack"]     = { speed = 4, accuracy = 4, damage = 1, valid = true },
+            ["Infinite Kick"]   = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Hack"]            = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Wild Carve"]      = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Devour Lantern"]  = { speed = 2, accuracy = 4, damage = 1, valid = true },
+            ["Hack City"]       = { speed = 4, accuracy = 4, damage = 1, valid = true },
+        }
     }
 
-    local cardStat = aiCardStats[aiCardName];
-    if cardStat == nil then
-        return { valid = false, speed = 0, accuracy = 0, damage = 0 }
+    local monCards = aiCardStats[monsterName];
+    if monCards ~= nil then
+        local aiCardStat = monCards[aiCardName];
+        if aiCardStat ~= nil then
+            return aiCardStat;
+        end
     end
 
-    return cardStat
+    return { valid = false, speed = 0, accuracy = 0, damage = 0 }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.GetMonsterName()
+    -- this works but maybe there's a better way?
+    local location = Location.Get("Unused Basic AI")
+    local aiCards = location:FindAll("AI")
+    for _, entry in ipairs(aiCards) do
+        local name = entry.getName();
+        return string.gsub(name, " Basic AI", "")
+    end
+    return ""
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -209,8 +239,9 @@ function BattleUi.InitUi(ui)
             if aiCardName == nil then
                 Log.Printf("Can not find active AI card.  Turn over top AI card and put it on top of the AI Deck")
             else
-                Log.Printf("Found AI card %s", aiCardName)
-                local cardData = BattleUi.GetAICardData(aiCardName)
+                local monsterName = BattleUi.GetMonsterName();
+                Log.Printf("Found AI card %s's %s", monsterName, aiCardName)
+                local cardData = BattleUi.GetAICardData(monsterName, aiCardName)
 
                 if cardData.valid then
                     local totalSpeed = monsterSpeed + cardData.speed;
