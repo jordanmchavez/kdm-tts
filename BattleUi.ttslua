@@ -76,6 +76,39 @@ function BattleUi.GetAICardData(monsterName, aiCardName)
             ["Wild Carve"]      = { speed = 2, accuracy = 4, damage = 1, valid = true },
             ["Devour Lantern"]  = { speed = 2, accuracy = 4, damage = 1, valid = true },
             ["Hack City"]       = { speed = 4, accuracy = 4, damage = 1, valid = true },
+        },
+        ["Screaming Antelope"] = {
+            ["Basic Action"]    = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Skewer"]    = { speed = 1, accuracy = 2, damage = 3, valid = true },
+            ["Gore"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Great Kick"]    = { speed = 4, accuracy = 2, damage = 2, valid = true },
+            ["Ravenous"]    = { speed = 1, accuracy = 2, damage = 2, valid = true },
+            ["Buck"]    = { speed = 1, accuracy = 3, damage = 1, valid = true },
+            ["Stomp"]    = { speed = 1, accuracy = 2, damage = 2, valid = true },
+            ["Ram"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Back Kick"]    = { speed = 1, accuracy = 3, damage = 3, valid = true },
+            ["Bolt"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Crush and Devour"]    = { speed = 2, accuracy = 2, damage = 0, valid = true },
+            ["Slam"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Bite"]    = { speed = 1, accuracy = 2, damage = 2, valid = true },
+            ["Run Down"]    = { speed = 1, accuracy = 2, damage = 1, valid = true },
+        },
+        ["Gorm"] = {
+            ["Basic Action"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Aggravated Bite"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Backslap"]  = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Headbutt"]  = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Wallop"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Maw-Arm Toss"]  = { speed = 2, accuracy = 2, damage = 1, valid = true },
+            ["Ancient Tusks"]  = { speed = 3, accuracy = 2, damage = 4, valid = true },
+            ["Ancient Bite"]  = { speed = 3, accuracy = 2, damage = 7, valid = true },
+            ["Eat and Run"]  = { speed = 2, accuracy = 2, damage = 2, valid = true },
+            ["Head Thrash"]  = { speed = 2, accuracy = 2, damage = 2, valid = true },
+            ["Flatten"]  = { speed = 5, accuracy = 2, damage = 2, valid = true },
+            ["Charge"]  = { speed = 4, accuracy = 2, damage = 2, valid = true },
+            ["Rampaging"]  = { speed = 2, accuracy = 2, damage = 2, valid = true },
+            ["Body Check"]  = { speed = 1, accuracy = 2, damage = 1, valid = true },
+            ["Scratch"]  = { speed = 1, accuracy = 2, damage = 1, valid = true },
         }
     }
 
@@ -94,12 +127,14 @@ end
 
 function BattleUi.GetMonsterName()
     -- this works but maybe there's a better way?
-    local location = Location.Get("Unused Basic AI")
+    local location = Location.Get("Basic Action")
     local aiCards = location:FindAll("AI")
     for _, entry in ipairs(aiCards) do
         local name = entry.getName();
-        return string.gsub(name, " Basic AI", "")
+        return string.gsub(name, " Basic Action", "")
     end
+
+    Log.Printf("Could not find basic action card.  Don't know which monster we are fighting")
     return ""
 end
 
