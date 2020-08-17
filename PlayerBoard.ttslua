@@ -620,7 +620,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function PlayerBoard.OnObjectEnterContainer(_, object)
+function PlayerBoard.OnObjectEnterContainer(container, object)
     local playerBoard = PlayerBoard.ForFigurine(object)
     if playerBoard then
         playerBoard:UnlinkFigurine(object)

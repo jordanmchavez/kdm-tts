@@ -1,4 +1,4 @@
-local KDM_VERSION = "0.31 Beta"
+local KDM_VERSION = "0.32 Beta"
 
 local Log = require("Kdm/Log").ForPackage("G")
 local Console = require("Kdm/Console")
@@ -89,6 +89,8 @@ function onLoad(saveJson)
         ["MessageBox"] = MessageBox,
     }
 
+    -- Init() = everything before the UI is first rendered (includes UI setup)
+    -- PostInit() = register event handlers and code that depends on the UI elements actually being instantiated
     local ui = { id = "UI", children = self.UI.getXmlTable() }
     for name, module in pairs(modules) do
         Log.Debugf("Initializing %s", name)

@@ -1,3 +1,5 @@
+* cap luck to 10
+* fix broken token stacks
 refactor upper/lower stats into a single function
 should we show modified stats on pop?
 all boxcast/cleans should not use interactable, but rather namedobject's special list

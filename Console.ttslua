@@ -1,4 +1,5 @@
 require("Kdm/Check")
+local Util = require("Kdm/Util")
 
 local Console = {}
 

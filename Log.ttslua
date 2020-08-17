@@ -7,14 +7,6 @@ local Console = require("Kdm/Console")
 local Log = {}
 
 Log.debugModules = {
-    -- ["G"] = true,
-    -- ["Survivor"] = true,
-    -- ["SurvivorSheet"] = true,
-    -- ["Population"] = true,
-    -- ["PlayerBoard"] = true,
-    -- ["BattleUi"] = true,
-    -- ["Timeline"] = true,
-    -- ["Setup"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------

@@ -3,6 +3,7 @@ local Log = require("Kdm/Log").ForPackage("Zone")
 local Util = require("Kdm/Util")
 local EventManager = require("Kdm/EventManager")
 local Location = require("Kdm/Location")
+local Console = require("Kdm/Console")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -237,10 +238,15 @@ function Zone.Drop(object, verb)
         return
     end
 
+    if object.held_by_color then
+        Log.Debugf("Object %s (%s) held by a player, ignoring", object.getName(), object.getGUID())
+        return
+    end
+
     -- Link the object with all zones *before* calling handlers, in case the handlers do their own zone queries
     local objectZones = {}
     for _, zone in ipairs(zones) do
-        Log.Debugf("Object %s (%s) %s in %s", object.getName(), object.getGUID(), verb, zone.name)
+        Log.Debugf("Object %s (%s) %s in %s", object.getName(), object.getGUID(), verb, zone.location:Name())
         table.insert(objectZones, zone)
         zone.objects[object] = true
     end
@@ -267,7 +273,7 @@ function Zone.PickUp(object, verb)
     -- Unlink the object with all zones *before* calling handlers, in case the handlers do their own zone queries
     Zone.objectZones[object] = nil
     for _, zone in ipairs(zones) do
-        Log.Debugf("Object %s (%s) %s, removing from %s", object.getName(), object.getGUID(), verb, zone.name)
+        Log.Debugf("Object %s (%s) %s, removing from %s", object.getName(), object.getGUID(), verb, zone.location:Name())
         zone.objects[object] = nil
     end
 
@@ -281,6 +287,18 @@ end
 function Zone.OnObjectPickUp(_, object) Zone.PickUp(object, "picked up") end
 function Zone.OnObjectEnterContainer(_, object) Zone.PickUp(object, "entered container") end
 function Zone.OnObjectDestroy(object) Zone.PickUp(object, "destroyed") end
+
+---------------------------------------------------------------------------------------------------
+
+Console.AddCommand("zone_ls", function(args)
+    local location = Location.Get(args[2])
+    local objects = Zone.Objects(location)
+    Console.Printf("Objects in zone '%s':", location:Name())
+    for _, obj in ipairs(objects) do
+        obj.getGUID()
+        Console.Printf("  %s|%s (%s, %s)", obj.getGUID(), obj.getName(), obj.tag, obj.getGMNotes())
+    end
+end)
 
 ---------------------------------------------------------------------------------------------------
 
