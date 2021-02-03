@@ -77,7 +77,7 @@ local function Ui_Panel(parent, params)
             width = params.width,
             height = params.height,
             color = params.color or "#00000000",
-            active = params.active,
+            active = params.active == nil or params.active,
         },
     }
     setmetatable(panel, Ui_BaseClass)
@@ -146,7 +146,7 @@ local function Ui_Text(parent, params)
             fontSize = params.fontSize or 36,
             fontStyle = params.fontStyle,
             textOffset = "0 0 0 0",
-            active = params.active,
+            active = params.active == nil or params.active,
         },
     })
 
@@ -193,7 +193,7 @@ local function Ui_Image(parent, params)
             offsetXY = params.x and (params.x.." "..params.y) or nil,
             width = params.width,
             height = params.height,
-            active = params.active,
+            active = params.active == nil or params.active,
             horizontalOverflow = "Overflow",
             verticalOverflow = "Overflow",
         },
@@ -469,7 +469,7 @@ local function Ui_CheckBox(parent, params)
             height = params.height or 30,
             colors = UI_IMAGE_COLORS,
             image = params.checked and checkBox.filledImage or checkBox.emptyImage,
-            active = params.active,
+            active = params.active == nil or params.active,
             onClick = onClick,
         },
     })
@@ -576,7 +576,7 @@ local function Ui_OptionButton(group, params)
             fontSize = group.fontSize,
             textAlignment = group.textAlignment,
             onClick = onClick,
-            active = params.active,
+            active = params.active == nil or params.active,
         },
     })
 

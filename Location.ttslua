@@ -142,6 +142,8 @@ function LocationClass.BoxCast(location, params)
     })
 end
 
+---------------------------------------------------------------------------------------------------
+
 function LocationClass.RayCast(location, params)
     params = params or {}
 
