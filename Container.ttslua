@@ -90,7 +90,7 @@ end
 
 function ContainerClass.Take(container, params)
     assert(CheckTable(container))
-    assert(container.object != nil, "Container is empty or was destroyed")  -- != nil is important for deleted TTS object comparison
+    assert(container.object != nil, "Container is empty or was destroyed")  -- "!= nil" is important for deleted TTS object comparison
 
     local guid = params.guid
 

@@ -109,7 +109,7 @@ function onLoad(saveJson)
             end
         end
         Zone.InitObjectsInZones()
-    end, 5)
+    end, 20)
 end
 
 ---------------------------------------------------------------------------------------------------

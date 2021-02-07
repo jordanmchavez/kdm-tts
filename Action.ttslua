@@ -45,7 +45,7 @@ local function Action_CreateDeck(params)
         elseif source.source == "Container" then
             object = source.container:Take(takeParams)
             if not object then
-                Log.Errorf("Couldn't find '%s' in container '%s' (%s)", source.name, container:Name(), container:Guid())
+                Log.Errorf("Couldn't find '%s' in container '%s' (%s)", source.name, source.container:Name(), source.container:Guid())
             end
         else
             assert(CheckFail("Unrecognized source: %s", source))

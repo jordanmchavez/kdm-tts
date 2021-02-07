@@ -54,24 +54,24 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.EnableModule(module, enabled)
+function Log.EnableDebugModule(module, enabled)
     Log.debugModules[module] = enabled
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Console.AddCommand("log_on", function(args)
+Console.AddCommand("log_debugon", function(args)
     if #args != 2 then
-        return Console.Printf("Usage: log_on <module>")
+        return Console.Printf("Usage: log_debugon <module>")
     end
-    Log.EnableModule(args[2], true)
+    Log.EnableDebugModule(args[2], true)
 end)
 
-Console.AddCommand("log_off", function(args)
+Console.AddCommand("log_debugoff", function(args)
     if #args != 2 then
-        return Console.Printf("Usage: log_off <module>")
+        return Console.Printf("Usage: log_debugoff <module>")
     end
-    Log.EnableModule(args[2], nil)
+    Log.EnableDebugModule(args[2], nil)
 end)
 
 ---------------------------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ return {
             Errorf = function(fmt, ...) Log.Errorf(package, fmt, ...) end,
             Broadcastf = function(fmt, ...) Log.Broadcastf(package, fmt, ...) end,
             Init = Log.Init,
-            EnableModule = Log.EnableModule,
+            EnableDebugModule = Log.EnableDebugModule,
         }
     end
 }

@@ -1,6 +1,8 @@
 local CircularArrayClass = {}
 CircularArrayClass.__index = CircularArrayClass
 
+---------------------------------------------------------------------------------------------------
+
 local function CircularArray_Create(capacity)
     assert(capacity > 0)
 
