@@ -1,30 +1,36 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("EventManager")
+local Check = require("Kdm/Util/Check")
 
 ---------------------------------------------------------------------------------------------------
 
 local EventManager = {}
 
-local eventManager_handlers = {}
-local eventManager_globalHandlers = {}
+EventManager.ON_SURVIVOR_CREATED = "onSurvivorCreated"
+EventManager.ON_SURVIVOR_DESTROYED = "onSurvivorDestroyed"
+EventManager.ON_SURVIVOR_STAT_CHANGE = "onSurvivorStatChange"
+EventManager.ON_SURVIVOR_CARDS_CHANGE = "onSurvivorCardsChange"
+EventManager.ON_PLAYER_SURVIVOR_LINKED = "onPlayerSurvivorLinked"
+EventManager.ON_PLAYER_SURVIVOR_UNLINKED = "onPlayerSurvivorUnlinked"
+EventManager.ON_PLAYER_WEAPONS_CHANGED = "onPlayerWeaponsChanged"
+
+EventManager.handlers = {}
+EventManager.globalHandlers = {}
 
 ---------------------------------------------------------------------------------------------------
 
 function EventManager.AddHandler(event, handler)
-    assert(CheckStr(event))
-    assert(CheckFunc(handler))
+    assert(Check.Str(event))
+    assert(Check.Func(handler))
 
-    local handlers = eventManager_handlers[event]
+    local handlers = EventManager.handlers[event]
     if handlers then
         table.insert(handlers, handler)
         return
     end
 
-    Log.Debugf("EventManager now handling event %s", event)
-    eventManager_globalHandlers[event] = _G[event]
+    EventManager.globalHandlers[event] = _G[event]
 
     _G[event] = function(...)
-        local globalHandler = eventManager_globalHandlers[event]
+        local globalHandler = EventManager.globalHandlers[event]
         local returnValue
         if globalHandler then
             returnValue = globalHandler(...)
@@ -33,7 +39,7 @@ function EventManager.AddHandler(event, handler)
         local args = table.pack(...)
         local n = #args
         table.insert(args, returnValue)
-        for _, handler in ipairs(eventManager_handlers[event]) do
+        for _, handler in ipairs(EventManager.handlers[event]) do
             args[n + 1] = returnValue
             returnValue = handler(table.unpack(args))
         end
@@ -41,18 +47,18 @@ function EventManager.AddHandler(event, handler)
         return returnValue
     end
 
-    eventManager_handlers[event] = { handler }
+    EventManager.handlers[event] = { handler }
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function EventManager.FireEvent(event, ...)
-    local globalHandler = eventManager_globalHandlers[event]
+    local globalHandler = EventManager.globalHandlers[event]
     if globalHandler then
         globalHandler(...)
     end
 
-    for _, handler in ipairs(eventManager_handlers[event] or {}) do
+    for _, handler in ipairs(EventManager.handlers[event] or {}) do
         handler(...)
     end
 end

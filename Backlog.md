@@ -1,9 +1,73 @@
+* roadmap
+* fix sur tok loc
+* onobjectdestroyed for survivor sheets in player: manually unlink and spit message
+* pack should work for unlinked sheets
+* consolidate SurvivorBox.ALLOWED_CARD_TYPES
+* fixed display order on pop for fa/disorder/etc
+* location tostring
+* remember figurine
+* new survivor bonues
+* next turn should auto-move the monster controller
+spawn check if survivor box exists, if so highlight
+else create box and pack cards
+delete: check if on player board or survivor box exists
+
+* if user changes a survivor field to a hidden filter, then should we refresh the page?
+* Figure out survivor box and add instructions
+* Set population row tile to be correct length
+
+* confirmation box should be per-player
+* fix survivla/marker placement
+* icon for retired
+* spacing for reroll checkboxes
+* all ui should use the same "object" instead of separate elem and object
+* reroll token
+* shield mastery should apply to everyone
+* constellations sheet color
+* spawning rulebooks through nav board shouldn't re-center
+* fix "clear skip next hunt" button
+* fix silhouettes
+* replace all events with constants
+* tutorial tips
+    pack survivor: not deleted
+
+unlock
+
+
+
+UIs
+setup
+hunt
+showdown
+timeline
+battle
+search
+
+Boards
+deck
+settlement
+player
+survivor
+rules nav
+terrain
+deck
+monster
+population
+
+fix silhouettes
+* warm virus can't be added to timeline
+move new survivor to far-right
+add filegree
+fix height to support 20 survivors
+* lock rulebook after spawning
+* fix "x" bg in search bar
 * cap luck to 10
 * fix broken token stacks
 refactor upper/lower stats into a single function
 should we show modified stats on pop?
 all boxcast/cleans should not use interactable, but rather namedobject's special list
 remove space between survivor ui player panels (just use one big panel)
+bigger "milestone" checkboxes
 
 * fix black card backs
 * binge eating hagve
@@ -176,3 +240,18 @@ lowerleft by default for all ui
 
 * UI to use attributes.id for parents instead of .id
 * Setup to do survival actions
+
+* Move "Unused HL" to side column, put image in between
+* Grey "enter survivor name" text color
+* Show vs hide
+
+* Spawn Anything
+
+* flter -> tryObjectEnterContainer
+* manually creating survivor boxes and such by coping/etc should produce a warning message
+* reminder to pack survivors and complete encounter before exporting
+* cleanup ui classes/addcreatefunctions
+* handle deleting survivor sheets: unlink player, clear all
+* interact highlight objs
+* sort help cmds
+* clean up ui to use classes properly

@@ -1,6 +1,6 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("Rules")
-local Util = require("Kdm/Util")
+local Check = require("Kdm/Util/Check")
+local log = require("Kdm/Log").ForModule("Rules")
+local Util = require("Kdm/Util/Util")
 local CircularArray = require("Kdm/CircularArray")
 local Trie = require("Kdm/Trie")
 local Ui = require("Kdm/Ui")
@@ -56,16 +56,16 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Rules_SpawnRules(rules, state, dontRecordHistory)
-    assert(CheckStr(rules))
-    assert(CheckNum(state))
-    assert(CheckBoolOrNil(dontRecordHistory))
+    assert(Check.Str(rules))
+    assert(Check.Num(state))
+    assert(Check.BoolOrNil(dontRecordHistory))
 
-    Log.Debugf("Spawning rules %s[%d]", rules, state)
+    log:Debugf("Spawning rules %s[%d]", rules, state)
 
     local location = Location.Get("Rules Board")
     local blocking = location:BoxClean({ types = { "Rulebook" } })
     if #blocking > 0 then
-        Log.Broadcastf("Something is blocking the rules board. Please move the highlighted objects out of the way and try again.")
+        log:Broadcastf("Something is blocking the rules board. Please move the highlighted objects out of the way and try again.")
         Util.HighlightAll(blocking)
         return
     end
@@ -83,7 +83,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function Rules_GetCurrentRules()
-    return Location.Get("Rules Board"):FindFirst("Rulebook")
+    return Location.Get("Rules Board"):FirstObject("Rulebook")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -95,13 +95,13 @@ local function Rules_Back()
     end
 
     if Rules_history:Size() <= 1 then
-        Log.Debugf("<= 1 history element, can't go back")
+        log:Debugf("<= 1 history element, can't go back")
         return
     end
 
     Rules_history:Pop()
     local last = Rules_history:Top()
-    Log.Debugf("Going back to %s[%d]", last[1], last[2])
+    log:Debugf("Going back to %s[%d]", last[1], last[2])
     Rules_SpawnRules(last[1], last[2], true)   -- dontRecordHistory
 end
 
@@ -115,7 +115,7 @@ local function Rules_ChangePage(dir)
 
     local currentState = rules.getStateId()
     local nextState = currentState + dir
-    Log.Debugf("Found current rules %s (%s) at state %d, looking for state %d", rules.getName(), rules.getGUID(), currentState, nextState)
+    log:Debugf("Found current rules %s (%s) at state %d, looking for state %d", rules.getName(), rules.getGUID(), currentState, nextState)
 
     local rulebookName = (currentState == 1) and rules.getName() or nil
     local hasNext = false
@@ -124,13 +124,13 @@ local function Rules_ChangePage(dir)
             rulebookName = state.name
         end
         if state.id == nextState then
-            Log.Debugf("Found next state %d: %s", state.id, state.name)
+            log:Debugf("Found next state %d: %s", state.id, state.name)
             hasNext = true
         end
     end
 
     if not hasNext then
-        Log.Debugf("No state %d", nextState)
+        log:Debugf("No state %d", nextState)
         return
     end
 
@@ -179,21 +179,21 @@ end
 local function Rules_RegisterExpansion(expansion)
     for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
         local rulebookName = rulebook.name
-        assert(CheckStr(rulebookName, "rulebook.name"))
+        assert(Check.Str(rulebookName, "rulebook.name"))
 
         local pages = rulebook.pages
-        assert(CheckTable(rulebook.pages))
+        assert(Check.Table(rulebook.pages))
 
         for pageName, pageData in pairs(pages) do
-            assert(CheckStr(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
+            assert(Check.Str(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
             local state = pageData.state
-            assert(CheckNum(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
+            assert(Check.Num(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
 
             assert(Check(Rules_index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules_index[pageName]))
             Rules_index[pageName] = { rulebook = rulebookName, state = state }
 
             local keywords = pageData.keywords
-            assert(CheckTable(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
+            assert(Check.Table(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
 
             local entry = {
                 rulebook = rulebookName,
@@ -204,16 +204,16 @@ local function Rules_RegisterExpansion(expansion)
             }
 
             for keywordIndex, keyword in ipairs(keywords) do
-                assert(CheckStr(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
+                assert(Check.Str(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
                 Rules_trie:Set(keyword, entry)
             end
 
             if pageData.huntEventStart then
                 local huntEventStart = pageData.huntEventStart
-                assert(CheckNum(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
+                assert(Check.Num(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
 
                 local huntEventEnd = pageData.huntEventEnd
-                assert(CheckNum(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
+                assert(Check.Num(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
 
                 for huntEventNumber = huntEventStart, huntEventEnd do
                     Rules_trie:Set(tostring(huntEventNumber), entry)

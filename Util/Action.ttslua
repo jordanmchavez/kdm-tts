@@ -1,15 +1,17 @@
-require("Kdm/Check")
-require("Kdm/Constants")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("Action")
-local Container = require("Kdm/Container")
+local Archive = require("Kdm/Archive")
+local Check = require("Kdm/Util/Check")
+local Container = require("Kdm/Util/Container")
 local Location = require("Kdm/Location")
+local log = require("Kdm/Log").ForModule("Action")
+local Util = require("Kdm/Util/Util")
 
-local Archive = nil
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_ArchiveSource(name, type)
+local Action = {}
+---------------------------------------------------------------------------------------------------
+
+function Action.ArchiveSource(name, type)
     return {
         source = "Archive",
         name = name,
@@ -19,7 +21,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_ContainerSource(container, name, type)
+function Action.ContainerSource(container, name, type)
     return {
         source = "Container",
         container = container,
@@ -30,8 +32,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_CreateDeck(params)
-    local sources, location, rotation, allowMissing = params.sources,  Location.Get(params.location), (params.rotation or FACE_UP), params.allowMissing
+function Action.CreateDeck(params)
+    local sources, location, rotation, allowMissing = params.sources,  Location.Get(params.location), (params.rotation or { x = 0, y = 180, z = 0 }), params.allowMissing
 
     local objects = {}
     for i, source in ipairs(sources) do
@@ -40,15 +42,15 @@ local function Action_CreateDeck(params)
         if source.source == "Archive" then
             object = Archive.Take(takeParams)
             if not object then
-                Log.Errorf("Couldn't find '%s' in archive", source.name)
+                log:Errorf("Couldn't find '%s' in archive", source.name)
             end
         elseif source.source == "Container" then
             object = source.container:Take(takeParams)
             if not object then
-                Log.Errorf("Couldn't find '%s' in container '%s' (%s)", source.name, source.container:Name(), source.container:Guid())
+                log:Errorf("Couldn't find '%s' in container '%s' (%s)", source.name, source.container:Name(), source.container:Guid())
             end
         else
-            assert(CheckFail("Unrecognized source: %s", source))
+            assert(Check.Fail("Unrecognized source: %s", source))
         end
         if object then
             table.insert(objects, object)
@@ -60,7 +62,7 @@ local function Action_CreateDeck(params)
         deckObject = group(objects)[1]
         assert(Check(deckObject))
     else
-        Log.Debugf("CreateDeck only asked for one object %s (%s), so not grouping", objects[1].getName(), objects[1].getGUID())
+        log:Debugf("CreateDeck only asked for one object %s (%s), so not grouping", objects[1].getName(), objects[1].getGUID())
         deckObject = objects[1]
     end
 
@@ -69,20 +71,20 @@ local function Action_CreateDeck(params)
     deckObject.setPositionSmooth(location:Center(), false, true)
     deckObject.setRotation(rotation)
 
-    Log.Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location:Name())
+    log:Debugf("Created deck %s (%s) at %s", deckObject.getName(), deckObject.getGUID(), location:Name())
 
     return Container(deckObject)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_Clone(params)
+function Action.Clone(params)
     local object, location, rotation = params.object, Location.Get(params.location), params.rotation
-    local height = params.height or DEFAULT_SPAWN_HEIGHT
+    local height = params.height or 2
     local position = location:Center()
     position.y = position.y + height
 
-    Log.Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location:Name())
+    log:Debugf("Cloning %s (%s) to %s", object.getName(), object.getGUID(), location:Name())
 
     local clonedObject = object.clone({ position =  position })
     if rotation then
@@ -95,17 +97,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Action_Init(modules, saveState, expansions)
-    Archive = modules.Archive
-    assert(Archive)
-end
-
----------------------------------------------------------------------------------------------------
 
 return {
-    Init = Action_Init,
-    ArchiveSource = Action_ArchiveSource,
-    ContainerSource = Action_ContainerSource,
-    CreateDeck = Action_CreateDeck,
-    Clone = Action_Clone,
+    ArchiveSource = Action.ArchiveSource,
+    ContainerSource = Action.ContainerSource,
+    CreateDeck = Action.CreateDeck,
+    Clone = Action.Clone,
 }

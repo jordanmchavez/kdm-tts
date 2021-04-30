@@ -1,27 +1,79 @@
-require("Kdm/Check")
-
-local Weapon_stats = {}
+local Check = require("Kdm/Util/Check")
+local Expansion = require("Kdm/Expansion")
 
 ---------------------------------------------------------------------------------------------------
 
-local function Weapon_Init(modules, saveState, expansions)
-    for _, expansion in ipairs(expansions) do
-        for weapon, stats in pairs(expansion.weaponStats or {}) do
-            assert(Check(Weapon_stats[weapon] == nil, "Weapon %s is already registered", weapon))
-            Weapon_stats[weapon] = stats
+local Weapon = {}
+Weapon.__index = Weapon
+
+---------------------------------------------------------------------------------------------------
+
+function Weapon.Init(saveState)
+    Weapon.weapons = {}
+    for _, expansion in pairs(Expansion.AllExpansions()) do
+        for name, stats in pairs(expansion.weaponStats or {}) do
+            if Weapon.weapons[name] then
+                assert(false, string.format("Weapon %s was already registered by expansion %s", name, Weapon.weapons[name].expansion))
+            end
+            Weapon.weapons[name] = Weapon.Create(name, expansion.name, stats)
         end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Weapon_Get(weapon)
-    return Weapon_stats[weapon]
+function Weapon.Get(name)
+    return Weapon.weapons[name]
+end
+
+---------------------------------------------------------------------------------------------------
+
+Weapon.statCheckFuncs = {
+    accuracy = Check.Num,
+    deadly = Check.Num,
+    devastating = Check.Num,
+    earlyIron = Check,
+    paired = Check,
+    savage = Check,
+    sharp = Check,
+    slow = Check,
+    speed = Check.Num,
+    strength = Check.Num,
+}
+
+function Weapon.Create(name, expansion, stats)
+    assert(Check.Str(name))
+    assert(Check.Str(expansion))
+
+    local weapon = {
+        name = name,
+        expansion = expansion,
+    }
+    setmetatable(weapon, Weapon)
+
+    for stat, value in pairs(stats) do
+        local checkFunc = Weapon.statCheckFuncs[stat]
+        assert(Check(checkFunc, "Unrecognized stat %s for weapon %s", stat, name))
+        assert(checkFunc(value, "Stat %s had unexpected value %s", stat, tostring(value)))
+        weapon[stat] = value
+    end
+
+    assert(Check.Num(weapon.speed, "Weapon %s missing speed", name))
+    assert(Check.Num(weapon.accuracy, "Weapon %s missing accuracy", name))
+    assert(Check.Num(weapon.strength, "Weapon %s missing strength", name))
+
+    return weapon
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Weapon:__tostring()
+    return string.format("%s (%d/%d/%d)", self.name, self.speed, self.accuracy, self.strength)
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = Weapon_Init,
-    Get = Weapon_Get,
+    Init = Weapon.Init,
+    Get = Weapon.Get,
 }

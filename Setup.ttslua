@@ -1,11 +1,11 @@
-require("Kdm/Check")
+local Check = require("Kdm/Util/Check")
 require("Kdm/Constants")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("Setup")
-local EventManager = require("Kdm/EventManager")
+local Util = require("Kdm/Util/Util")
+local log = require("Kdm/Log").ForModule("Setup")
+local EventManager = require("Kdm/Util/EventManager")
 local Ui = require("Kdm/Ui")
 local Ui3d = require("Kdm/Ui3d")
-local Container = require("Kdm/Container")
+local Container = require("Kdm/Util/Container")
 local Location = require("Kdm/Location")
 local NamedObject = require("Kdm/NamedObject")
 local Console = require("Kdm/Console")
@@ -109,11 +109,11 @@ function Setup.InitState(saveState)
         local expansion = Setup.expansionsByName[expansionName]
         assert(Check(expansion, "Setup saveState had unknown expansion %s", expansionName))
         Setup.enabledExpansions[expansion] = true
-        Log.Debugf("Enabled expansion: %s", expansionName)
+        log:Debugf("Enabled expansion: %s", expansionName)
 
         local overrides = expansion.archiveOverrides
         if overrides then
-            Log.Debugf("Overriding archive entries for %s", expansion.name)
+            log:Debugf("Overriding archive entries for %s", expansion.name)
             Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries, allowOverrides = true })
         end
     end
@@ -121,7 +121,7 @@ function Setup.InitState(saveState)
 
     Setup.campaign = Util.FindIf(Setup.campaigns, function(c) return c.name == saveState.campaign end)
     if not Setup.campaign then
-        Log.Errorf("Couldn't find saved campaign '%s', using default campaign", tostring(Setup.campaign))
+        log:Errorf("Couldn't find saved campaign '%s', using default campaign", tostring(Setup.campaign))
     end
 end
 
@@ -156,7 +156,7 @@ function Setup.InitCampaignUi(ui)
     local y = 568
     Setup.ui.campaign.campaignOptionGroup = Ui.OptionButtonGroup(panel, { id = "Campaign", onClick = function(option)
         local campaign = option:Value()
-        Log.Debugf("Campaign %s selected", campaign.name)
+        log:Debugf("Campaign %s selected", campaign.name)
         Setup.ui.campaign.selectedCampaign = campaign
         Setup.ui.campaign.campaignOptionGroup:Set(option)
     end })
@@ -174,7 +174,7 @@ function Setup.InitCampaignUi(ui)
         if expansion.name != "Core" then
             Setup.ui.campaign.expansionButtons[expansion] = Ui.CheckButton(panel, { id = expansion.name, x = x, y = y, width = 200, height = 30, text = expansion.name, onClick = function()
                 local value = not Setup.ui.campaign.selectedExpansions[expansion]
-                Log.Debugf("%s expansion %s", value and "Selecting" or "Deselecting", expansion.name)
+                log:Debugf("%s expansion %s", value and "Selecting" or "Deselecting", expansion.name)
                 Setup.ui.campaign.selectedExpansions[expansion] = value
                 Setup.ui.campaign.expansionButtons[expansion]:Set(value)
             end })
@@ -190,7 +190,7 @@ function Setup.InitCampaignUi(ui)
         local campaign = Setup.ui.campaign.selectedCampaign
         local requiredExpansion = Setup.expansionsByCampaign[campaign]
         if requiredExpansion.name != "Core" and not Setup.ui.campaign.selectedExpansions[requiredExpansion] then
-            Log.Broadcastf("%s requires %s expansion", campaign.name, requiredExpansion.name)
+            log:Broadcastf("%s requires %s expansion", campaign.name, requiredExpansion.name)
             return
         end
 
@@ -303,19 +303,19 @@ function Setup.ImportEncoded(encodedStr)
         decodedStr = Base64.Decode(encodedStr)
         dataStr = decodedStr:sub(1, -9)
         recordedCrc32 = tonumber(decodedStr:sub(-8), 16)
-        Log.Debugf("%08x", recordedCrc32)
+        log:Debugf("%08x", recordedCrc32)
     end) then
-        return Log.Errorf("Couldn't import save: text had invalid Base64 encoding.")
+        return log:Errorf("Couldn't import save: text had invalid Base64 encoding.")
     end
 
     local data = nil
     if not pcall(function() data = JSON.decode(dataStr) end) then
-        return Log.Errorf("Couldn't import save: error parsing JSON.")
+        return log:Errorf("Couldn't import save: error parsing JSON.")
     end
 
     local actualCrc32 = Crc32(dataStr)
     if actualCrc32 != recordedCrc32 then
-        return Log.Errorf("Couldn't import save: CRC32 doesn't match.")
+        return log:Errorf("Couldn't import save: CRC32 doesn't match.")
     end
 
     Setup.ImportData(data)
@@ -326,22 +326,23 @@ end
 
 function Setup.Import()
     local location = Location.Get("Export/Import")
-    local object = location:FindFirst("Campaign Orb")
+    local object = location:FirstObject("Campaign Orb")
     if not object then
-        Log.Broadcastf("Place your exported campaign orb in the highlighted area, then click 'Import Campaign'.")
+        log:Broadcastf("Place your exported campaign orb in the highlighted area, then click 'Import Campaign'.")
+        replace with hightligh
         location:BoxCast({ debug = true })
         return
     end
 
     if object.getGMNotes() != "Campaign Orb" then
-        Log.Errorf("This object is not a campaign orb.")
+        log:Errorf("This object is not a campaign orb.")
         Util.Highlight(object)
         return
     end
 
     local data = JSON.decode(object.script_state)
     Setup.ImportData(data)
-    Wait.frames(function() Log.Broadcastf("You can now delete the campaign orb.") end, 1)
+    Wait.frames(function() log:Broadcastf("You can now delete the campaign orb.") end, 1)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -376,13 +377,13 @@ function Setup.Export()
     end
 
     local innovationDeck = {}
-    local innovationDeckContainer = Container(Zone.FindFirst({ location = "Innovation Deck", tags = { "Deck", "Card" }}))
+    local innovationDeckContainer = Container(Zone.FirstObject({ location = "Innovation Deck", tags = { "Deck", "Card" }}))
     for _, elem in ipairs(innovationDeckContainer:Objects()) do
         if elem.gm_notes == "Innovations" then
-            Log.Debugf("Recording '%s' in innovation deck", elem.name)
+            log:Debugf("Recording '%s' in innovation deck", elem.name)
             table.insert(innovationDeck, elem.name)
         else
-            Log.Errorf("Found card '%s' in Innovation Deck that's not an innovation (GM Notes = '%s')", elem.name, elem.gm_notes)
+            log:Errorf("Found card '%s' in Innovation Deck that's not an innovation (GM Notes = '%s')", elem.name, elem.gm_notes)
             Util.Highlight(innovationDeckContainer:Object())
             Setup.HideUi()
             return
@@ -441,7 +442,7 @@ function Setup.Export()
 
         local objects = Zone.Objects(location)
         if #objects > 1 then
-            Log.Errorf("Found multiple objects at %s: please make sure there's only one object in each card slot.", location)
+            log:Errorf("Found multiple objects at %s: please make sure there's only one object in each card slot.", location)
             Util.HighlightAll(objects)
             Setup.HideUi()
             return
@@ -451,19 +452,19 @@ function Setup.Export()
             local object = objects[1]
             if object.tag != "Card" then
                 if not scan.ignoreNonCard then
-                    Log.Errorf("Found %s '%s' at '%s'. Export only records cards (not decks or other objects). If this is a deck then please lay out the cards individually, otherwise move this object out of the way.", object.tag, object.getName(), location)
+                    log:Errorf("Found %s '%s' at '%s'. Export only records cards (not decks or other objects). If this is a deck then please lay out the cards individually, otherwise move this object out of the way.", object.tag, object.getName(), location)
                     Util.Highlight(object)
                     Setup.HideUi()
                     return
                 end
             else
                 if type and object.getGMNotes() != type then
-                    Log.Errorf("Found %s '%s' at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", object.getGMNotes(), object.getName(), location, type)
+                    log:Errorf("Found %s '%s' at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", object.getGMNotes(), object.getName(), location, type)
                     Util.Highlight(object)
                     Setup.HideUi()
                     return
                 elseif types and not Util.Find(types, object.getGMNotes()) then
-                    Log.Errorf("Found %s '%s' at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", object.getGMNotes(), object.getName(), location, types)
+                    log:Errorf("Found %s '%s' at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", object.getGMNotes(), object.getName(), location, types)
                     Util.Highlight(object)
                     Setup.HideUi()
                     return
@@ -475,7 +476,7 @@ function Setup.Export()
                     scan.table[scan.field] = { name = object.getName(), location = location, type = object.getGMNotes() }
                 end
 
-                Log.Debugf("Recording %s '%s' at '%s'", object.getGMNotes(), object.getName(), location)
+                log:Debugf("Recording %s '%s' at '%s'", object.getGMNotes(), object.getName(), location)
             end
         end
     end
@@ -493,12 +494,12 @@ function Setup.Export()
     campaignOrb.setName("Campaign Orb")
     campaignOrb.setGMNotes("Campaign Orb")
 
-    Log.Broadcastf("Campaign export complete. Instructions are in the chat window.")
-    Log.Printf("1. Save your game.")
-    Log.Printf("2. Copy your campaign orb (right click on the orb -> Copy).")
-    Log.Printf("3. Load the latest version of the mod ('Games' button on the top bar).")
-    Log.Printf("4. Paste (right click anywhere -> Paste) the orb and drop it onto the same spot in the new version.")
-    Log.Printf("5. Click the 'Import Campaign' button.")
+    log:Broadcastf("Campaign export complete. Instructions are in the chat window.")
+    log:Printf("1. Save your game.")
+    log:Printf("2. Copy your campaign orb (right click on the orb -> Copy).")
+    log:Printf("3. Load the latest version of the mod ('Games' button on the top bar).")
+    log:Printf("4. Paste (right click anywhere -> Paste) the orb and drop it onto the same spot in the new version.")
+    log:Printf("5. Click the 'Import Campaign' button.")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -511,26 +512,26 @@ function Setup.Setup(params)
 
     Setup.SetupArchiveOverrides(expansions)
 
-    Setup.SetupDeck({ expansions = expansions, deck = "Abilities",            rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Fighting Arts",        rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = params.campaign.removedFightingArts })
-    Setup.SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Disorders",            rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Severe Injuries",      rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Tactics",              rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Weapon Proficiencies", rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Armor Sets",           rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Vermin",               rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources",    rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources",      rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Terrain",              rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events",    rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
-    Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear",            rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false, type = "Gear" })
-    Setup.SetupDeck({ expansions = expansions, deck = "Hunt Events",          rotation = FACE_DOWN, resetArchive = true, respawnDeck = true, shuffleDeck = false })
-    local innovationArchive = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", location = "Innovation Archive", rotation = FACE_DOWN, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = params.campaign.removedInnovations })
+    Setup.SetupDeck({ expansions = expansions, deck = "Abilities",            rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Fighting Arts",        rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true, remove = params.campaign.removedFightingArts })
+    Setup.SetupDeck({ expansions = expansions, deck = "Secret Fighting Arts", rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Disorders",            rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Severe Injuries",      rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Tactics",              rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Weapon Proficiencies", rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Armor Sets",           rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Vermin",               rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Strange Resources",    rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    Setup.SetupDeck({ expansions = expansions, deck = "Basic Resources",      rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Terrain",              rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Settlement Events",    rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = true  })
+    Setup.SetupDeck({ expansions = expansions, deck = "Rare Gear",            rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false, type = "Gear" })
+    Setup.SetupDeck({ expansions = expansions, deck = "Hunt Events",          rotation = { x = 0, y = 180, z = 180 }, resetArchive = true, respawnDeck = true, shuffleDeck = false })
+    local innovationArchive = Setup.SetupDeck({ expansions = expansions, deck = "Innovations", name = "Innovation Archive", location = "Innovation Archive", rotation = { x = 0, y = 180, z = 180 }, resetArchive = false, respawnDeck = false, shuffleDeck = false, remove = params.campaign.removedInnovations })
     local settlementLocationDeck = Setup.SetupDeck({ expansions = expansions, deck = "Settlement Locations", location = "Settlement Location Deck", resetArchive = false, respawnDeck = false, shuffleDeck = false })
 
-    Archive.Take({ name = "Starting Gear", type = "Gear", location = "Starting Gear", rotation = FACE_DOWN })
-    Archive.Take({ name = "Promo Gear", type = "Gear", location = "Promo Gear", rotation = FACE_DOWN })
+    Archive.Take({ name = "Starting Gear", type = "Gear", location = "Starting Gear", rotation = { x = 0, y = 180, z = 180 } })
+    Archive.Take({ name = "Promo Gear", type = "Gear", location = "Promo Gear", rotation = { x = 0, y = 180, z = 180 } })
 
     Setup.SetupInnovationDeck(innovationArchive, params.innovationDeck or params.campaign.startingInnovationDeck)
     Archive.CleanUpContainers()
@@ -561,7 +562,7 @@ function Setup.Setup(params)
     end
     Setup.campaign = params.campaign
 
-    Log.Broadcastf("Campaign setup complete.")
+    log:Broadcastf("Campaign setup complete.")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -603,11 +604,11 @@ function Setup.SetupDeck(params)
     end
 
     if #sources == 0 then
-        Log.Debugf("No expansions have %s, skipping", deck)
+        log:Debugf("No expansions have %s, skipping", deck)
         return
     end
 
-    Log.Debugf("Setting up %s deck", deck)
+    log:Debugf("Setting up %s deck", deck)
 
     local deckContainer = Action.CreateDeck({ sources = sources, name = name, type = type, location = location, rotation = params.rotation })
 
@@ -623,7 +624,7 @@ function Setup.SetupDeck(params)
         if params.respawnDeck then
             deckContainer = Container(archive.takeObject({
                 position = location:Center(),
-                rotation = params.rotation or FACE_UP,
+                rotation = params.rotation or { x = 0, y = 180, z = 0 },
                 smooth   = false,
             }))
         end
@@ -650,21 +651,21 @@ function Setup.SetupPrinciples(innovationArchive, principles)
     for _, principle in ipairs(principles or {}) do
         local name, location = principle.name, principle.location
         if innovationArchive:Take({ name = name, type = "Innovations", location = location, allowMissing = true }) then
-            Log.Debugf("Added '%s' at '%s'", name, location)
+            log:Debugf("Added '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find '%s'", name)
+            log:Errorf("Couldn't find '%s'", name)
         end
         addedPrinciples[location] = true
     end
 
     for principle, cards in pairs(Setup.PRINCIPLE_CARDS) do
         if not addedPrinciples[principle] then
-            Log.Debugf("Building '%s' deck", principle)
+            log:Debugf("Building '%s' deck", principle)
             local sources = {}
             for _, card in ipairs(cards) do
                 table.insert(sources, Action.ContainerSource(innovationArchive, card, "Innovations"))
             end
-            Action.CreateDeck({ sources = sources, name = principle, type = "Innovations", location = principle, rotation = FACE_DOWN })
+            Action.CreateDeck({ sources = sources, name = principle, type = "Innovations", location = principle, rotation = { x = 0, y = 180, z = 180 } })
         end
     end
 end
@@ -673,7 +674,7 @@ end
 
 function Setup.SetupInnovationDeck(innovationArchive, innovationDeck)
     if not innovationDeck or #innovationDeck == 0 then
-        return Log.Printf("Skipping empty innovation deck")
+        return log:Printf("Skipping empty innovation deck")
     end
 
     local sources = {}
@@ -685,11 +686,11 @@ function Setup.SetupInnovationDeck(innovationArchive, innovationDeck)
         name = "Innovation Deck",
         type = "Innovations",
         location = "Innovation Deck",
-        rotation = FACE_DOWN,
+        rotation = { x = 0, y = 180, z = 180 },
         allowMissing = true,
     })
     deck:Shuffle()
-    Log.Printf("Built innovation deck")
+    log:Printf("Built innovation deck")
 
     return deck
 end
@@ -697,14 +698,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Setup.SetupInnovations(innovationArchive, innovations)
-    Log.Debugf("Setting up innovations %s", innovations)
+    log:Debugf("Setting up innovations %s", innovations)
 
     for _, data in ipairs(innovations or {}) do
         local name, location = data.name, data.location
         if innovationArchive:Take({ name = name, type = "Innovations", location = location, allowMissing = true }) then
-            Log.Printf("Added innovation '%s' at '%s'", name, location)
+            log:Printf("Added innovation '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find innovation '%s'", name)
+            log:Errorf("Couldn't find innovation '%s'", name)
         end
     end
 end
@@ -715,9 +716,9 @@ function Setup.SetupWeaponMasteries(weaponMasteries)
     for _, data in ipairs(weaponMasteries or {}) do
         local name, location = data.name, data.location
         if Archive.Take({ archive = "Weapon Proficiencies Archive", name = name, type = "Weapon Proficiencies", location = location, allowMissing = true }) then
-            Log.Printf("Added weapon mastery '%s' at '%s'", name, location)
+            log:Printf("Added weapon mastery '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find weapon mastery '%s'", name)
+            log:Errorf("Couldn't find weapon mastery '%s'", name)
         end
     end
 end
@@ -729,9 +730,9 @@ function Setup.SetupSettlementResources(settlementResources)
     for _, data in ipairs(settlementResources or {}) do
         local name, type, location = data.name, data.type, data.location
         if Setup.SpawnWithCache(cache, { archive = type.." Archive", name = name, type = type, location = location, allowMissing = true }) then
-            Log.Printf("Added resource '%s' at '%s'", name, location)
+            log:Printf("Added resource '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find resource '%s'", name)
+            log:Errorf("Couldn't find resource '%s'", name)
         end
     end
 end
@@ -742,9 +743,9 @@ function Setup.SetupSettlementLocations(settlementLocationDeck, settlementLocati
     for _, data in ipairs(settlementLocations or {}) do
         local name, location = data.name, data.location
         if settlementLocationDeck:Take({ name = name, type = "Settlement Locations", location = location, allowMissing = true }) then
-            Log.Printf("Added settlement location '%s' at '%s'", name, location)
+            log:Printf("Added settlement location '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find settlement location '%s'", name)
+            log:Errorf("Couldn't find settlement location '%s'", name)
         end
     end
 end
@@ -757,9 +758,9 @@ function Setup.SetupGear(settlementGear, playerGear)
     for _, data in ipairs(settlementGear or {}) do
         local name, location = data.name, data.location
         if Setup.SpawnWithCache(cache, { archive = "All Gear Archive", name = name, type = "Gear", location = location, allowMissing = true }) then
-            Log.Printf("Added settlement gear '%s' at '%s'", name, location)
+            log:Printf("Added settlement gear '%s' at '%s'", name, location)
         else
-            Log.Errorf("Couldn't find settlement gear '%s'", name)
+            log:Errorf("Couldn't find settlement gear '%s'", name)
         end
     end
 
@@ -769,18 +770,18 @@ function Setup.SetupGear(settlementGear, playerGear)
             local name = armorSetData.name
             local location = "Player "..playerNumber.." Armor Set"
             if Setup.SpawnWithCache(cache, { archive = "Armor Sets Archive", name = name, type = "Armor Sets", location = location, allowMissing = true }) then
-                Log.Printf("Added armor set '%s' at '%s'", name, location)
+                log:Printf("Added armor set '%s' at '%s'", name, location)
             else
-                Log.Errorf("Couldn't find armor set '%s'", name)
+                log:Errorf("Couldn't find armor set '%s'", name)
             end
         end
 
         for _, data in ipairs(playerGear[playerNumber].gear  or {}) do
             local name, location = data.name, data.location
             if Setup.SpawnWithCache(cache, { archive = "All Gear Archive", name = name, type = "Gear", location = location, allowMissing = true }) then
-                Log.Printf("Added gear '%s' at '%s'", name, location)
+                log:Printf("Added gear '%s' at '%s'", name, location)
             else
-                Log.Errorf("Couldn't find gear '%s'", name)
+                log:Errorf("Couldn't find gear '%s'", name)
             end
         end
     end
@@ -791,7 +792,7 @@ end
 function Setup.SetupReferences(references)
     for _, data in ipairs(references) do
         local name, location = data.name, data.location
-        Log.Debugf("Adding reference %s at %s", name, location)
+        log:Debugf("Adding reference %s at %s", name, location)
         -- height 0 because we lock these immediately after spawning
         Archive.Take({ name = name, type = "Reference", location = location, height = 0, spawnFunc = function(spawnedObject)
             spawnedObject.setLock(true)
@@ -814,7 +815,7 @@ function Setup.SetupArchiveOverrides(expansions)
     for _, expansion in ipairs(Setup.expansions) do
         local overrides = expansion.archiveOverrides
         if overrides then
-            Log.Debugf("Reverting archive entry overrides for %s", expansion.name)
+            log:Debugf("Reverting archive entry overrides for %s", expansion.name)
             Archive.RegisterEntries({ archive = overrides.oldArchive, entries = overrides.entries, allowOverrides = true })
         end
     end
@@ -823,7 +824,7 @@ function Setup.SetupArchiveOverrides(expansions)
     for _, expansion in ipairs(expansions) do
         local overrides = expansion.archiveOverrides
         if overrides then
-            Log.Debugf("Overriding archive entries for %s", expansion.name)
+            log:Debugf("Overriding archive entries for %s", expansion.name)
             Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries, allowOverrides = true })
         end
     end
@@ -855,13 +856,13 @@ function Setup.BuildTimelineImportData(expansions, campaign)
     for _, expansion in ipairs(expansions) do
         local removeEvent = expansion.removeTimelineEvent
         if removeEvent then
-            Log.Debugf("Setting up removed event: [%d] %s", removeEvent.year, removeEvent.name)
-            removeEvents[removeEvent.year][removeEvent.name] = true
+            log:Debugf("Setting up removed event: [%d] %s", removeEventManager.year, removeEventManager.name)
+            removeEvents[removeEventManager.year][removeEventManager.name] = true
         end
 
         local replaceNemesis = expansion.replaceNemesis
         if replaceNemesis then
-            Log.Debugf("Setting up replacement nemesis: %s -> %s", replaceNemesis.nemesis, replaceNemesis.replacement)
+            log:Debugf("Setting up replacement nemesis: %s -> %s", replaceNemesis.nemesis, replaceNemesis.replacement)
             replaceNemeses[replaceNemesis.nemesis] = replaceNemesis.replacement
         end
     end
@@ -888,36 +889,36 @@ function Setup.BuildTimelineImportData(expansions, campaign)
     end
 
     for _, event in ipairs(events) do
-        local year, name, type = event.year, event.name, event.type
+        local year, name, type = EventManager.year, EventManager.name, EventManager.type
 
         if removeEvents[year][name] then
-            Log.Debugf("Skipping removed event [%d] %s", year, name)
+            log:Debugf("Skipping removed event [%d] %s", year, name)
 
-        elseif event.notCampaign == campaign.name then
-            Log.Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
+        elseif EventManager.notCampaign == campaign.name then
+            log:Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
 
         elseif type == "RulebookEvent" then
             local eventNum = FindFreeEvent(year)
             if eventNum then
                 timeline[year].events[eventNum] = { name = name, type = "RulebookEvent" }
             else
-                Log.Errorf("Couldn't add event '%s' to timeline year %d; no more space. Please mark it on the settlement notes.", name, year)
+                log:Errorf("Couldn't add event '%s' to timeline year %d; no more space. Please mark it on the settlement notes.", name, year)
             end
 
         elseif type == "ShowdownEvent" then
-            local monster, level = event.monster, event.level
+            local monster, level = EventManager.monster, EventManager.level
             if monster and replaceNemeses[monster] then
                 monster = replaceNemeses[monster]
-                Log.Debugf("Adding replacement showdown [%d] %s", year, name)
+                log:Debugf("Adding replacement showdown [%d] %s", year, name)
             end
             if not timeline[year].events[Timeline.MAX_YEAR_EVENTS] then
                 timeline[year].events[Timeline.MAX_YEAR_EVENTS] = { type = "ShowdownEvent", monster = monster, level = level, nemesis = true }
             else
-                Log.Errorf("Couldn't add showdown event %s/%s to timeline year %d; another event is already in the last slot. Please mark it on the settlement notes.", monster, level, year)
+                log:Errorf("Couldn't add showdown event %s/%s to timeline year %d; another event is already in the last slot. Please mark it on the settlement notes.", monster, level, year)
             end
 
         else
-            assert(CheckFail("Unrecognized event type %s for event %s", type, event))
+            assert(Check.Fail("Unrecognized event type %s for event %s", type, event))
         end
     end
 
@@ -932,7 +933,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Setup.ShowUi()
-    Log.Debugf("Showing Setup UI")
+    log:Debugf("Showing Setup UI")
     Setup.ui.activeTab.panel:Show()
     Setup.ui.open = true
 end
@@ -940,7 +941,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Setup.HideUi()
-    Log.Debugf("Hiding Setup UI")
+    log:Debugf("Hiding Setup UI")
     Setup.ui.activeTab.panel:Hide()
     Setup.ui.open = false
 end

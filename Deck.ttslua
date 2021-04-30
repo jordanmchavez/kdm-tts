@@ -1,0 +1,80 @@
+local Archive = require("Kdm/Archive")
+local Location = require("Kdm/Location")
+local log = require("Kdm/Log").ForModule("Deck")
+local NamedObject = require("Kdm/NamedObject")
+local Ui = require("Kdm/UI")
+local Util = require("Kdm/Util/Util")
+
+---------------------------------------------------------------------------------------------------
+
+local Deck = {}
+
+Deck.NEEDS_SHUFFLE = {
+    ["Fighting Arts"] = true,
+    ["Disorders"] = true,
+    ["Tactics"] = true,
+    ["Vermin"] = true,
+    ["Basic Resources"] = true,
+    ["Monster Resources"] = true,
+    ["Terrain"] = true,
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Deck.Init()
+    local ui = Ui.Create3d("Deck", NamedObject.Get("Showdown Board"), 10.74)
+
+    local deckGrid = {
+        { "Abilities", "Fighting Arts", "Secret Fighting Arts" },
+        { "Disorders", "Severe Injuries", "Tactics" },
+        { "Weapon Proficiencies", "Armor Sets", "Vermin" },
+        { "Strange Resources", "Basic Resources" },
+    }
+    local x1 = 9.575500
+    local x1End = 9.375386
+    local width = x1End - x1
+    local x3 = 7.538684
+    local dx = (x3 - x1) / 2
+    local y1 = -1.193880
+    local y1End = -0.042474
+    local height = y1End - y1
+    local y4 = 3.030348
+    local dy = (y4 - y1) / 3
+    for row, decks in ipairs(deckGrid) do
+        for col, deck in ipairs(decks) do
+            local x = x1 + (col - 1) * dx
+            local y = y1 + (row - 1) * dy
+            ui:Button({ id = deck, topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, onClick = function()
+                Deck.ResetDeck(deck)
+            end })
+        end
+    end
+
+    ui:Apply()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Deck.ResetDeck(deck)
+    log:Debugf("Resetting deck %s", deck)
+
+    location = Location.Get(deck)
+    local blocking = location:BoxClean({ types = { deck } })
+    if #blocking > 0 then
+        log:Broadcastf("Something is blocking the deck. Please move the highlighted objects out of the way and try again.")
+        Util.HighlightAll(blocking)
+        return
+    end
+
+    local deckObject = Archive.Take({ name = deck, type = deck, location = location, rotation = { x = 0, y = 180, z = 180 } })
+    if Deck.NEEDS_SHUFFLE[deck] then
+        deckObject.shuffle()
+    end
+    Archive.CleanUpContainers()
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Deck.Init
+}

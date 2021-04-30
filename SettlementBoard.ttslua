@@ -1,7 +1,7 @@
-require("Kdm/Check")
+local Check = require("Kdm/Util/Check")
 require("Kdm/Constants")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("SettlementBoard")
+local Util = require("Kdm/Util/Util")
+local log = require("Kdm/Log").ForModule("SettlementBoard")
 local Zone = require("Kdm/Zone")
 local Ui = require("Kdm/Ui3d")
 local Location = require("Kdm/Location")
@@ -16,14 +16,14 @@ local SettlementBoard_settlementLocationGear = {}
 ---------------------------------------------------------------------------------------------------
 
 local function SettlementBoard_ResetGear(gear, locationName)
-    assert(CheckStr(gear))
+    assert(Check.Str(gear))
     local location = Location.Get(locationName)
 
-    Log.Debugf("Resetting gear %s at %s", gear, locationName)
+    log:Debugf("Resetting gear %s at %s", gear, locationName)
 
     local blocking = location:RayClean({ types = { "Gear" } })
     if #blocking > 0 then
-        Log.Broadcastf("Something is blocking the gear slot. Please move the highlighted objects out of the way and try again.")
+        log:Broadcastf("Something is blocking the gear slot. Please move the highlighted objects out of the way and try again.")
         Util.HighlightAll(blocking)
         return
     end
@@ -32,7 +32,7 @@ local function SettlementBoard_ResetGear(gear, locationName)
         name = gear,
         type = "Gear",
         location = location,
-        rotation = FACE_DOWN,
+        rotation = { x = 0, y = 180, z = 180 },
     })
     Archive.CleanUpContainers()
 end
@@ -40,20 +40,20 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function SettlementBoard_ResetSlocGear(index)
-    assert(CheckNum(index))
+    assert(Check.Num(index))
 
     local slocLocation = Location.Get(string.format("Settlement Location %d", index))
 
-    local slocObject = slocLocation:FindFirst("Settlement Locations")
+    local slocObject = slocLocation:FirstObject("Settlement Locations")
     if slocObject == nil then
-        return Log.Debugf("No settlement location in this slot to reset gear for.")
+        return log:Debugf("No settlement location in this slot to reset gear for.")
     end
 
-    Log.Debugf("Found candidadate settlement location %s (%s)", slocObject.getName(), slocObject.getGUID())
+    log:Debugf("Found candidadate settlement location %s (%s)", slocObject.getName(), slocObject.getGUID())
 
     local gear = SettlementBoard_settlementLocationGear[slocObject.getName()]
     if not gear then
-        return Log.Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
+        return log:Broadcastf("%s doesn't have any gear. Maybe the gear you're looking for is in the 'Rare Gear' deck?", sloc.getName())
     end
 
     SettlementBoard_ResetGear(gear, "Settlement Location Gear "..index)
@@ -71,7 +71,7 @@ local function SettlementBoard_OnDrop(index, object)
         return
     end
 
-    Log.Debugf("Settlement location %s (%s) was dropped on settlement location %d for gear", object.getName(), object.getGUID(), index, gear)
+    log:Debugf("Settlement location %s (%s) was dropped on settlement location %d for gear", object.getName(), object.getGUID(), index, gear)
 
     SettlementBoard_ResetGear(gear, "Settlement Location Gear "..index)
 end
@@ -87,7 +87,7 @@ local function SettlementBoard_OnPickUp(index, object)
         return
     end
 
-    Log.Debugf("Settlement location %s (%s) removed from settlement location %d", object.getName(), object.getGUID(), index)
+    log:Debugf("Settlement location %s (%s) removed from settlement location %d", object.getName(), object.getGUID(), index)
 
     Location.Get("Settlement Location Gear "..index):RayClean({ types = { "Gear" } })
 end

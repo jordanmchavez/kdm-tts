@@ -1,57 +1,36 @@
-local KDM_VERSION = "0.34 Beta"
+KDM_VERSION = "1.0"
 
-local Log = require("Kdm/Log").ForPackage("G")
-local Console = require("Kdm/Console")
-local Zone = require("Kdm/Zone")
-
-local NamedObject = require("Kdm/NamedObject")
-local Location = require("Kdm/Location")
 local Armor = require("Kdm/Armor")
-local Weapon = require("Kdm/Weapon")
-local Terrain = require("Kdm/Terrain")
 local Archive = require("Kdm/Archive")
-local Action = require("Kdm/Action")
-local Rules = require("Kdm/Rules")
-local RulesNav = require("Kdm/RulesNav")
-local Survivor = require("Kdm/Survivor")
-local SurvivorSheet = require("Kdm/SurvivorSheet")
-local Population = require("Kdm/Population")
-local PlayerBoard = require("Kdm/PlayerBoard")
-local SettlementBoard = require("Kdm/SettlementBoard")
-local Timeline = require("Kdm/Timeline")
-local Setup = require("Kdm/Setup")
-local Showdown = require("Kdm/Showdown")
-local Hunt = require("Kdm/Hunt")
-local BattleUi = require("Kdm/BattleUi")
+local Console = require("Kdm/Console")
+local Deck = require("Kdm/Deck")
+local Expansion = require("Kdm/Expansion")
+local Location = require("Kdm/Location")
+local Log = require("Kdm/Log")
+local log = Log.ForModule("G")
 local MessageBox = require("Kdm/MessageBox")
-local GlobalUi = require("Kdm/GlobalUi")
-
----------------------------------------------------------------------------------------------------
-
-local Core = require("Kdm/Expansions/Core")
-local CommunityEdition = require("Kdm/Expansions/CommunityEdition")
-local DragonKing = require("Kdm/Expansions/DragonKing")
-local DungBeetleKnight = require("Kdm/Expansions/DungBeetleKnight")
-local FlowerKnight = require("Kdm/Expansions/FlowerKnight")
-local Gorm = require("Kdm/Expansions/Gorm")
-local LionGod = require("Kdm/Expansions/LionGod")
-local LionKnight = require("Kdm/Expansions/LionKnight")
-local LonelyTree = require("Kdm/Expansions/LonelyTree")
-local Manhunter = require("Kdm/Expansions/Manhunter")
-local Slenderman = require("Kdm/Expansions/Slenderman")
-local Spidicules = require("Kdm/Expansions/Spidicules")
-local Sunstalker = require("Kdm/Expansions/Sunstalker")
+local NamedObject = require("Kdm/NamedObject")
+local Player = require("Kdm/Player")
+local Population = require("Kdm/Population")
+local Survivor = require("Kdm/Survivor")
+local SurvivorBox = require("Kdm/SurvivorBox")
+local SurvivorSheet = require("Kdm/SurvivorSheet")
+local Ui = require("Kdm/Ui")
+local Weapon = require("Kdm/Weapon")
 
 ---------------------------------------------------------------------------------------------------
 
 function onSave()
     local saveState = {
+        Survivor = Survivor.Save(),
+        SurvivorBox = SurvivorBox.Save(),
+        SurvivorSheet = SurvivorSheet.Save(),
         Population = Population.Save(),
-        PlayerBoard = PlayerBoard.Save(),
-        Timeline = Timeline.Save(),
-        Setup = Setup.Save(),
-        Showdown = Showdown.Save(),
-        BattleUi = BattleUi.Save(),
+        Player = Player.Save(),
+        -- Timeline = Timeline.Save(),
+        -- Setup = Setup.Save(),
+        -- Showdown = Showdown.Save(),
+        -- BattleUi = BattleUi.Save(),
     }
 
     return JSON.encode(saveState)
@@ -63,52 +42,40 @@ function onLoad(saveJson)
     local saveState = JSON.decode(saveJson) or {}
     local expansions = { Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }
 
-    Log.Init()
-    Log.Printf("Misterslack's Kingdom Death: Monster Mod (Version %s)", KDM_VERSION)
-    NamedObject.Init(expansions)
-    Location.Init(expansions)
-    Zone.Init()
-
-    local modules = {
-        ["Armor"] = Armor,
-        ["Weapon"] = Weapon,
-        ["Terrain"] = Terrain,
-        ["Archive"] = Archive,
-        ["Action"] = Action,
-        ["Rules"] =  Rules,
-        ["RulesNav"] = RulesNav,
-        ["Population"] = Population,
-        ["PlayerBoard"] = PlayerBoard,
-        ["SettlementBoard"] = SettlementBoard,
-        ["Timeline"] = Timeline,
-        ["Setup"] = Setup,
-        ["Showdown"] = Showdown,
-        ["Hunt"] = Hunt,
-        ["BattleUi"] = BattleUi,
-        ["GlobalUi"] = GlobalUi,
-        ["MessageBox"] = MessageBox,
-    }
 
     -- Init() = everything before the UI is first rendered (includes UI setup)
+    --
+    Console.Init()
+    Expansion.Init()
+    --
+    Log.Init()
+    log:Printf("Misterslack's Kingdom Death: Monster Mod v%s", KDM_VERSION)
+    --
+    Armor.Init()
+    NamedObject.Init()
+    Ui.Init()
+    Weapon.Init()
+    --
+    Archive.Init()
+    Location.Init()
+    MessageBox.Init()
+    Survivor.Init(saveState.Survivor or {})
+    --
+    Deck.Init()
+    SurvivorBox.Init(saveState.SurvivorBox or {})
+    SurvivorSheet.Init(saveState.SurvivorSheet or {})
+    --
+    Population.Init(saveState.Population or {})
+    --
+    Player.Init(saveState.Player or {})
+
+    Ui.Get2d():Apply()
+
     -- PostInit() = register event handlers and code that depends on the UI elements actually being instantiated
-    local ui = { id = "UI", children = self.UI.getXmlTable() }
-    for name, module in pairs(modules) do
-        Log.Debugf("Initializing %s", name)
-        module.Init(modules, saveState[name], expansions, ui)
-    end
-
-    if #ui.children > 0 then
-        self.UI.setXmlTable(ui.children)
-    end
-
     Wait.frames(function()
-        for name, module in pairs(modules) do
-            if module.PostInit then
-                Log.Debugf("Post-Initializing %s", name)
-                module.PostInit()
-            end
-        end
-        Zone.InitObjectsInZones()
+        Log.PostInit()
+        Population.PostInit()
+        Player.PostInit()
     end, 20)
 end
 

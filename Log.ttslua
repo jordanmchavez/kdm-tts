@@ -1,13 +1,78 @@
-require("Kdm/Check")
-local Util = require("Kdm/Util")
+local Check = require("Kdm/Util/Check")
 local Console = require("Kdm/Console")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
 local Log = {}
+Log.__index = Log
+Log.__call = function(self, ...) log(...) end
 
-Log.debugModules = {
+Log.logsByModule = {}
+
+Log.DEBUG_MODULES = {
 }
+
+Log.POST_INIT_DEBUG_MODULES = {
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Log.Create(module)
+    local log = {
+        module = module
+    }
+    setmetatable(log, Log)
+
+    log:EnableDebug(Log.DEBUG_MODULES[module])
+
+    return log
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log:Printf(fmt, ...)
+    fmt = fmt or ""
+    local msg = Util.SafeFormat(fmt, ...)
+    log(Util.SafeFormat("[%s] "..fmt, self.module, ...), nil, "print")
+    printToAll(Util.SafeFormat("[66aaff]"..fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log:DisabledDebugf(fmt, ...) end
+
+function Log:EnabledDebugf(fmt, ...)
+    fmt = fmt or ""
+    local s = Util.SafeFormat("[%s] "..fmt, self.module, ...)
+    log(s, nil, "debug")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log:Errorf(fmt, ...)
+    fmt = fmt or ""
+    log(Util.SafeFormat("[%s] "..fmt, self.module, ...), nil, "error")
+    printToAll(Util.SafeFormat("[ff4444]"..fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log:Broadcastf(fmt, ...)
+    fmt = fmt or ""
+    log(Util.SafeFormat("[%s] "..fmt, self.module, ...), nil, "print")
+    broadcastToAll(Util.SafeFormat(fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Log:EnableDebug(enable)
+    if enable then
+        self.Debugf = Log.EnabledDebugf
+    else
+        self.Debugf = Log.DisabledDebugf
+    end
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -15,76 +80,46 @@ function Log.Init()
     logStyle("debug", { r = 1.0, g = 1.0, b = 1.0 }, "", "")
     logStyle("print", { r = 0.0, g = 1.0, b = 1.0 }, "", "")
     logStyle("error", { r = 1.0, g = 0.0, b = 0.0 }, "", "")
+
+    Console.AddCommand("debug", function(args)
+        if #args != 3 or (args[3] != "on" and args[3] != "off") then
+            return Console.Printf("Usage: debug <module> <on|off>")
+        end
+
+        local module = args[2]
+        local log = Log.logsByModule[module]
+        if not log then
+            return Console.Printf("Unknown module '%s'", module)
+        end
+
+        log:EnableDebug(args[3] == "on")
+    end, "Toggles debug logging for specific modules")
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Printf(package, fmt, ...)
-    fmt = fmt or ""
-    local msg = Util.SafeFormat(fmt, ...)
-    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
-    printToAll(Util.SafeFormat("[66aaff]"..fmt, ...))
-end
-
----------------------------------------------------------------------------------------------------
-
-function Log.Debugf(package, fmt, ...)
-    if Log.debugModules[package] then
-        fmt = fmt or ""
-        local s = Util.SafeFormat("[%s] "..fmt, package, ...)
-        log(s, nil, "debug")
+function Log.PostInit()
+    for module, _ in pairs(Log.POST_INIT_DEBUG_MODULES) do
+        Log.logsByModule[module]:EnableDebug(true)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Log.Errorf(package, fmt, ...)
-    fmt = fmt or ""
-    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "error")
-    printToAll(Util.SafeFormat("[ff4444]"..fmt, ...))
-end
-
----------------------------------------------------------------------------------------------------
-
-function Log.Broadcastf(package, fmt, ...)
-    fmt = fmt or ""
-    log(Util.SafeFormat("[%s] "..fmt, package, ...), nil, "print")
-    broadcastToAll(Util.SafeFormat(fmt, ...))
-end
-
----------------------------------------------------------------------------------------------------
-
-function Log.EnableDebugModule(module, enabled)
-    Log.debugModules[module] = enabled
-end
-
----------------------------------------------------------------------------------------------------
-
-Console.AddCommand("log_debugon", function(args)
-    if #args != 2 then
-        return Console.Printf("Usage: log_debugon <module>")
+function Log.ForModule(module)
+    local log = Log.logsByModule[module]
+    if not log then
+        log = Log.Create(module)
+        Log.logsByModule[module] = log
+        Log.logsByModule[module:lower()] = log  -- for console commands, which come in all lowercase
     end
-    Log.EnableDebugModule(args[2], true)
-end)
-
-Console.AddCommand("log_debugoff", function(args)
-    if #args != 2 then
-        return Console.Printf("Usage: log_debugoff <module>")
-    end
-    Log.EnableDebugModule(args[2], nil)
-end)
+    return log
+end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    ForPackage = function(package)
-        return {
-            Printf = function(fmt, ...) Log.Printf(package, fmt, ...) end,
-            Debugf = function(fmt, ...) Log.Debugf(package, fmt, ...) end,
-            Errorf = function(fmt, ...) Log.Errorf(package, fmt, ...) end,
-            Broadcastf = function(fmt, ...) Log.Broadcastf(package, fmt, ...) end,
-            Init = Log.Init,
-            EnableDebugModule = Log.EnableDebugModule,
-        }
-    end
+    Init = Log.Init,
+    PostInit = Log.PostInit,
+    ForModule = Log.ForModule,
 }

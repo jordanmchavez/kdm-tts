@@ -1,25 +1,16 @@
-require("Kdm/Check")
-require("Kdm/Constants")
-local Log = require("Kdm/Log").ForPackage("Archive")
-local Util = require("Kdm/Util")
+local Check = require("Kdm/Util/Check")
+local Container = require("Kdm/Util/Container")
+local Expansion = require("Kdm/Expansion")
 local Location = require("Kdm/Location")
+local log = require("Kdm/Log").ForModule("Archive")
 local NamedObject = require("Kdm/NamedObject")
-local Container = require("Kdm/Container")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_Key(name, type)
-    return type.."."..name
-end
+local Archive = {}
 
----------------------------------------------------------------------------------------------------
-
-local Archive_index = {}
-local Archive_direct = {}
-
--- "Direct" entries are the items directly contained by the infinite container archive, such as the "Disorders" deck in the "Disorders Archive".
--- For such items we just a flag telling us to take the item directly, no need to search inside it.
-local Archive_directData = {
+Archive.data = {
     { "Abilities", "Abilities", "Abilities Archive" },
     { "Fighting Arts", "Fighting Arts", "Fighting Arts Archive" },
     { "Secret Fighting Arts", "Secret Fighting Arts", "Secret Fighting Arts Archive" },
@@ -41,20 +32,40 @@ local Archive_directData = {
     { "Survivor Sheet", "Survivor Sheet", "Survivor Sheets Archive" },
     { "Survivor Box", "Survivor Box", "Survivor Boxes Archive" },
 }
-for _, entry in ipairs(Archive_directData) do
-    local name, type, archive = entry[1], entry[2], entry[3]
-    local key = Archive_Key(name, type)
-    Archive_index[key] = archive
-    Archive_direct[key] = true
-end
-
-local Archive_containers = {}
-local Archive_containerX = -150
-local Archive_containerZ = 120
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_RegisterEntries(params)
+function Archive.Init()
+    Archive.index = {}
+    Archive.direct = {}
+
+    -- "Direct" entries are the items directly contained by the infinite container archive, such as the "Disorders" deck in the "Disorders Archive".
+    -- For such items we just a flag telling us to take the item directly, no need to search inside it.
+    for _, entry in ipairs(Archive.data) do
+        local name, type, archive = entry[1], entry[2], entry[3]
+        local key = Archive.Key(name, type)
+        Archive.index[key] = archive
+        Archive.direct[key] = true
+    end
+
+    Archive.containers = {}
+    Archive.containerX = -150
+    Archive.containerZ = 120
+
+    for _, expansion in pairs(Expansion.AllExpansions()) do
+        Archive.RegisterEntries(expansion.archiveEntries)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.Key(name, type)
+    return type.."."..name
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.RegisterEntries(params)
     if not params then
         return
     end
@@ -65,32 +76,24 @@ local function Archive_RegisterEntries(params)
         local name, type = entry[1], entry[2]
         assert(name)
         assert(type)
-        local key = Archive_Key(name, type)
+        local key = Archive.Key(name, type)
         if not params.allowOverrides then
-            assert(Check(Archive_index[key] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive_index[key]))
+            assert(Check(Archive.index[key] == nil, "Archive entry %s/%s for %s is already registered for %s", name, type, archive, Archive.index[key]))
         end
-        Archive_index[key] = archive
+        Archive.index[key] = archive
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_Init(modules, saveState, expansions)
-    for _, expansion in ipairs(expansions) do
-        Archive_RegisterEntries(expansion.archiveEntries)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Archive_NextContainerPosition()
-    local position = { x = Archive_containerX, y = 15, z = Archive_containerZ }
-    Archive_containerX = Archive_containerX + 10
-    if Archive_containerX > 150 then
-        Archive_containerX = -150
-        Archive_containerZ = Archive_containerZ - 10
-        if Archive_containerZ < 70 then
-            Archive_containerZ = 120
+function Archive.NextContainerPosition()
+    local position = { x = Archive.containerX, y = 15, z = Archive.containerZ }
+    Archive.containerX = Archive.containerX + 10
+    if Archive.containerX > 150 then
+        Archive.containerX = -150
+        Archive.containerZ = Archive.containerZ - 10
+        if Archive.containerZ < 70 then
+            Archive.containerZ = 120
         end
     end
     return position
@@ -98,41 +101,41 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_Take(params)
+function Archive.Take(params)
     local archive = params.archive
     local name = params.name
     local type = params.type
-    local height = params.height or DEFAULT_SPAWN_HEIGHT
+    local height = params.height or 2
     local location = params.location
     local position = params.position
     if location then
         location = Location.Get(location)
         position = location:Center()
-        position.y = position.y + (height or DEFAULT_SPAWN_HEIGHT)
+        position.y = position.y + (height or 2)
     else
         assert(position, "Either location or position is required")
     end
-    local rotation = params.rotation or FACE_UP
+    local rotation = params.rotation or { x = 0, y = 180, z = 0 }
     local spawnFunc = params.spawnFunc
     local allowMissing = params.allowMissing
-    assert(CheckStrOrNil(archive))
-    assert(CheckStr(name))
-    assert(CheckStr(type))
-    assert(CheckNumOrNil(height))
-    assert(CheckVec3OrNil(rotation))
-    assert(CheckFuncOrNil(spawnFunc))
+    assert(Check.StrOrNil(archive))
+    assert(Check.Str(name))
+    assert(Check.Str(type))
+    assert(Check.NumOrNil(height))
+    assert(Check.Vec3OrNil(rotation))
+    assert(Check.FuncOrNil(spawnFunc))
 
     if not archive then
-        local key = Archive_Key(name, type)
-        archive = Archive_index[key]
+        local key = Archive.Key(name, type)
+        archive = Archive.index[key]
         if allowMissing then
             return nil
         end
         assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
-        if Archive_direct[key] then
+        if Archive.direct[key] then
             -- for single item archives no need to pull intermediate container
-            Log.Debugf("Using direct from archive %s for %s (%s)", archive, name, type)
+            log:Debugf("Using direct from archive %s for %s (%s)", archive, name, type)
             return NamedObject.Get(archive).takeObject({
                 position = position,
                 rotation = rotation,
@@ -143,33 +146,34 @@ local function Archive_Take(params)
     end
 
     if location then
-        Log.Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
+        log:Debugf("Taking item %s (%s) in archive %s to %s +%f", name, type, archive, location:Name(), height)
     else
-        Log.Debugf("Taking item %s (%s) in archive %s to %s", name, type, archive, position)
+        log:Debugf("Taking item %s (%s) in archive %s to %s", name, type, archive, position)
     end
 
-    local container = Archive_containers[archive]
+    local container = Archive.containers[archive]
     if container then
-        Log.Debugf("Re-using already-spawned archive container %s for %s (%s)", container:Guid(), name, type)
+        log:Debugf("Re-using already-spawned archive container %s for %s (%s)", container:Guid(), name, type)
 
     else
         -- spawn new container and cache
         local archiveObject = NamedObject.Get(archive)
         local containerObject = archiveObject.takeObject({
-            position = Archive_NextContainerPosition(),
+            position = Archive.NextContainerPosition(),
             smooth = false,
         })
         container = Container(containerObject)
         if not container then
-            Log.Errorf("Couldn't take from archive %s (%s). If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getName(), archiveObject.getGUID())
+            log:Errorf("Couldn't take from archive %s (%s). If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getName(), archiveObject.getGUID())
             Util.Highlight(archiveObject)
             return nil
         end
 
-        Log.Debugf("Spawned archive container %s at (%f, %f) for %s (%s)", container:Guid(), Archive_containerX, Archive_containerZ, name, type)
+        --log:Debugf("Spawned archive container %s at (%f, %f) for %s (%s)", container:Guid(), Archive.containerX, Archive.containerZ, name, type)
+        log:Debugf("Spawned archive container %s at (%f, %f) for %s (%s)", "", Archive.containerX, Archive.containerZ, name, type)
 
         container:Lock(true)
-        Archive_containers[archive] = container
+        Archive.containers[archive] = container
     end
 
     local object = container:Take({
@@ -182,22 +186,22 @@ local function Archive_Take(params)
     })
     if not object then
         if not allowMissing then
-            Log.Errorf("Couldn't find %s (%s) in archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
+            log:Errorf("Couldn't find %s (%s) in archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
             Util.Highlight(NamedObject.Get(archive))
         end
         return nil
     end
 
-    Log.Debugf("Spawned object %s (%s)", object.getName(), object.getGUID())
+    log:Debugf("Spawned object %s (%s)", object.getName(), object.getGUID())
 
     return object
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Archive_CleanUpContainers()
-    for _, container in pairs(Archive_containers) do
-        Log.Debugf("Destroying archive container %s", container:Guid())
+function Archive.CleanUpContainers()
+    for _, container in pairs(Archive.containers) do
+        log:Debugf("Destroying archive container %s", container:Guid())
         container:Destruct()
     end
 
@@ -211,28 +215,28 @@ local function Archive_CleanUpContainers()
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
         if obj.tag == "Bag" and obj.getGMNotes() == "Archive Bag" then
-            Log.Debugf("Destroying leftover archive bag %s (%s)", obj.getName(), obj.getGUID())
+            log:Debugf("Destroying leftover archive bag %s (%s)", obj.getName(), obj.getGUID())
             obj.destruct()
         end
         if obj.tag == "Deck" then
-            local key = Archive_Key(obj.getName(), obj.getGMNotes())
-            if Archive_direct[key] then
-                Log.Debugf("Destroying leftover archive deck %s (%s)", obj.getName(), obj.getGUID())
+            local key = Archive.Key(obj.getName(), obj.getGMNotes())
+            if Archive.direct[key] then
+                log:Debugf("Destroying leftover archive deck %s (%s)", obj.getName(), obj.getGUID())
                 obj.destruct()
             end
         end
     end
 
-    Archive_containers = {}
-    Archive_containerX = -150
-    Archive_containerZ = 120
+    Archive.containers = {}
+    Archive.containerX = -150
+    Archive.containerZ = 120
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = Archive_Init,
-    RegisterEntries = Archive_RegisterEntries,
-    Take = Archive_Take,
-    CleanUpContainers = Archive_CleanUpContainers,
+    Init = Archive.Init,
+    RegisterEntries = Archive.RegisterEntries,
+    Take = Archive.Take,
+    CleanUpContainers = Archive.CleanUpContainers,
 }

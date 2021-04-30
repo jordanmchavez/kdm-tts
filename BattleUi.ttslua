@@ -1,8 +1,8 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("BattleUi")
-local Util = require("Kdm/Util")
+local Check = require("Kdm/Util/Check")
+local log = require("Kdm/Log").ForModule("BattleUi")
+local Util = require("Kdm/Util/Util")
 local NamedObject = require("Kdm/NamedObject")
-local EventManager = require("Kdm/EventManager")
+local EventManager = require("Kdm/Util/EventManager")
 local Ui = require("Kdm/Ui")
 local Location = require("Kdm/Location")
 
@@ -39,7 +39,7 @@ function BattleUi.InitSaveState(saveState)
     for survivorId, hiddenWeapons in pairs(saveState or {}) do
         local survivor = Population.SurvivorForId(survivorId)
         if survivor == nil then
-            Log.Debugf("No survivor with ID %d doesn't exist", survivorId)
+            log:Debugf("No survivor with ID %d doesn't exist", survivorId)
         else
             BattleUi.hiddenWeaponsBySurvivor[survivor] = hiddenWeapons
         end
@@ -75,9 +75,9 @@ function BattleUi.InitUi(ui)
 
     Ui.Image(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
     Ui.Button(ui, { id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
-        Log.Printf("Resetting survival actions")
+        log:Printf("Resetting survival actions")
         for i = 1, 4 do
-            local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):FindAll("Survival Token")
+            local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):AllObjects("Survival Token")
             for _, token in ipairs(survivalTokens) do
                 rot = token.getRotation()
                 if rot.z >= 15 and rot.z <= 345    then
@@ -86,7 +86,7 @@ function BattleUi.InitUi(ui)
             end
         end
 
-        Log.Printf("Resetting player turns")
+        log:Printf("Resetting player turns")
         for i = 1, 4 do
             local player = BattleUi.ui.players[i]
             player.turnEnded = false
@@ -118,13 +118,13 @@ function BattleUi.InitUi(ui)
         player.endTurnButton = Ui.Button(player.panel, { id = "EndTurn", rectAlignment = "UpperLeft", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
             player.turnEnded = not player.turnEnded
             if player.turnEnded then
-                Log.Printf("Player %d: %s turn ended", playerNumber, playerBoard:Survivor():NameOrUnnamed())
+                log:Printf("Player %d: %s turn ended", playerNumber, playerBoard:Survivor():NameOrUnnamed())
                 player.playerCircleImage:SetImage("GreyCircle")
                 player.nameText:SetColor(DISABLED_TEXT_COLOR)
                 player.nameText:SetFontStyle("Italic")
                 player.endTurnButton:SetColors(DARK_SELECTED_COLORS)
             else
-                Log.Printf("Player %d: %s next turn", playerNumber, playerBoard:Survivor():NameOrUnnamed())
+                log:Printf("Player %d: %s next turn", playerNumber, playerBoard:Survivor():NameOrUnnamed())
                 player.playerCircleImage:SetImage(playerCircleImages[playerNumber])
                 player.nameText:SetColor(TEXT_COLOR)
                 player.nameText:SetFontStyle("Normal")
@@ -135,7 +135,7 @@ function BattleUi.InitUi(ui)
         player.showWeaponsImage = Ui.Image(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380, y = -8, width = 48, height = 25, image = "BR_Show" })
         player.showWeaponsButton = Ui.Button(player.panel, { id = "ShowWeapons", rectAlignment = "UpperLeft", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
             local survivor = playerBoard:Survivor()
-            Log.Printf("Showing all weapons for %s", survivor:NameOrUnnamed())
+            log:Printf("Showing all weapons for %s", survivor:NameOrUnnamed())
             BattleUi.hiddenWeaponsBySurvivor[survivor] = nil
             BattleUi.UpdatePlayer(playerBoard)
         end})
@@ -153,7 +153,7 @@ function BattleUi.InitUi(ui)
             player.weaponShowWeaponsButtons[i] = Ui.Button(player.panel, { id = "WeaponName"..i, rectAlignment = "UpperLeft", x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
                 local weaponName = player.weaponNameTexts[i]:Text()
                 local survivor = playerBoard:Survivor()
-                Log.Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
+                log:Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
                 if not BattleUi.hiddenWeaponsBySurvivor[survivor] then
                     BattleUi.hiddenWeaponsBySurvivor[survivor] = {}
                 end
@@ -197,9 +197,7 @@ function BattleUi.PostInit()
             BattleUi.Update()
         end
     end)
-    EventManager.AddHandler("onPlayerBoardLinkWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
-    EventManager.AddHandler("onPlayerBoardUpdateWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
-    EventManager.AddHandler("onPlayerBoardUnlinkWeapon", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
+    EventManager.AddHandler("onPlayerWeaponsChanged", function(playerBoard) BattleUi.UpdatePlayer(playerBoard) end)
 
     EventManager.AddHandler("onDeleteSurvivor", function(survivor)
         BattleUi.hiddenWeaponsBySurvivor[survivor] = nil
@@ -316,14 +314,14 @@ function BattleUi.UpdatePlayerInternal(playerBoard)
 
     local survivor = playerBoard:Survivor()
     if not survivor then
-        Log.Debugf("Hiding BattleUi for player %d", playerBoard:Number())
+        log:Debugf("Hiding BattleUi for player %d", playerBoard:Number())
         player.open = false
         player.height = 0
         player.panel:Hide()
         return
     end
 
-    Log.Debugf("Updating BattleUi for player %d", playerBoard:Number())
+    log:Debugf("Updating BattleUi for player %d", playerBoard:Number())
 
     player.open = true
     player.panel:Show()
@@ -377,7 +375,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function BattleUi.Show()
-    Log.Debugf("Showing battle reference")
+    log:Debugf("Showing battle reference")
     BattleUi.ui.panel:Show()
     BattleUi.ui.open = true
 end
@@ -385,7 +383,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function BattleUi.Hide()
-    Log.Debugf("Hiding battle reference")
+    log:Debugf("Hiding battle reference")
     BattleUi.ui.panel:Hide()
     BattleUi.ui.open = false
 end

@@ -1,4 +1,0 @@
--- misc stuff that doesn't fit anywhere else
-DEFAULT_SPAWN_HEIGHT = 2
-FACE_UP = { x = 0, y = 180, z = 0 }
-FACE_DOWN = { x = 0, y = 180, z = 180 }

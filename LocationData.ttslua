@@ -1,5 +1,3 @@
-local Util = require("Kdm/Util")
-
 local REFERENCE_SIZE = { x = 20, y = 10, z = 16 }
 local SETTLEMENT_LOCATION_SIZE = { x = 4.5, y = 10, z = 9 }
 local SETTLEMENT_EVENT_SIZE = { x = 3.5, y = 10, z = 6 }
@@ -592,6 +590,11 @@ local locationData = {
 
     -----------------------------------------------------------------------------
 
+    ["Survivor Box Spawn"] = {
+        center = { x = 0, y = 1.7, z = -65.893570 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+
     ["Age Reference"] = {
         center = { x = 75.894806, y = 1.730176, z = -65.893570 },
         size = REFERENCE_SIZE,
@@ -616,8 +619,8 @@ local locationData = {
     -----------------------------------------------------------------------------
 
     ["Export/Import"] = {
-        p1 = { x =  0.339170, y = 0.150000, z = -0.166400 },
-        p2 = { x = -0.342977, y = 0.150000, z =  0.515850 },
+        p1 = { x =  0.339170, y = 0.15, z = -0.166400 },
+        p2 = { x = -0.342977, y = 0.15, z =  0.515850 },
         board = "Export/Import Board",
     },
 
@@ -759,98 +762,30 @@ for _, locationGrid in ipairs(locationGrids) do
 end
 
 -----------------------------------------------------------------------------------------------
+-- Player board locations
 
 for playerNumber = 1, 4 do
     local prefix = "Player "..playerNumber
     local playerBoard = prefix.." Board"
 
     locationData[playerBoard] = {
-        p1 = { x = 0.885985, y = 0.150005, z = -0.998368 },
-        p2 = { x = -0.889542, y = 0.150000, z = 0.997527 },
+        p1 = { x =  1, y = 0.15, z = -1 },
+        p2 = { x = -1, y = 0.15, z =  1 },
         board = playerBoard,
     }
 
-    locationData[prefix.." Cards"] = {
-        p1 = { x = 0.859072, y = 0.150000, z = 0.013382 },
-        p2 = { x = -0.861394, y = 0.150000, z = 0.653109 },
-        board = playerBoard,
-    }
-
-    locationData[prefix.." Marker"] = {
-        fromObject = prefix.." Marker"
-    }
-
-    local x1 = -0.227844
-    local dx = (-0.663261 - x1) / 2
-    local z1 = -0.637769
-    local dz = (-0.203442 - z1) / 2
-    local width = -0.424703 - x1
-    local height = -0.440021 - z1
-    for col = 1, 3 do
-        for row = 1, 3 do
-            local x = x1 + (col - 1) * dx
-            local z = z1 + (row - 1) * dz
-            local index = (row - 1) * 3 + col
-            locationData[prefix.." Gear "..index] = {
-                p1 = { x = x,         y = 0.150000, z = z },
-                p2 = { x = x + width, y = 0.150000, z = z + height },
-                board = playerBoard,
-            }
-        end
-    end
-    locationData[prefix.." Armor Set"] = {
-        p1 = { x = -0.008251, y = 0.150000, z = -0.535133 },
-        p2 = { x = -0.208823, y = 0.172053, z = -0.222166 },
-        board = playerBoard,
-    }
-    locationData[prefix.." Fist & Tooth"] = {
-        p1 = { x = -0.010514,         y = 0.150000, z = -0.203541 },
-        p2 = { x = -0.010514 + width, y = 0.150000, z = -0.203541 + height },
-        board = playerBoard,
-    }
-
-    local cards = {
-        { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4" },
-        { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 5", "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9" },
-    }
-    local x1 = 0.858382
-    local z1 = 0.014506
-    local width = 0.661071 - x1
-    local height = 0.322404 - z1
-    local dx = (-0.663998 - x1) / 7
-    local dz = 0.344662 - z1
-    for col = 1, 8 do
-        local x = x1 + (col - 1) * dx
-        for row = 1, 2 do
-            local z = z1 + (row - 1) * dz
-            locationData[prefix.." "..cards[row][col]] = {
-                p1 = { x = x,         y = 0.150000, z = z },
-                p2 = { x = x + width, y = 0.150000, z = z + height },
-                board = playerBoard,
-            }
-        end
-    end
-
-    locationData[prefix.." Temporary Tokens"] = {
-        p1 = { x = 0.808707, y = 0.150000, z = 0.761845 },
-        p2 = { x = 0.055022, y = 0.150002, z = 0.969368 },
-        board = playerBoard,
-    }
-
-    locationData[prefix.." Permanent Tokens"] = {
-        p1 = { x = -0.056596, y = 0.113605, z = 0.764381 },
-        p2 = { x = -0.811249, y = 0.113605, z = 0.970867 },
+    locationData[prefix.." Survival Tokens"] = {
+        p1 = { x = -0.194693, y = 0.048755, z = -1.416569 },
+        p2 = { x = -0.825567, y = 0.123307, z = -1.021933 },
         board = playerBoard,
     }
 
     local survivalTokenPositions = {
-        { x = -0.313189, y = 0.046961, z = -1.216332 },
-        { x = -0.415026, y = 0.045997, z = -1.318238 },
-        { x = -0.516932, y = 0.046962, z = -1.216401 },
-        { x = -0.618769, y = 0.045997, z = -1.318307 },
-        { x = -0.720674, y = 0.046924, z = -1.216470 },
-        { x = -0.415095, y = 0.047887, z = -1.114495 },
-        { x = -0.618838, y = 0.047849, z = -1.114564 },
+        { x = 0.850232, y = 0.15, z = -0.891268 },
+        { x = 0.761600, y = 0.15, z = -0.802621 },
+        { x = 0.850232, y = 0.15, z = -0.714050 },
+        { x = 0.761599, y = 0.15, z = -0.625594 },
+        { x = 0.850232, y = 0.15, z = -0.536831 },
     }
     for i, pos in ipairs(survivalTokenPositions) do
         locationData[string.format("%s Survival Token %d", prefix, i)] = {
@@ -859,14 +794,104 @@ for playerNumber = 1, 4 do
             board = playerBoard,
         }
     end
-    locationData[prefix.." Survival Tokens"] = {
-        p1 = { x = -0.194693, y = 0.048755, z = -1.416569 },
-        p2 = { x = -0.825567, y = 0.123307, z = -1.021933 },
+
+    locationData[prefix.." Marker"] = {
+        fromObject = prefix.." Marker"
+    }
+
+    -- includes armor set as well
+    locationData[prefix.." Gear"] = {
+        p1 = { x = -0.118880, y = 0.15, z = -0.684474 },
+        p2 = { x = -0.975374, y = 0.15, z = -0.05188 },
         board = playerBoard,
     }
+
+    locationData[prefix.." Armor Set"] = {
+        p1 = { x = -0.118880, y = 0.15, z = -0.582369 },
+        p2 = { x = -0.324753, y = 0.15, z = -0.267203 },
+        board = playerBoard,
+    }
+
+    local left1 = -0.340440
+    local top1 = -0.684474
+    local right1 = -0.541104
+    local bottom1 = -0.484544
+    local left9 = -0.774710
+    local top9 = -0.251810
+    local width = right1 - left1
+    local height = bottom1 - top1
+    local dx = (left9 - left1) / 2
+    local dz = (top9 - top1) / 2
+    for col = 1, 3 do
+        for row = 1, 3 do
+            local x = left1 + ((col - 1) * dx)
+            local z = top1 + ((row - 1) * dz)
+            local index = ((row - 1) * 3) + col
+            locationData[prefix.." Gear "..index] = {
+                p1 = { x = x,         y = 0.15, z = z },
+                p2 = { x = x + width, y = 0.15, z = z + height },
+                board = playerBoard,
+            }
+        end
+    end
+
+    locationData[prefix.." Fist & Tooth"] = {
+        p1 = { x = -0.121898, y = 0.15, z = -0.251264 },
+        p2 = { x = -0.324531, y = 0.15, z = -0.047824 },
+        board = playerBoard,
+    }
+
+    locationData[prefix.." Cards"] = {
+        p1 = { x = 0.965569, y = 0.15, z = 0.034588 },
+        p2 = { x = -0.978594, y = 0.15, z = 0.611414 },
+        board = playerBoard,
+    }
+
+    local cards = {
+        { "Fighting Art 1", "Fighting Art 2", "Fighting Art 3", "Weapon Proficiency",   "Ability/Impairment 1", "Ability/Impairment 2", "Ability/Impairment 3", "Ability/Impairment 4",  "Ability/Impairment 5"  },
+        { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9", "Ability/Impairment 10", "Ability/Impairment 11" },
+    }
+
+
+    local left1 = 0.965569
+    local top1 = -0.034588
+    local right1 = 0.763898
+    local bottom1 = 0.281171
+    local left18 = -0.776778
+    local top18 = 0.296603
+    local width = right1 - left1
+    local height = bottom1 - top1
+    local dx = (left18 - left1) / 8
+    local dz = top18 - top1
+    for col = 1, 9 do
+        local x = left1 + ((col - 1) * dx)
+        for row = 1, 2 do
+            local z = top1 + ((row - 1) * dz)
+            locationData[prefix.." "..cards[row][col]] = {
+                p1 = { x = x,         y = 0.15, z = z },
+                p2 = { x = x + width, y = 0.15, z = z + height },
+                board = playerBoard,
+            }
+        end
+    end
+
+    locationData[prefix.." Temporary Tokens"] = {
+        p1 = { x = 0.874169, y = 0.15, z = 0.756863 },
+        p2 = { x = 0.118669, y = 0.15, z = 0.974659 },
+
+        board = playerBoard,
+    }
+
+    locationData[prefix.." Permanent Tokens"] = {
+        p1 = { x = -0.122188, y = 0.15, z = 0.762676 },
+        p2 = { x = -0.878822, y = 0.15, z = 0.976487 },
+
+        board = playerBoard,
+    }
+
     locationData[prefix.." Survivor Sheet"] = {
-        p1 = { x = 0.862316, y = 0.150007, z = -0.984564 },
-        p2 = { x = 0.079126, y = 0.150000, z = -0.025383 },
+        p1 = { x = 0.621183, y = 0.15, z = -0.996270 },
+        p2 = { x = -0.107580, y = 0.15, z = -0.050389 },
         board = playerBoard,
     }
 end

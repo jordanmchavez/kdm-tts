@@ -1,0 +1,50 @@
+local Core = require("Kdm/Expansion/Core")
+local CommunityEdition = require("Kdm/Expansion/CommunityEdition")
+local DragonKing = require("Kdm/Expansion/DragonKing")
+local DungBeetleKnight = require("Kdm/Expansion/DungBeetleKnight")
+local FlowerKnight = require("Kdm/Expansion/FlowerKnight")
+local Gorm = require("Kdm/Expansion/Gorm")
+local LionGod = require("Kdm/Expansion/LionGod")
+local LionKnight = require("Kdm/Expansion/LionKnight")
+local LonelyTree = require("Kdm/Expansion/LonelyTree")
+local Manhunter = require("Kdm/Expansion/Manhunter")
+local Slenderman = require("Kdm/Expansion/Slenderman")
+local Spidicules = require("Kdm/Expansion/Spidicules")
+local Sunstalker = require("Kdm/Expansion/Sunstalker")
+
+---------------------------------------------------------------------------------------------------
+
+local Expansion = {}
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.Init()
+    Expansion.expansions = {
+        ["Core"] = Core,
+        ["CommunityEdition"] = CommunityEdition,
+        ["DragonKing"] = DragonKing,
+        ["DungBeetleKnight"] = DungBeetleKnight,
+        ["FlowerKnight"] = FlowerKnight,
+        ["Gorm"] = Gorm,
+        ["LionGod"] = LionGod,
+        ["LionKnight"] = LionKnight,
+        ["LonelyTree"] = LonelyTree,
+        ["Manhunter"] = Manhunter,
+        ["Slenderman"] = Slenderman,
+        ["Spidicules"] = Spidicules,
+        ["Sunstalker"] = Sunstalker,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.AllExpansions()
+    return Expansion.expansions
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Expansion.Init,
+    AllExpansions = Expansion.AllExpansions,
+}

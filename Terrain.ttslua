@@ -1,5 +1,5 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("Terrain")
+local Check = require("Kdm/Util/Check")
+local log = require("Kdm/Log").ForModule("Terrain")
 
 ---------------------------------------------------------------------------------------------------
 

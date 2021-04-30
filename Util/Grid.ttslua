@@ -1,4 +1,4 @@
-require("Kdm/Check")
+local Check = require("Kdm/Util/Check")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -7,13 +7,13 @@ GridClass.__index = GridClass
 
 local function Grid_Create(params)
     local object, left, right, top, bottom, cols, rows = params.object, params.left, params.right, params.top, params.bottom, params.cols, params.rows
-    assert(CheckObject(object))
-    assert(CheckNum(left))
-    assert(CheckNum(right))
-    assert(CheckNum(top))
-    assert(CheckNum(bottom))
-    assert(CheckNum(cols))
-    assert(CheckNum(rows))
+    assert(Check.Object(object))
+    assert(Check.Num(left))
+    assert(Check.Num(right))
+    assert(Check.Num(top))
+    assert(Check.Num(bottom))
+    assert(Check.Num(cols))
+    assert(Check.Num(rows))
 
     local grid = {
         tag = "Grid",
@@ -62,8 +62,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function GridClass.Snap(grid, object, size)
-    assert(CheckObject(object))
-    assert(CheckVec2(size))
+    assert(Check.Object(object))
+    assert(Check.Vec2(size))
 
     local width, height = size.x, size.y
 

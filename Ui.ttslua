@@ -1,811 +1,537 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("Ui")
-local Util = require("Kdm/Util")
-
-local UI_DARK_BROWN = "#453824"
---local UI_MID_BROWN = "#7f7059"
-local UI_MID_BROWN = "#71624c"
--- local UI_LIGHT_BROWN = "#bbb4a1"
-local UI_LIGHT_BROWN = "#d3cdc3"
-
-
-local UI_DARK_BROWN_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
-local UI_MID_BROWN_COLORS = "#7f7059|#655741|#655741|#ffffff"
-
-local UI_INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
-local UI_IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
-
--- local UI_INVISIBLE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
--- local UI_IMAGE_COLORS = "#ff008888|#ff008888|#ff008888|#ff008888"
-
-local UI_LEFT_MOUSE_BUTTON = "-1"
+local Check = require("Kdm/Util/Check")
+local log = require("Kdm/Log").ForModule("Ui")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local Ui_BaseClass = {
-    Show = function(elem)
-        Log.Debugf("Showing %s", elem.id)
-        elem.object.UI.setAttribute(elem.id, "active", true)
-    end,
+local Ui = {}
 
-    Hide = function(elem)
-        Log.Debugf("Hiding %s", elem.id)
-        elem.object.UI.setAttribute(elem.id, "active", false)
-    end,
+Ui.DEFAULT_Z = 10.5
+Ui.SCALE = 0.1
+Ui.DARK_BROWN = "#453824"
+Ui.LIGHT_BROWN = "#bbb4a1"
+Ui.INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
+Ui.INVISIBLE_COLORS = "#ff008888|#ff0088cc|#ff008888|#ff008888"
+Ui.IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
+Ui.LEFT_MOUSE_BUTTON = "-1"
 
-    SetOffsetXY = function(elem, offsetXY)
-        Log.Debugf("Moving %s to %s", elem.id, offsetXY)
-        elem.object.UI.setAttribute(elem.id, "offsetXY", offsetXY)
-    end,
-
-    Width = function(elem)
-        return elem.object.UI.getAttribute(elem.id, "width")
-    end,
-
-    SetWidth = function(elem, width)
-        Log.Debugf("Setting %s width to %d", elem.id, width)
-        elem.object.UI.setAttribute(elem.id, "width", width)
-    end,
-
-    Height = function(elem)
-        return elem.object.UI.getAttribute(elem.id, "height")
-    end,
-
-    SetHeight = function(elem, height)
-        Log.Debugf("Setting %s height to %d", elem.id, height)
-        elem.object.UI.setAttribute(elem.id, "height", height)
-    end
-}
-Ui_BaseClass.__index = Ui_BaseClass
+Ui.uisByObject = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Ui_Panel(parent, params)
-    assert(CheckStr(params.id))
-
-    local id = parent.id.."_"..params.id.."Panel"
-    Log.Debugf("Creating Panel %s", id)
-
-    local panel = {
-        id = id,
-        object = params.object or self,
-        children = {},
+function Ui.Init()
+    Ui.globalUi = {
+        tag = "Ui2d",
+        children = self.UI.getXmlTable(),
+        object = self,
         attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "MiddleCenter",
-            offsetXY = params.x and params.x.." "..params.y or nil,
-            width = params.width,
-            height = params.height,
-            color = params.color or "#00000000",
-            active = params.active == nil or params.active,
+            id = "G",
         },
+        Apply = Ui.Apply,
     }
-    setmetatable(panel, Ui_BaseClass)
-
-    local elem = {
-        tag = "Panel",
-        attributes = panel.attributes,
-        children = panel.children,
+    Ui.AddCreateFunctions(Ui.globalUi, Ui.CreateElem2d)
+    Ui.uisByObject = {
+        [self] = Ui.globalUi
     }
-    table.insert(parent.children, elem)
-
-    return panel
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local Ui_TextClass = {
-    Text = function(elem)
-        return elem.object.UI.getAttribute(elem.id, "text")
-    end,
-    SetText = function(elem, text)
-        text = text or ""   -- nil will not actually clear the text
-        Log.Debugf("Setting text for %s to '%s'", elem.id, text)
-        elem.object.UI.setAttributes(elem.id, {
-            text = text,
-            color = elem.color, -- color is required otherwise TTS will reset it to black
-        })
-    end,
-    SetColor = function(elem, color)
-        Log.Debugf("Setting text color for %s to %s", elem.id, color)
-        elem.object.UI.setAttribute(elem.id, "color", color)
-        elem.color = color  -- must track this for future SetText() invocations
-    end,
-    SetFontStyle = function(elem, fontStyle)
-        Log.Debugf("Setting font style for %s to %s", elem.id, fontStyle)
-        elem.object.UI.setAttribute(elem.id, "fontStyle", fontStyle)
-    end,
-}
-Ui_TextClass.__index = Ui_TextClass
-setmetatable(Ui_TextClass, { __index = Ui_BaseClass })
+function Ui.Get2d()
+    return Ui.globalUi
+end
 
-local function Ui_Text(parent, params)
-    assert(CheckStr(params.id))
-    assert(Check(params.color, "Text color is required"))
+---------------------------------------------------------------------------------------------------
 
-    local id = parent.id.."_"..params.id.."Text"
+function Ui.Create3d(id, object, z)
+    assert(Check.Str(id))
+    assert(Check.Object(object))
+    assert(Check.Num(z))
 
-    local text = {
-        id = id,
-        object = params.object or self,
-        color = params.color
-    }
-    setmetatable(text, Ui_TextClass)
+    local ui = Ui.uisByObject[object]
+    if ui == nil then
+        local objectSize = object.getBounds().size
+        local scaleX, scaleY
+        if objectSize.x > objectSize.z then
+            scaleX = 1
+            scaleY = objectSize.x / objectSize.z
+        else
+            -- seems to only be needed for very *wide* objects, like the Survivor Board?
+            -- scaleX = objectSize.z / objectSize.x
+            scaleX = 1
+            scaleY = 1
+        end
 
-    table.insert(parent.children, {
-        tag = "Text",
+        ui = {
+            tag = "Ui3d",
+            object = object,
+            z = z * -100,
+            rotation = "0 0 180",
+            positionFactor = 100,
+            widthFactor = 1000 / scaleX,
+            heightFactor = 1000 / scaleY,
+            scale = (scaleX / 10).." "..(scaleY / 10),
+            children = object.UI.getXmlTable(),
+            attributes = {
+                id = id,
+            },
+            Apply = Ui.Apply,
+        }
+        Ui.AddCreateFunctions(ui, Ui.CreateElem3d)
+
+        Ui.uisByObject[object] = ui
+    end
+
+    return ui
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.CreateElem2d(tag, parent, params)
+    assert(Check.Str(params.id))
+
+    local id = parent.attributes.id.."_"..params.id..tag
+
+    log:Debugf("Creating %s %s", tag, id)
+
+    assert(Check.Num(params.x))
+    assert(Check.Num(params.y))
+    assert(Check.Num(params.width))
+    assert(Check.Num(params.height))
+
+    local elem = {
+        tag = tag,
+        object = parent.object,
+        children = {},
         attributes = {
             id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
+            rectAlignment = params.rectAlignment or "UpperLeft",
             offsetXY = params.x.." "..params.y,
             width = params.width,
-            height = params.height or 30,
-            text = params.text,
-            color = params.color,
-            alignment = params.alignment or "MiddleLeft",
-            fontSize = params.fontSize or 36,
-            fontStyle = params.fontStyle,
-            textOffset = "0 0 0 0",
+            height = params.height,
             active = params.active == nil or params.active,
         },
-    })
+    }
+
+    if params.onClick then
+        elem.onClick = params.onClick
+        local onClickFunctionName = id.."_OnClick"
+        self.setVar(onClickFunctionName, function(_, mouseButton)
+            elem.onClick(mouseButton)
+        end)
+        elem.attributes.onClick = "Global/"..onClickFunctionName
+    end
+
+    if params.onValueChanged then
+        elem.onValueChanged = params.onValueChanged
+        local onValueChangedFunctionName = id.."_OnValueChanged"
+        self.setVar(onValueChangedFunctionName, function(_, value)
+            elem.onValueChanged(value)
+        end)
+        elem.attributes.onValueChanged = "Global/"..onValueChangedFunctionName
+    end
+
+    table.insert(parent.children, elem)
+
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.CreateElem3d(tag, parent, params)
+    assert(Check.Str(params.id))
+
+    local id = parent.attributes.id.."_"..params.id..tag
+
+    log:Debugf("Creating %s %s", tag, id)
+
+    assert(Check.Vec2(params.topLeft))
+    assert(Check.Vec2(params.bottomRight))
+
+    local topLeft = params.topLeft
+    local bottomRight = params.bottomRight
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * parent.positionFactor
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * parent.positionFactor
+    local centerZ = params.z and (params.z * -100) or parent.z
+
+    local elem = {
+        tag = tag,
+        object = parent.object,
+        children = {},
+        attributes = {
+            id = id,
+            position = centerX.." "..centerY.." "..centerZ,
+            width = math.abs(bottomRight.x - topLeft.x) * parent.widthFactor,
+            height = math.abs(bottomRight.y - topLeft.y) * parent.heightFactor,
+            scale = parent.scale,
+            rotation = parent.rotation,
+            active = params.active == nil or params.active,
+        },
+    }
+
+    if params.onClick then
+        elem.onClick = params.onClick
+        local onClickFunctionName = id.."_OnClick"
+        self.setVar(onClickFunctionName, function(_, mouseButton)
+            elem.onClick(mouseButton)
+        end)
+        elem.attributes.onClick = "Global/"..onClickFunctionName
+    end
+
+    if params.onValueChanged then
+        elem.onValueChanged = params.onValueChanged
+        local onValueChangedFunctionName = id.."_OnValueChanged"
+        self.setVar(onValueChangedFunctionName, function(_, value)
+            elem.onValueChanged(value)
+        end)
+        elem.attributes.onValueChanged = "Global/"..onValueChangedFunctionName
+    end
+
+    table.insert(parent.children, elem)
+
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+Ui.BaseClass = {
+    Show = function(elem)
+        log:Debugf("Showing %s", elem.attributes.id)
+        elem.attributes.active = true
+        elem.object.UI.setAttribute(elem.attributes.id, "active", true)
+    end,
+
+    Hide = function(elem)
+        log:Debugf("Hiding %s", elem.attributes.id)
+        elem.attributes.active = false
+        elem.object.UI.setAttribute(elem.attributes.id, "active", false)
+    end,
+}
+Ui.BaseClass.__index = Ui.BaseClass
+
+---------------------------------------------------------------------------------------------------
+
+Ui.TextClass = {
+    Text = function(textValue)
+        return text.object.UI.getAttribute(text.attributes.id, "text")
+    end,
+
+    SetText = function(text, textValue)
+        textValue = textValue or ""   -- nil will not actually clear the text
+        log:Debugf("Setting text for %s to '%s'", text.attributes.id, textValue)
+        text.attributes.text = textValue
+        text.object.UI.setAttributes(text.attributes.id, {
+            text = textValue,
+            color = text.attributes.color, -- color is required otherwise TTS will reset it to black
+        })
+    end,
+
+    SetColor = function(text, color)
+        log:Debugf("Setting text color for %s to %s", text.attributes.id, color)
+        text.attributes.color = color  -- must track this for future SetText() invocations
+        text.object.UI.setAttribute(text.attributes.id, "color", color)
+    end,
+
+    SetFontStyle = function(text, fontStyle)
+        log:Debugf("Setting font style for %s to %s", text.attributes.id, fontStyle)
+        text.attributes.fontStyle = fontStyle
+        text.object.UI.setAttribute(text.attributes.id, "fontStyle", fontStyle)
+    end,
+}
+
+Ui.TextClass.__index = Ui.TextClass
+setmetatable(Ui.TextClass, { __index = Ui.BaseClass })
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Text(parent, params)
+    assert(Check.Num(params.fontSize))
+    local text = parent.CreateElem("Text", parent, params)
+    text.attributes.text = params.text or ""
+    text.attributes.color = params.color or Ui.DARK_BROWN
+    text.attributes.alignment = params.alignment or "MiddleLeft"
+    text.attributes.fontSize = params.fontSize
+    text.attributes.fontStyle = params.fontStyle
+    text.attributes.textOffset = params.textOffset or "0 0 0 0"
+    text.attributes.horizontalOverflow = params.horizontalOverflow or "Overflow"
+    text.attributes.verticalOverflow = params.verticalOverflow or "Overflow"
+    setmetatable(text, Ui.TextClass)
 
     return text
 end
 
-local function Ui_DarkText(parent, params)
-    params.color = params.color or UI_DARK_BROWN
-    return Ui_Text(parent, params)
-end
-
-local function Ui_LightText(parent, params)
-    params.color = params.color or UI_LIGHT_BROWN
-    return Ui_Text(parent, params)
-end
-
 ---------------------------------------------------------------------------------------------------
 
-local Ui_ImageClass = {
-    SetImage = function(elem, image)
-        Log.Debugf("Setting image for %s to '%s'", elem.id, image)
-        elem.object.UI.setAttribute(elem.id, "image", image)
-    end
-}
-Ui_ImageClass.__index = Ui_ImageClass
-setmetatable(Ui_ImageClass, { __index = Ui_BaseClass })
-
-local function Ui_Image(parent, params)
-    local id = parent.id.."_"..params.id.."Image"
-    Log.Debugf("Creating Image %s", id)
-
-    local image = {
-        id = id,
-        object = params.object or self,
-    }
-    setmetatable(image, Ui_ImageClass)
-
-    table.insert(parent.children, {
-        tag = "Image",
-        attributes = {
-            id = id,
-            image = params.image,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x and (params.x.." "..params.y) or nil,
-            width = params.width,
-            height = params.height,
-            active = params.active == nil or params.active,
-            horizontalOverflow = "Overflow",
-            verticalOverflow = "Overflow",
-        },
-    })
-
-    return image
-end
-
----------------------------------------------------------------------------------------------------
-
-local Ui_InputClass = {
-    Set = function(elem, value)
-        value = value or ""   -- nil will not actually clear the text
-        Log.Debugf("Setting text for %s to '%s'", elem.id, value)
-        elem.object.UI.setAttributes(elem.id, {
-            text = value,
-            textColor = elem.textColor,
-        })
+Ui.ButtonClass = {
+    SetOnClick = function(button, onClick)
+        button.onClick = onClick
     end,
-}
-Ui_InputClass.__index = Ui_InputClass
-setmetatable(Ui_InputClass, { __index = Ui_BaseClass })
 
-local function Ui_Input(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onValueChanged))
-
-    local id = parent.id.."_"..params.id.."Input"
-
-    Log.Debugf("Creating Input %s", id)
-
-    local input = {
-        id = id,
-        object = params.object or self,
-        onValueChanged = params.onValueChanged,
-        textColor = params.textColor,
-    }
-    setmetatable(input, Ui_InputClass)
-
-    local onValueChanged = id.."_OnValueChanged"
-    input.object.setVar(onValueChanged, function(_, value)
-        input.onValueChanged(value)
-    end)
-
-    table.insert(parent.children, {
-        tag = "InputField",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height or 30,
-            colors = params.colors,
-            placeholder = params.placeholder or " " ,
-            text = params.text,
-            readOnly = params.readOnly,
-            fontSize = params.fontSize or 16,
-            fontStyle = params.fontStyle,
-            textColor = params.textColor,
-            lineType = params.lineType,
-            onValueChanged = onValueChanged,
-            selectionColor = params.selectionColor or "#44444488",
-            textAlignment = params.textAlignment or "MiddleLeft",
-            textOffset = params.textOffset or "0 0 0 0",
-        }
-    })
-
-    return input
-end
-
-local function Ui_DarkInput(parent, params)
-    params.textColor = UI_DARK_BROWN
-    params.colors = UI_INVISIBLE_COLORS
-    return Ui_Input(parent, params)
-end
-
-local function Ui_LightInput(parent, params)
-    params.textColor = UI_LIGHT_BROWN
-    params.colors = UI_INVISIBLE_COLORS
-    params.selectionColor = "#888888"
-    return Ui_Input(parent, params)
-end
-
----------------------------------------------------------------------------------------------------
-
-local Ui_ButtonClass = {
-    SetOnClick = function(elem, onClick)
-        elem.onClick = onClick
-    end,
-    SetText = function(elem, text)
+    SetText = function(button, text)
         text = text or ""
-        Log.Debugf("Setting %s text to %s", elem.id, text)
-        elem.object.UI.setAttributes(elem.id, {
+        log:Debugf("Setting %s text to %s", button.attributes.id, text)
+        button.attributes.text = text
+        button.object.UI.setAttributes(button.attributes.id, {
             text = text,
-            textColor = elem.textColor,
+            textColor = button.attributes.textColor,
         })
     end,
-    SetImage = function(elem, image)
+
+    SetImage = function(button, image)
+        button.attributes.image = image
         if image then
-            Log.Debugf("Setting button %s image to %s", elem.id, image)
-            elem.object.UI.setAttributes(elem.id, {
+            log:Debugf("Setting button %s image to %s", button.attributes.id, image)
+            button.attributes.colors = Ui.IMAGE_COLORS
+            button.object.UI.setAttributes(button.attributes.id, {
                 image = image,
-                colors = UI_IMAGE_COLORS,
+                colors = Ui.IMAGE_COLORS,
             })
         else
-            Log.Debugf("Clearing %s image", elem.id)
-            elem.object.UI.setAttributes(elem.id, {
+            log:Debugf("Clearing %s image", button.attributes.id)
+            button.attributes.colors = Ui.INVISIBLE_COLORS
+            button.object.UI.setAttributes(button.attributes.id, {
                 image = nil,
-                colors = UI_INVISIBLE_COLORS,
+                colors = Ui.INVISIBLE_COLORS,
             })
         end
     end,
-    SetColors = function(elem, colors)
-        Log.Debugf("Setting color for %s to %s", elem.id, colors)
-        elem.object.UI.setAttribute(elem.id, "colors", colors)
+
+    SetColors = function(button, colors)
+        log:Debugf("Setting colors for %s to %s", button.id, colors)
+        button.attributes.colors = colors
+        button.object.UI.setAttribute(button.attributes.id, "colors", colors)
     end,
 }
-Ui_ButtonClass.__index = Ui_ButtonClass
-setmetatable(Ui_ButtonClass, { __index = Ui_BaseClass })
 
-local function Ui_Button(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFuncOrNil(params.onClick))
+Ui.ButtonClass.__index = Ui.ButtonClass
+setmetatable(Ui.ButtonClass, { __index = Ui.BaseClass })
 
-    local id = parent.id.."_"..params.id.."Button"
+---------------------------------------------------------------------------------------------------
 
-    Log.Debugf("Creating Button %s", id)
+function Ui.Button(parent, params)
+    assert(Check.Func(params.onClick))
 
-    local button = {
-        id = id,
-        object = params.object or self,
-        textColor = params.textColor or UI_LIGHT_BROWN,
-        onClick = params.onClick,
-    }
-    setmetatable(button, Ui_ButtonClass)
-
-    local onClickFunctionName = id.."_OnClick"
-    button.object.setVar(onClickFunctionName, function(_, mouseButton) button.onClick(mouseButton) end)
-
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            image = params.image,
-            colors = params.colors,
-            text = params.text,
-            textColor = button.textColor,
-            fontSize = params.fontSize or 12,
-            textAlignment = params.textAlignment or "MiddleLeft",
-            onClick = onClickFunctionName,
-        },
-    })
+    local button = parent.CreateElem("Button", parent, params)
+    if params.image then
+        button.attributes.image = params.image
+        button.attributes.colors = Ui.IMAGE_COLORS
+    else
+        button.attributes.colors = Ui.INVISIBLE_COLORS
+    end
+    button.attributes.text = params.text
+    button.attributes.textColor = params.textColor
+    button.attributes.fontSize = params.fontSize
+    button.attributes.textAlignment = params.textAlignment or "MiddleLeft"
+    setmetatable(button, Ui.ButtonClass)
 
     return button
 end
 
-local function Ui_InvisibleButton(parent, params)
-     params.colors = UI_INVISIBLE_COLORS
-     return Ui_Button(parent, params)
-end
+---------------------------------------------------------------------------------------------------
 
-local function Ui_ImageButton(parent, params)
-     params.colors = UI_IMAGE_COLORS
-     return Ui_Button(parent, params)
+Ui.InputClass = {
+    Set = function(input, text)
+        text = text or ""   -- nil will not actually clear the text
+        log:Debugf("Setting text for %s to '%s'", input.attributes.id, text)
+        input.attributes.text = text
+        input.object.UI.setAttributes(input.attributes.id, {
+            text = text,
+            textColor = input.attributes.textColor,
+        })
+    end,
+}
+
+Ui.InputClass.__index = Ui.InputClass
+setmetatable(Ui.InputClass, { __index = Ui.BaseClass })
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Input(parent, params)
+    assert(Check.Func(params.onValueChanged))
+
+    local input = parent.CreateElem("InputField", parent, params)
+    input.attributes.colors = params.colors or Ui.INVISIBLE_COLORS
+    input.attributes.text = params.text
+    input.attributes.placeholder = params.placeholder or " "
+    input.attributes.textColor = params.textColor or Ui.DARK_BROWN
+    input.attributes.selectionColor = params.selectionColor or "#44444488"
+    input.attributes.fontSize = params.fontSize
+    input.attributes.fontStyle = params.fontStyle
+    input.attributes.textAlignment = params.textAlignment or "MiddleLeft"
+    input.attributes.textOffset = params.textOffset or "0 0 0 0"
+    input.attributes.readOnly = params.readOnly
+    input.attributes.lineType = params.lineType
+    setmetatable(input, Ui.InputClass)
+
+    return input
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local Ui_CheckButtonClass = {
-    Set = function(checkButton, value)
-        if value then
-            checkButton.object.UI.setAttributes(checkButton.id, {
-                colors = checkButton.selectedColors,
-                textColor = checkButton.textColor,
-            })
+Ui.CheckBoxClass = {
+    Set = function(checkBox, checked)
+        if checked then
+            checkBox.attributes.image = "CheckBoxFilled"
+            checkBox.attributes.colors = Ui.IMAGE_COLORS
+            checkBox.object.UI.setAttribute(checkBox.attributes.id, "image", "CheckBoxFilled")
+            checkBox.object.UI.setAttribute(checkBox.attributes.id, "colors", Ui.IMAGE_COLORS)
         else
-            checkButton.object.UI.setAttributes(checkButton.id, {
-                colors = checkButton.unselectedColors,
-                textColor = checkButton.textColor,
-            })
+            checkBox.attributes.image = nil
+            checkBox.attributes.colors = Ui.INVISIBLE_COLORS
+            checkBox.object.UI.setAttribute(checkBox.attributes.id, "image", nil)
+            checkBox.object.UI.setAttribute(checkBox.attributes.id, "colors", Ui.INVISIBLE_COLORS)
         end
     end,
 }
-Ui_CheckButtonClass.__index = Ui_CheckButtonClass
-setmetatable(Ui_CheckButtonClass, { __index = Ui_BaseClass })
-
-
-local function Ui_CheckButton(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onClick))
-
-    local id = parent.id.."_"..params.id.."CheckButton"
-
-    Log.Debugf("Creating CheckButton %s", id)
-
-    local checkButton = {
-        id = id,
-        object = params.object or self,
-        selectedColors = params.selectedColors or UI_DARK_BROWN_COLORS,
-        unselectedColors = params.unselectedColors or UI_MID_BROWN_COLORS,
-        textColor = params.textColor or UI_LIGHT_BROWN,
-        onClick = params.onClick,
-    }
-    setmetatable(checkButton, Ui_CheckButtonClass)
-
-    local onClick = id.."_OnClick"
-    checkButton.object.SetVar(onClick, function(_, _, id)
-        checkButton.onClick()
-    end)
-
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            text = params.text,
-            colors = params.checked and checkButton.selectedColors or checkButton.unselectedColors,
-            textColor = checkButton.textColor,
-            fontSize = params.fontSize,
-            textAlignment = "MiddleCenter",
-            onClick = onClick,
-        },
-    })
-
-    return checkButton
-end
+Ui.CheckBoxClass.__index = Ui.CheckBoxClass
+setmetatable(Ui.CheckBoxClass, { __index = Ui.BaseClass })
 
 ---------------------------------------------------------------------------------------------------
 
-local Ui_CheckBoxClass = {
-    Set = function(checkBox, checked)
-        checkBox.object.UI.setAttribute(checkBox.id, "image", checked and checkBox.filledImage or checkBox.emptyImage)
-    end,
-}
-Ui_CheckBoxClass.__index = Ui_CheckBoxClass
-setmetatable(Ui_CheckBoxClass, { __index = Ui_BaseClass })
+function Ui.CheckBox(parent, params)
+    assert(Check.Func(params.onClick))
 
-local function Ui_CheckBox(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onClick))
-
-    local id = parent.id.."_"..params.id.."CheckBox"
-    Log.Debugf("Creating CheckBox %s", id)
-
-    local checkBox = {
-        id = id,
-        object = params.object or self,
-        emptyImage = params.emptyImage or "CheckBoxEmpty",
-        filledImage = params.filledImage or "CheckBoxFilled",
-        onClick = params.onClick,
-    }
-    setmetatable(checkBox, Ui_CheckBoxClass)
-
-    local onClick = id.."_OnClick"
-    checkBox.object.setVar(onClick, function()
-        checkBox.onClick()
-    end)
-
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width or 30,
-            height = params.height or 30,
-            colors = UI_IMAGE_COLORS,
-            image = params.checked and checkBox.filledImage or checkBox.emptyImage,
-            active = params.active == nil or params.active,
-            onClick = onClick,
-        },
-    })
+    local checkBox = parent.CreateElem("Button", parent, params)
+    if params.checked then
+        checkBox.attributes.image = "CheckBoxFilled"
+        checkBox.attributes.colors = Ui.IMAGE_COLORS
+    else
+        checkBox.attributes.image = nil
+        checkBox.attributes.colors = Ui.INVISIBLE_COLORS
+    end
+    setmetatable(checkBox, Ui.CheckBoxClass)
 
     return checkBox
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local Ui_OptionButtonGroupClass = {
-    Set = function(group, option)
-        local selectedId = option and option.id or nil
-        for _, option in ipairs(group.options) do
-            if option.id != selectedId then
-                group.object.UI.setAttributes(option.id, {
-                    colors = group.unselectedColors,
-                    textColor = group.textColor,
-                })
-            else
-                group.object.UI.setAttributes(option.id, {
-                    colors = group.selectedColors,
-                    textColor = group.textColor,
-                })
-            end
-        end
-    end,
-}
-Ui_OptionButtonGroupClass.__index = Ui_OptionButtonGroupClass
-
-local function Ui_OptionButtonGroup(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onClick))
-
-    local id = parent.id.."_"..params.id.."OptionButtons"
-
-    Log.Debugf("Creating OptionButtonGroup %s", id)
-
-    local group = {
-        parent = parent,
-        id = id,
-        object = params.object or self,
-        options = {},
-        selectedColors = params.selectedColors or UI_DARK_BROWN_COLORS,
-        unselectedColors = params.unselectedColors or UI_MID_BROWN_COLORS,
-        textColor = params.textColor or UI_LIGHT_BROWN,
-        textAlignment = params.textAlignment or "MiddleCenter",
-        fontSize = params.fontSize or 16,
-        onClick = params.onClick,
-    }
-    setmetatable(group, Ui_OptionButtonGroupClass)
-
-    return group
-end
-
-local Ui_OptionButtonClass = {
-    Value = function(optionButton)
-        return optionButton.value
-    end,
-    SetValue = function(optionButton, value)
-        optionButton.value = value
-    end,
-    SetText = function(optionButton, text)
-        text = text or ""
-        Log.Debugf("Setting %s text to %s", optionButton.id, text)
-        optionButton.object.UI.setAttributes(optionButton.id, {
-            text = text,
-            textColor = optionButton.group.textColor,
-        })
-    end,
-}
-Ui_OptionButtonClass.__index = Ui_OptionButtonClass
-setmetatable(Ui_OptionButtonClass, { __index = Ui_BaseClass })
-
-local function Ui_OptionButton(group, params)
-    local id = group.id.."_"..(#group.options + 1)
-
-    Log.Debugf("Creating OptionButton %s", id)
-
-    local optionButton = {
-        id = id,
-        object = group.object,
-        group = group,
-        value = params.value,
-    }
-    setmetatable(optionButton, Ui_OptionButtonClass)
-
-    table.insert(group.options, optionButton)
-
-    local onClick = id.."_OnClick"
-    group.object.SetVar(onClick, function()
-        group.onClick(optionButton)
-    end)
-    table.insert(group.parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            text = params.text,
-            colors = params.selected and group.selectedColors or group.unselectedColors,
-            textColor = group.textColor,
-            fontSize = group.fontSize,
-            textAlignment = group.textAlignment,
-            onClick = onClick,
-            active = params.active == nil or params.active,
-        },
-    })
-
-    return optionButton
-end
-
----------------------------------------------------------------------------------------------------
-
-local Ui_OptionBoxGroupClass = {
-    Set = function(group, option)
-        local selectedId = option and option.id or nil
-        for _, option in ipairs(group.options) do
-            if option.id != selectedId then
-                group.object.UI.setAttribute(option.id, "image", "CheckBoxEmpty")
-            else
-                group.object.UI.setAttribute(option.id, "image", "CheckBoxFilled")
-            end
-        end
-    end,
-}
-Ui_OptionBoxGroupClass.__index = Ui_OptionBoxGroupClass
-
-local function Ui_OptionBoxGroup(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onClick))
-
-    local id = parent.id.."_"..params.id.."OptionBoxes"
-
-    Log.Debugf("Creating OptionBoxGroup %s", id)
-
-    local group = {
-        parent = parent,
-        id = id,
-        object = params.object or self,
-        options = {},
-        onClick = params.onClick,
-    }
-    setmetatable(group, Ui_OptionBoxGroupClass)
-
-    return group
-end
-
-local Ui_OptionBoxClass = {
-    Value = function(optionButton)
-        return optionButton.value
-    end,
-    SetValue = function(optionButton, value)
-        optionButton.value = value
-    end,
-}
-Ui_OptionBoxClass.__index = Ui_OptionBoxClass
-setmetatable(Ui_OptionBoxClass, { __index = Ui_BaseClass })
-
-local function Ui_OptionBox(group, params)
-    local id = group.id.."_"..(#group.options + 1)
-
-    Log.Debugf("Creating OptionBox %s", id)
-
-    local optionBox = {
-        id = id,
-        object = group.object,
-        group = group,
-        value = params.value,
-    }
-    setmetatable(optionBox, Ui_OptionBoxClass)
-    table.insert(group.options, optionBox)
-
-    local onClick = id.."_OnClick"
-    group.object.SetVar(onClick, function()
-        group.onClick(optionBox)
-    end)
-
-    table.insert(group.parent.children, {
-        tag = "Button",
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width or 30,
-            height = params.height or 30,
-            colors = UI_IMAGE_COLORS,
-            image = params.checked and "CheckBoxFilled" or "CheckBoxEmpty",
-            onClick = onClick,
-        },
-    })
-
-    return optionBox
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Ui_VerticalScroll(parent, params)
-    -- hack/pass-through to make the ID concatenation work
-    local verticalScroll = {
-        id = parent.id,
-        children = {},
-    }
-
-    table.insert(parent.children, {
-        tag = "VerticalScrollView",
-        attributes = {
-            rectAlignment = "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            color = "#00000000",
-        },
-        children = verticalScroll.children,
-    })
-
-    return verticalScroll
-end
-
----------------------------------------------------------------------------------------------------
-
-local Ui_CounterClass = {
+Ui.CounterClass = {
     Set = function(counter, value)
-        assert(CheckNum(value))
-        Log.Debugf("Changing %s to %d", counter.textId, value)
-        counter.object.UI.setAttribute(counter.textId, "text", tostring(value))
-    end,
+        assert(Check.Num(value))
+        value = tostring(value)
+        log:Debugf("Changing %s to %d", counter.text.attributes.id, value)
+        counter.text.attributes.text = value
+        counter.object.UI.setAttribute(counter.text.attributes.id, "text", value)
+    end
 }
-Ui_CounterClass.__index = Ui_CounterClass
+Ui.CounterClass.__index = Ui.CounterClass
 
-local function Ui_Counter(parent, params)
-    assert(CheckStr(params.id))
-    assert(CheckFunc(params.onValueChanged))
+---------------------------------------------------------------------------------------------------
 
-    local id = parent.id.."_"..params.id.."Counter"
-    Log.Debugf("Creating Counter %s", id)
+function Ui.Counter(parent, params)
+    assert(Check.Func(params.onValueChanged))
 
-    local textId = id.."Text"
+    local midX = (params.topLeft.x + params.bottomRight.x) / 2
 
     local counter = {
-        textId = textId,
-        object = params.object or self,
-        onValueChanged = params.onValueChanged,
-    }
-    setmetatable(counter, Ui_CounterClass)
+        object = parent.object,
 
-    local value = params.value or 0
-    table.insert(parent.children, {
-        tag = "Text",
-        attributes = {
-            id = textId,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height * 0.85,   -- hack to get the counter value to appear below the +/- in the top of the counter box
-            text = tostring(value),
-            color = params.textColor or UI_DARK_BROWN,
+        text = Ui.Text(parent, {
+            id = params.id,
+            topLeft = params.topLeft,
+            bottomRight = params.bottomRight,
+            text = params.value or 0,
+            color = Ui.LIGHT_BROWN,
             fontSize = params.fontSize,
-            textAlignment = "MiddleCenter",
+            alignment = "LowerCenter",
             horizontalOverflow = "Overflow",
             verticalOverflow = "Overflow",
-        }
-    })
+        }),
 
-    local minusId = id.."Minus"
-    local minusOnClick = id.."Minus_OnClick"
-    self.setVar(minusOnClick, function(_, mouseButton)
-        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and -1 or -10)
-    end)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = minusId,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width / 2,
-            height = params.height,
-            colors = UI_INVISIBLE_COLORS,
-            textAlignment = "MiddleCenter",
-            onClick = minusOnClick,
-        }
-    })
+        minusButton = Ui.Button(parent, {
+            id = params.id.."Minus",
+            topLeft = params.topLeft,
+            bottomRight = { x = midX, y = params.bottomRight.y },
+            onClick = function(mouseButton)
+                params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and -1 or -10)
+            end,
+        }),
 
-    local plusId = id.."Plus"
-    local plusOnClick = id.."Plus_OnClick"
-    self.setVar(plusOnClick, function(_, mouseButton)
-        counter.onValueChanged((mouseButton == UI_LEFT_MOUSE_BUTTON) and 1 or 10)
-    end)
-    table.insert(parent.children, {
-        tag = "Button",
-        attributes = {
-            id = plusId,
-            rectAlignment = params.rectAlignment or "LowerLeft",
-            offsetXY = (params.x + (params.width / 2)).." "..params.y,
-            width = params.width / 2,
-            height = params.height,
-            colors = UI_INVISIBLE_COLORS,
-            textAlignment = "MiddleCenter",
-            onClick = plusOnClick,
-        }
-    })
+        plusButton = Ui.Button(parent, {
+            id = params.id.."Plus",
+            topLeft = { x = midX, y = params.topLeft.y },
+            bottomRight = params.bottomRight,
+            onClick = function(mouseButton)
+                params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and 1 or 10)
+            end,
+        }),
+    }
+    setmetatable(counter, Ui.CounterClass)
 
     return counter
 end
 
 ---------------------------------------------------------------------------------------------------
 
+Ui.PanelClass = {}
+Ui.PanelClass.__index = Ui.PanelClass
+setmetatable(Ui.PanelClass, { __index = Ui.BaseClass })
+
+function Ui.Panel(parent, params)
+    local panel = parent.CreateElem("Panel", parent, params)
+    panel.attributes.color = params.color or "#00000000"
+    panel.z = parent.z
+    panel.rotation = "0 0 0"
+    panel.positionFactor = parent.positionFactor
+    panel.widthFactor = parent.widthFactor
+    panel.heightFactor = parent.heightFactor
+    panel.scale = parent.scale
+    Ui.AddCreateFunctions(panel, parent.CreateElem)
+    setmetatable(panel, Ui.PanelClass)
+
+    return panel
+end
+
+---------------------------------------------------------------------------------------------------
+
+Ui.ImageClass = {
+    SetImage = function(image, imageValue)
+        log:Debugf("Setting image for %s to '%s'", image.attributes.id, imageValue)
+        image.attributes.image = imageValue
+        image.object.UI.setAttribute(image.attributes.id, "image", imageValue)
+    end
+}
+Ui.ImageClass.__index = Ui.ImageClass
+setmetatable(Ui.ImageClass, { __index = Ui.BaseClass })
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Image(parent, params)
+    local image = parent.CreateElem("Image", parent, params)
+    image.attributes.image = params.image
+    image.attributes.color = params.color or "#ffffffff";
+    setmetatable(image, Ui.ImageClass)
+    return image
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.AddCreateFunctions(elem, createElemFunc)
+    elem.CreateElem = createElemFunc
+    elem.Text = Ui.Text
+    elem.Button = Ui.Button
+    elem.Input = Ui.Input
+    elem.CheckBox = Ui.CheckBox
+    elem.Counter = Ui.Counter
+    elem.Image = Ui.Image
+    elem.Panel = Ui.Panel
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.Apply(ui)
+    if #ui.children > 0 then
+        ui.object.UI.setXmlTable(ui.children)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 return {
-    Panel = Ui_Panel,
-    Text = Ui_Text,
-    DarkText = Ui_DarkText,
-    LightText = Ui_LightText,
-    Image = Ui_Image,
-    Input = Ui_Input,
-    DarkInput = Ui_DarkInput,
-    LightInput = Ui_LightInput,
-    Button = Ui_Button,
-    InvisibleButton = Ui_InvisibleButton,
-    ImageButton = Ui_ImageButton,
-    CheckButton = Ui_CheckButton,
-    CheckBox = Ui_CheckBox,
-    OptionButtonGroup = Ui_OptionButtonGroup,
-    OptionButton = Ui_OptionButton,
-    OptionBoxGroup = Ui_OptionBoxGroup,
-    OptionBox = Ui_OptionBox,
-    VerticalScroll = Ui_VerticalScroll,
-    Counter = Ui_Counter,
-
-    DARK_BROWN = UI_DARK_BROWN,
-    MID_BROWN = UI_MID_BROWN,
-    LIGHT_BROWN = UI_LIGHT_BROWN,
-
-    DARK_BROWN_COLORS = UI_DARK_BROWN_COLORS,
-    MID_BROWN_COLORS = UI_MID_BROWN_COLORS,
-
-    INVISIBLE_COLORS = UI_INVISIBLE_COLORS,
-    IMAGE_COLORS = UI_IMAGE_COLORS,
+    Init = Ui.Init,
+    PostInit = Ui.PostInit,
+    Get2d = Ui.Get2d,
+    Create3d = Ui.Create3d,
+    LEFT_MOUSE_BUTTON = Ui.LEFT_MOUSE_BUTTON,
 }

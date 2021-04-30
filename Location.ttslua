@@ -1,31 +1,224 @@
-require("Kdm/Check")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("Locations")
-local NamedObject = require("Kdm/NamedObject")
-
-local LOCATION_DEFAULT_CAST_HEIGHT = 20
-
-local LOCATION_CLEAN_IGNORE_TAGS = { "Board", "Table" }
-
+local Check = require("Kdm/Util/Check")
+local Console = require("Kdm/Console")
+local EventManager = require("Kdm/Util/EventManager")
+local Expansion = require("Kdm/Expansion")
 local LocationData = require("Kdm/LocationData")
-
-local Location_index = {}
-
-local LocationClass = {}
-LocationClass.__index = LocationClass
+local log = require("Kdm/Log").ForModule("Location")
+local NamedObject = require("Kdm/NamedObject")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Create(params)
-    assert(CheckTable(params))
-    assert(CheckObjectOrNil(params.object))
+local Location = {}
+Location.__index = Location
+function Location.Is(x) return getmetatable(x) == Location end
+
+Location.CELL_SIZE = 1
+Location.DEFAULT_CAST_HEIGHT = 20
+Location.CLEAN_IGNORE_TAGS = { "Board", "Table" }
+
+---------------------------------------------------------------------------------------------------
+
+function Location.Init()
+    Location.locationsByName = {}
+    Location.locationsByCell = {}
+    Location.locationsByObject = {}
+
+    for name, data in pairs(LocationData.data) do
+        local location = nil
+        if data.fromObject then
+            location = Location.CreateFromObject(NamedObject.Get(data.fromObject))
+        else
+            data.name = name
+            if data.board then
+                data.object = NamedObject.Get(data.board)
+            end
+            location = Location.Create(data)
+        end
+        Location.Add(location)
+    end
+
+    for _, expansion in pairs(Expansion.AllExpansions()) do
+        for name, locationParams in pairs(expansion.locations or {}) do
+            locationParams.object = NamedObject.Get(locationParams.board)
+            Location.Add(Location.Create(locationParams))
+        end
+    end
+
+    -- Initialize starting objects to their particular locations
+    for _, object in ipairs(getAllObjects()) do
+        if object.interactable then
+            local locations = Location.LocationsAtPosition(object.getPosition())
+            Location.locationsByObject[object] = locations
+            for _, location in ipairs(locations) do
+                log:Debugf("[%s] %s started in %s", object.getGUID(), object.getName(), location)
+                location.objects[object] = object
+                -- We specifically don't call dropHandlers here
+                -- Users are responsible for performing initial location:AllObjects() queries
+            end
+        end
+    end
+
+    EventManager.AddHandler("onObjectDrop", function(_, object) Location.OnEnter(object) end)
+    EventManager.AddHandler("onObjectSpawn", function(object) Location.OnEnter(object) end)
+
+    EventManager.AddHandler("onObjectPickUp", function(_, object) Location.OnLeave(object) end)
+    EventManager.AddHandler("onObjectEnterContainer", function(_, object) Location.OnLeave(object) end)
+    EventManager.AddHandler("onObjectDestroy", function(object) Location.OnLeave(object) end)
+
+    Console.AddCommand("showloc", function(args)
+        if #args != 2 then
+            return Console.Printf("Usage: showloc <location>")
+        end
+
+        local location = Location.locationsByName[args[2]:lower()]
+        if not location then
+            return Console.printf("No such location: %s", args[2])
+        end
+
+        location:BoxCast({ debug = true })
+    end, "Highlights a location")
+
+    Console.AddCommand("locobjects", function(args)
+        if #args != 2 then
+            return Console.Printf("Usage: locobjects <location>")
+        end
+
+        local location = Location.locationsByName[args[2]:lower()]
+        if not location then
+            return Console.Printf("No such location: %s", args[2])
+        end
+
+        local objects = location:AllObjects()
+        Console.Printf("%d objects at %s:", #objects, location:Name())
+        for _, object in ipairs(objects) do
+            Console.Printf("  [%s] %s", object.getGUID(), object.getName())
+        end
+    end, "Lists objects at a location")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.CellIndex(col, row)
+    return row.." "..col
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.Add(location)
+    local name = location:Name()
+    assert(Check(not Location.locationsByName[name], "Location %s already registered: %s", name, Location.locationsByName[name]))
+    Location.locationsByName[name:lower()] = location
+
+    local left, top, right, bottom = Location.CellRect(location)
+    for row = top, bottom do
+        for col = left, right do
+            local index = Location.CellIndex(col, row)
+            if not Location.locationsByCell[index] then
+                Location.locationsByCell[index] = { location }
+            else
+                table.insert(Location.locationsByCell[index], location)
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.Get(locationOrName)
+    if type(locationOrName) == "table" then
+        assert(Location.Is(locationOrName))
+        return locationOrName
+    end
+
+    assert(Check.Str(locationOrName))
+    local location = Location.locationsByName[locationOrName:lower()]
+    assert(Check(location, "Unknown location: %s", locationOrName))
+    return location
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.LocationsAtPosition(position)
+    local results = {}
+
+    local x, z = position.x, position.z
+    local col, row = math.floor(x / Location.CELL_SIZE), math.floor(z / Location.CELL_SIZE)
+    local locations = Location.locationsByCell[Location.CellIndex(col, row)] or {}
+    for _, location in ipairs(locations) do
+        local left, top, right, bottom = location:Rect()
+        if x >= left and x <= right and z >= top and z <= bottom then
+            table.insert(results, location)
+        end
+    end
+
+    return results
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.ObjectLocations(object)
+    assert(Check.Object(object))
+    return Location.locationsByObject[object]
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.OnEnter(object)
+    if object.held_by_color then
+        log:Debugf("[%s] %s held by a player, ignoring", object.getGUID(), object.getName())
+        return
+    end
+
+    local locations = Location.LocationsAtPosition(object.getPosition())
+
+    -- Link the object with all locations *before* calling handlers, in case the handlers do their own queries
+    Location.locationsByObject[object] = locations
+    for _, location in ipairs(locations) do
+        log:Debugf("[%s] %s entered %s", object.getGUID(), object.getName(), location)
+        location.objects[object] = true
+    end
+
+    for _, location in ipairs(locations) do
+        for _, dropHandler in ipairs(location.dropHandlers) do
+            dropHandler(object)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.OnLeave(object)
+    local locations = Location.locationsByObject[object] or {}
+
+    -- Unlink the object with all locations *before* calling handlers, in case the handlers do their own queries
+    for _, location in ipairs(locations) do
+        log:Debugf("[%s] %s left %s", object.getGUID(), object.getName(), location)
+        location.objects[object] = nil
+    end
+
+    for _, location in ipairs(locations) do
+        for _, pickUpHandler in ipairs(location.pickUpHandlers) do
+            pickUpHandler(object)
+        end
+    end
+
+    Location.locationsByObject[object] = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location.Create(params)
+    assert(Check.Table(params))
+    assert(Check.ObjectOrNil(params.object))
 
     local location = {
-        tag = "Location",
         name = params.name,
-        object = params.object,
+        objects = {},
+        dropHandlers = {},
+        pickUpHandlers = {},
     }
-    setmetatable(location, LocationClass)
+    setmetatable(location, Location)
 
     if params.center and params.size then
         if location.object then
@@ -43,6 +236,10 @@ local function Location_Create(params)
             y = location.center.y + (params.size.y / 2),
             z = location.center.z + (params.size.z / 2),
         }
+        if params.name == "Abilities" then
+            log(params, "params")
+            log(location, "location")
+        end
 
     elseif params.p1 and params.p2 then
         local p1 = params.p1
@@ -68,7 +265,7 @@ local function Location_Create(params)
         }
 
     else
-        assert(CheckFail("Invalid params for Location_Create. Requires either center+size or p1+p2: %s", params))
+        assert(Check.Fail("Invalid params for Location.Create. Requires either center+size or p1+p2: %s", params))
     end
 
     return location
@@ -76,29 +273,42 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_CreateFromObject(object)
+function Location.CreateFromObject(object)
     local bounds = object.getBounds()
-    return Location_Create({ name = object.getName(), center = bounds.center, size = bounds.size })
+    return Location.Create({ name = object.getName(), center = bounds.center, size = bounds.size })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Name(location)
-    return location.name
+function Location:__tostring()
+    return Util.SafeFormat("Location{name=%s}", self.name)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Center(location)
-    local c = location.center
+function Location:CellRect()
+    local left, top, bottom, right = self:Rect()
+    return math.floor(left / Location.CELL_SIZE), math.floor(top / Location.CELL_SIZE), math.floor(bottom / Location.CELL_SIZE), math.floor(right / Location.CELL_SIZE)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location:Name()
+    return self.name
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Location:Center()
+    local c = self.center
     -- always return a copy
     return { x = c.x, y = c.y, z = c.z }
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Size(location)
-    local tl, br = location.topLeft, location.bottomRight
+function Location:Size()
+    local tl, br = self.topLeft, self.bottomRight
     return {
         x = math.abs(br.x - tl.x),
         y = math.abs(br.y - tl.y),
@@ -108,8 +318,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.Rect(location)
-    local topLeft, bottomRight = location.topLeft, location.bottomRight
+function Location:Rect()
+    local topLeft, bottomRight = self.topLeft, self.bottomRight
     local left = Util.Min(topLeft.x, bottomRight.x)
     local right = Util.Max(topLeft.x, bottomRight.x)
     local top = Util.Min(topLeft.z, bottomRight.z)
@@ -119,17 +329,17 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.BoxCast(location, params)
+function Location:BoxCast(params)
     params = params or {}
 
-    local center = location:Center()
-    center.y = center.y + (params.height or LOCATION_DEFAULT_CAST_HEIGHT)
+    local center = self:Center()
+    center.y = center.y + (params.height or Location.DEFAULT_CAST_HEIGHT)
 
     local size = nil
     if params.size then
         size = params.size
     else
-        size = location:Size()
+        size = self:Size()
         size.y = size.x -- doesn't matter, just needs to be > epsilon for a top-down cast
     end
 
@@ -144,11 +354,11 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.RayCast(location, params)
+function Location:RayCast(params)
     params = params or {}
 
-    local center = location:Center()
-    center.y = center.y + (params.height or LOCATION_DEFAULT_CAST_HEIGHT)
+    local center = self:Center()
+    center.y = center.y + (params.height or Location.DEFAULT_CAST_HEIGHT)
 
     return Physics.cast({
         origin    = center,
@@ -160,10 +370,9 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.FindFirst(location, tag)
-    for _, hit in ipairs(location:BoxCast()) do
-        local object = hit.hit_object
-        if object.getGMNotes() == tag then
+function Location:FirstObject(tag)
+    for object, _ in ipairs(self.objects) do
+        if not object.held_by_color and object.interactable and (tag == nil or object.getGMNotes() == tag) then
             return object
         end
     end
@@ -172,11 +381,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function LocationClass.FindAll(location, tag)
+function Location:AllObjects(tag)
     local results = {}
-    for _, hit in ipairs(location:BoxCast()) do
-        local object = hit.hit_object
-        if object.getGMNotes() == tag then
+    for object, _ in pairs(self.objects) do
+        if not object.held_by_color and object.interactable and (tag == nil or object.getGMNotes() == tag) then
             table.insert(results, object)
         end
     end
@@ -185,7 +393,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Matches(obj, tags, types)
+function Location.Matches(obj, tags, types)
     local matchesTags = tags and Util.ArrayContains(tags, obj.tag)
     local matchesTypes = types and Util.ArrayContains(types, obj.getGMNotes())
 
@@ -194,24 +402,24 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Location_Clean(location, params, castFunc)
+function Location:Clean(params, castFunc)
     tags, types, debug = params.tags, params.types, params.debug
-    Log.Debugf("Cleaning %s", location:Name())
+    log:Debugf("Cleaning %s", self)
 
-    local hits = castFunc(location, { size = params.size, debug = params.debug })
+    local hits = castFunc(self, { size = params.size, debug = params.debug })
     local blocking = {}
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
 
-        if Location_Matches(obj, LOCATION_CLEAN_IGNORE_TAGS, params.ignoreTypes) or not obj.interactable then
+        if Location.Matches(obj, Location.CLEAN_IGNORE_TAGS, params.ignoreTypes) or not obj.interactable then
             -- ignore
 
-        elseif Location_Matches(obj, tags, types) then
-            Log.Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
+        elseif Location.Matches(obj, tags, types) then
+            log:Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
             obj.destruct()
 
         else
-            Log.Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
+            log:Debugf("Hit blocking object %s/%s (%s)", obj.getName(), obj.tag, obj.getGUID())
             table.insert(blocking, obj)
         end
     end
@@ -219,60 +427,34 @@ function Location_Clean(location, params, castFunc)
     return blocking
 end
 
-function LocationClass.BoxClean(location, params) return Location_Clean(location, params, location.BoxCast) end
-function LocationClass.RayClean(location, params) return Location_Clean(location, params, location.RayCast) end
+function Location:BoxClean(params) return self:Clean(params, Location.BoxCast) end
+function Location:RayClean(params) return self:Clean(params, Location.RayCast) end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Add(location)
-    local name = location:Name()
-    assert(Check(not Location_index[name], "Location %s already registered: %s", name, Location_index[name]))
-    Location_index[name] = location
+function Location:AddDropHandler(handler)
+    assert(Check.Func(handler))
+    table.insert(self.dropHandlers, handler)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Get(locationOrName)
-    if type(locationOrName) == "table" then
-        return locationOrName
-    end
-    local location = Location_index[locationOrName]
-    assert(Check(location, "Unknown location: %s", locationOrName))
-    return location
+function Location:AddPickUpHandler(handler)
+    assert(Check.Func(handler))
+    table.insert(self.pickUpHandlers, handler)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Location_Init(expansions)
-    for name, data in pairs(LocationData.data) do
-        if data.fromObject then
-            Location_Add(Location_CreateFromObject(NamedObject.Get(data.fromObject)))
-        else
-            data.name = name
-            if data.board then
-                data.object = NamedObject.Get(data.board)
-            end
-            Location_Add(Location_Create(data))
-        end
-    end
-
-    for _, expansion in ipairs(expansions) do
-        for name, locationParams in pairs(expansion.locations or {}) do
-            locationParams.object = NamedObject.Get(locationParams.board)
-            Location_Add(Location_Create(locationParams))
-        end
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local Location_returnTable = {
-    Init = Location_Init,
-    Get = Location_Get,
+local returnTable = {
+    Is = Location.Is,
+    Init = Location.Init,
+    Get = Location.Get,
+    ObjectLocations = Location.ObjectLocations,
 }
 
 for k, v in pairs(LocationData.maxes) do
-    Location_returnTable[k] = v
+    returnTable[k] = v
 end
 
-return Location_returnTable
+return returnTable

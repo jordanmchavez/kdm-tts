@@ -1,386 +1,406 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("Survivor")
-local Util = require("Kdm/Util")
-local EventManager = require("Kdm/EventManager")
+local Check = require("Kdm/Util/Check")
+local EventManager = require("Kdm/Util/EventManager")
+local log = require("Kdm/Log").ForModule("Survivor")
+local Util = require("Kdm/Util/Util")
 
 -------------------------------------------------------------------------------------------------
 
-local SURVIVOR_CARD_TYPES = {
-    "Abilities",
-    "Fighting Arts",
-    "Secret Fighting Arts",
-    "Disorders",
-    "Severe Injuries",
-    "Weapon Proficiencies",
---    "Gear",
-}
-local SURVIVOR_CARD_TYPES_STR = table.concat(SURVIVOR_CARD_TYPES, ", ")
+local Survivor = {}
+Survivor.__index = Survivor
+function Survivor.Is(x) return getmetatable(x) == Survivor end
 
-local SURVIVOR_CARD_TYPES_MAP = {}
-for _, type in ipairs(SURVIVOR_CARD_TYPES) do
-    SURVIVOR_CARD_TYPES_MAP[type] = true
+-------------------------------------------------------------------------------------------------
+
+function Survivor.Init(saveState)
+    Survivor.nextSurvivorId = 1
+
+    Survivor.survivors = {}
+    Survivor.survivorsById = {}
+    for _, survivorSaveState in ipairs(saveState) do
+        local survivor = Survivor.Create(survivorSaveState)
+        Survivor.nextSurvivorId = Util.Max(Survivor.nextSurvivorId, survivor:Id() + 1)
+    end
 end
 
-local SURVIVOR_STAT_NAMES = {
-    ["dead"] = "Dead",
-    ["name"] = "Name",
-    ["male"] = "Male",
-    ["female"] = "Female",
-    ["reroll"] = "Reroll",
-    ["skipNextHunt"] = "SkipNextHunt",
-    ["survival"] = "Survival",
-    ["movement"] = "Movement",
-    ["speed"] = "Speed",
-    ["accuracy"] = "Accuracy",
-    ["strength"] = "Strength",
-    ["evasion"] = "Evasion",
-    ["luck"] = "Luck",
-    ["huntXp"] = "HuntXp",
-    ["insanity"] = "Insanity",
-    ["brainInjury"] = "BrainInjury",
-    ["courage"] = "Courage",
-    ["understanding"] = "Understanding",
-    ["weaponProficiencyType"] = "WeaponProficiencyType",
-    ["weaponProficiencyRank"] = "WeaponProficiencyRank",
-    ["notes1"] = "Notes1",
-    ["notes2"] = "Notes2",
-    ["notes3"] = "Notes3",
-    ["notes4"] = "Notes4",
-}
+-------------------------------------------------------------------------------------------------
 
-local SURVIVOR_MAXES = {
-    HuntXp = 16,
-    Courage = 9,
-    Understanding = 9,
-    WeaponProficiencyRank = 8,
-}
+function Survivor.Create(params)
+    params = params or {}
 
-local SurvivorClass = {}
-SurvivorClass.__index = SurvivorClass
-
----------------------------------------------------------------------------------------------------
-
-local function Survivor_Create(saveState)
-    saveState = saveState or {}
-    Log.Debugf("Creating Survivor %d", saveState.id)
+    if not params.id then
+        params.id = Survivor.nextSurvivorId
+        Survivor.nextSurvivorId = Survivor.nextSurvivorId + 1
+    end
 
     local survivor = {
         tag = "Survivor",
-
-        id = saveState.id,
-
-        dead = saveState.dead,
-        name = saveState.name,
-        male = saveState.male,
-        female = saveState.female,
-        reroll = saveState.reroll,
-        skipNextHunt = saveState.skipNextHunt,
-        survival = saveState.survival or 0,
-        movement = saveState.movement or 5,
-        speed = saveState.speed or 0,
-        accuracy = saveState.accuracy or 0,
-        strength = saveState.strength or 0,
-        evasion = saveState.evasion or 0,
-        luck = saveState.luck or 0,
-        huntXp = saveState.huntXp or 0,
-        insanity = saveState.insanity or 0,
-        brainInjury = saveState.brainInjury,
-        courage = saveState.courage or 0,
-        understanding = saveState.understanding or 0,
-        weaponProficiencyType = saveState.weaponProficiencyType,
-        weaponProficiencyRank = saveState.weaponProficiencyRank or 0,
-        notes1 = saveState.notes1,
-        notes2 = saveState.notes2,
-        notes3 = saveState.notes3,
-        notes4 = saveState.notes4,
-
-        movementTemporary = 0,
-        movementPermanent = 0,
-        speedTemporary = 0,
-        speedPermanent = 0,
-        accuracyTemporary = 0,
-        accuracyPermanent = 0,
-        strengthTemporary = 0,
-        strengthPermanent = 0,
-        evasionTemporary = 0,
-        evasionPermanent = 0,
-        luckTemporary = 0,
-        luckPermanent = 0,
-
-        packedObjectPositions = saveState.packedObjectPositions or {},
+        id = params.id,
+        name = params.name,
+        marker = params.marker,
+        male = params.male,
+        female = params.female,
+        reroll = params.reroll,
+        skipNextHunt = params.skipNextHunt,
+        retired = params.retired,
+        dead = params.dead,
+        survival = params.survival or 0,
+        movement = params.movement or 5,
+        speed = params.speed or 0,
+        accuracy = params.accuracy or 0,
+        strength = params.strength or 0,
+        evasion = params.evasion or 0,
+        modifiers = {
+            movement = 0,
+            speed = 0,
+            accuracy = 0,
+            strength = 0,
+            evasion = 0,
+            luck = 0,
+        },
+        luck = params.luck or 0,
+        huntXp = params.huntXp or 0,
+        insanity = params.insanity or 0,
+        brainInjury = params.brainInjury,
+        courage = params.courage or 0,
+        understanding = params.understanding or 0,
+        weaponProficiencyType = params.weaponProficiencyType,
+        weaponProficiencyRank = params.weaponProficiencyRank or 0,
+        notes1 = params.notes1,
+        notes2 = params.notes2,
+        notes3 = params.notes3,
+        notes4 = params.notes4,
+        notes5 = params.notes5,
+        cards = params.cards or {},
     }
-    setmetatable(survivor, SurvivorClass)
+    setmetatable(survivor, Survivor)
 
-    survivor.cards = {}
-    saveStateCards = saveState.cards or {}
-    for _, type in ipairs(SURVIVOR_CARD_TYPES) do
-        survivor.cards[type] = saveStateCards[type] or {}
-    end
+    table.insert(Survivor.survivors, survivor)
+    Survivor.survivorsById[survivor:Id()] = survivor
+
+    log:Debugf("Created new survivor %d", survivor:Id())
+
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_CREATED, survivor)
 
     return survivor
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SurvivorClass.Id(survivor) return survivor.id end
-
----------------------------------------------------------------------------------------------------
-
-local function Survivor_FireStatChangeEvent(survivor, stat, value)
-    local statName = SURVIVOR_STAT_NAMES[stat]
-    Log.Debugf("firing event for stat %s/%s change", stat, statName)
-    assert(Check(statName, "Unknown stat: %s", stat))
-    EventManager.FireEvent("onSurvivorStatChange", survivor, statName, value)
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Survivor_SetStr(survivor, stat, value)
-    assert(CheckStr(value))
-    Log.Debugf("Setting %s to %s for survivor %d", stat, value, survivor.id)
-    survivor[stat] = value
-    Survivor_FireStatChangeEvent(survivor, stat, value)
-end
-
-function SurvivorClass.Name(survivor) return survivor.name end
-function SurvivorClass.NameOrUnnamed(survivor) return (survivor.name and survivor.name != "") and survivor.name or "Unnamed Survivor" end
-function SurvivorClass.SetName(survivor, value) Survivor_SetStr(survivor, "name", value) end
-
-function SurvivorClass.WeaponProficiencyType(survivor) return survivor.weaponProficiencyType end
-function SurvivorClass.SetWeaponProficiencyType(survivor, value) Survivor_SetStr(survivor, "weaponProficiencyType", value) end
-
-function SurvivorClass.Notes1(survivor) return survivor.notes1 end
-function SurvivorClass.SetNotes1(survivor, value) Survivor_SetStr(survivor, "notes1", value) end
-
-function SurvivorClass.Notes2(survivor) return survivor.notes2 end
-function SurvivorClass.SetNotes2(survivor, value) Survivor_SetStr(survivor, "notes2", value) end
-
-function SurvivorClass.Notes3(survivor) return survivor.notes3 end
-function SurvivorClass.SetNotes3(survivor, value) Survivor_SetStr(survivor, "notes3", value) end
-
-function SurvivorClass.Notes4(survivor) return survivor.notes4 end
-function SurvivorClass.SetNotes4(survivor, value) Survivor_SetStr(survivor, "notes4", value) end
-
----------------------------------------------------------------------------------------------------
-
-local function Survivor_SetNum(survivor, stat, value, min, max)
-    assert(CheckNum(value))
-    if min and value < min then
-        value = min
+function Survivor.Destroy(survivor)
+    local index = nil
+    for i, s in ipairs(Survivor.survivors) do
+        if s == survivor then
+            index = i
+            break
+        end
     end
-    if max and value > max then
-        value = max
+
+    if not index then
+        return log:Debugf("Survivor %s not found, it must have already been deleted", survivor)
     end
-    Log.Debugf("Setting %s to %s for survivor %d", stat, value, survivor.id)
-    survivor[stat] = value
-    Survivor_FireStatChangeEvent(survivor, stat, value)
+
+    table.remove(Survivor.survivors, i)
+    Survivor.survivorsById[survivor:Id()] = nil
+
+    log:Printf("Deleted survivor %s", survivor:NameOrUnnamed())
+
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_DESTROYED, survivor)
 end
-
-function SurvivorClass.HuntXp(survivor) return survivor.huntXp end
-function SurvivorClass.SetHuntXp(survivor, value) Survivor_SetNum(survivor, "huntXp", value, 0, 16) end
-
-function SurvivorClass.Courage(survivor) return survivor.courage end
-function SurvivorClass.SetCourage(survivor, value) Survivor_SetNum(survivor, "courage", value, 0, 9) end
-
-function SurvivorClass.Understanding(survivor) return survivor.understanding end
-function SurvivorClass.SetUnderstanding(survivor, value) Survivor_SetNum(survivor, "understanding", value, 0, 9) end
-
-function SurvivorClass.WeaponProficiencyRank(survivor) return survivor.weaponProficiencyRank end
-function SurvivorClass.SetWeaponProficiencyRank(survivor, value) Survivor_SetNum(survivor, "weaponProficiencyRank", value, 0, 8) end
-
-function SurvivorClass.Survival(survivor) return survivor.survival end
-function SurvivorClass.SetSurvival(survivor, value) Survivor_SetNum(survivor, "survival", value, 0) end
-
-function SurvivorClass.Insanity(survivor) return survivor.insanity end
-function SurvivorClass.SetInsanity(survivor, value) Survivor_SetNum(survivor, "insanity", value, 0) end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Survivor_GetModified(survivor, stat) return survivor[stat] + survivor[stat.."Temporary"] + survivor[stat.."Permanent"] end
-local function Survivor_GetUnmodified(survivor, stat) return survivor[stat] end
-local function Survivor_SetModified(survivor, stat, value)
-    assert(CheckNum(value))
-    Log.Debugf("Setting %s to %d for survivor %d", stat, value, survivor.id)
-    survivor[stat] = value
-    local modifiedValue = survivor[stat] + survivor[stat.."Temporary"] + survivor[stat.."Permanent"]
-    Survivor_FireStatChangeEvent(survivor, stat, modifiedValue)
-end
-
-function SurvivorClass.UnmodifiedMovement(survivor) return Survivor_GetUnmodified(survivor, "movement") end
-function SurvivorClass.Movement(survivor) return Survivor_GetModified(survivor, "movement") end
-function SurvivorClass.SetMovement(survivor, value) Survivor_SetModified(survivor, "movement", value) end
-
-function SurvivorClass.UnmodifiedSpeed(survivor) return Survivor_GetUnmodified(survivor, "speed") end
-function SurvivorClass.Speed(survivor) return Survivor_GetModified(survivor, "speed") end
-function SurvivorClass.SetSpeed(survivor, value) Survivor_SetModified(survivor, "speed", value) end
-
-function SurvivorClass.UnmodifiedAccuracy(survivor) return Survivor_GetUnmodified(survivor, "accuracy") end
-function SurvivorClass.Accuracy(survivor) return Survivor_GetModified(survivor, "accuracy") end
-function SurvivorClass.SetAccuracy(survivor, value) Survivor_SetModified(survivor, "accuracy", value) end
-
-function SurvivorClass.UnmodifiedStrength(survivor) return Survivor_GetUnmodified(survivor, "strength") end
-function SurvivorClass.Strength(survivor) return Survivor_GetModified(survivor, "strength") end
-function SurvivorClass.SetStrength(survivor, value) Survivor_SetModified(survivor, "strength", value) end
-
-function SurvivorClass.UnmodifiedEvasion(survivor) return Survivor_GetUnmodified(survivor, "evasion") end
-function SurvivorClass.Evasion(survivor) return Survivor_GetModified(survivor, "evasion") end
-function SurvivorClass.SetEvasion(survivor, value) Survivor_SetModified(survivor, "evasion", value) end
-
-function SurvivorClass.UnmodifiedLuck(survivor) return Survivor_GetUnmodified(survivor, "luck") end
-function SurvivorClass.Luck(survivor) return Survivor_GetModified(survivor, "luck") end
-function SurvivorClass.SetLuck(survivor, value) Survivor_SetModified(survivor, "luck", value) end
-
----------------------------------------------------------------------------------------------------
-
-local function Survivor_SetBool(survivor, stat, value)
-    assert(CheckBoolOrNil(value))
-    Log.Debugf("Setting %s to %s for survivor %d", stat, value and "true" or "false", survivor.id)
-    survivor[stat] = value
-    Survivor_FireStatChangeEvent(survivor, stat, value)
-end
-
-function SurvivorClass.Dead(survivor) return survivor.dead end
-function SurvivorClass.SetDead(survivor, value) Survivor_SetBool(survivor, "dead", value) end
-
-function SurvivorClass.BrainInjury(survivor) return survivor.brainInjury end
-function SurvivorClass.SetBrainInjury(survivor, value) Survivor_SetBool(survivor, "brainInjury", value) end
-
-function SurvivorClass.Male(survivor) return survivor.male end
-function SurvivorClass.SetMale(survivor, value) Survivor_SetBool(survivor, "male", value) end
-
-function SurvivorClass.Female(survivor) return survivor.female end
-function SurvivorClass.SetFemale(survivor, value) Survivor_SetBool(survivor, "female", value) end
-
-function SurvivorClass.Reroll(survivor) return survivor.reroll end
-function SurvivorClass.SetReroll(survivor, value) Survivor_SetBool(survivor, "reroll", value) end
-
-function SurvivorClass.SkipNextHunt(survivor) return survivor.skipNextHunt end
-function SurvivorClass.SetSkipNextHunt(survivor, value) Survivor_SetBool(survivor, "skipNextHunt", value) end
-
----------------------------------------------------------------------------------------------------
-
-function SurvivorClass.SetCards(survivor, cards)
-    for _, type in ipairs(SURVIVOR_CARD_TYPES) do
-        survivor.cards[type] = cards[type] or {}
+function Survivor.Save(survivor)
+    local saveState = {}
+    for _, survivor in ipairs(Survivor.survivors) do
+        table.insert(saveState, {
+            id = survivor.id,
+            name = survivor.name,
+            male = survivor.male,
+            female = survivor.female,
+            reroll = survivor.reroll,
+            skipNextHunt = survivor.skipNextHunt,
+            retired = survivor.retired,
+            dead = survivor.dead,
+            marker = survivor.marker,
+            survival = survivor.survival,
+            movement = survivor.movement,
+            speed = survivor.speed,
+            accuracy = survivor.accuracy,
+            strength = survivor.strength,
+            evasion = survivor.evasion,
+            luck = survivor.luck,
+            huntXp = survivor.huntXp,
+            insanity = survivor.insanity,
+            brainInjury = survivor.brainInjury,
+            courage = survivor.courage,
+            understanding = survivor.understanding,
+            weaponProficiencyType = survivor.weaponProficiencyType,
+            weaponProficiencyRank = survivor.weaponProficiencyRank,
+            notes1 = survivor.notes1,
+            notes2 = survivor.notes2,
+            notes3 = survivor.notes3,
+            notes4 = survivor.notes4,
+            notes5 = survivor.notes5,
+            cards = survivor.cards,
+        })
     end
-    EventManager.FireEvent("onChangeSurvivorCards", survivor)
-end
-
-function SurvivorClass.Cards(survivor)
-    return survivor.cards
-end
-
-function SurvivorClass.PackedObjectPositions(survivor)
-    return survivor.packedObjectPositions
-end
-
-function SurvivorClass.SetPackedObjectPositions(survivor, packedObjectPositions)
-    survivor.packedObjectPositions = packedObjectPositions
+    return saveState
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SurvivorClass.SetTemporaryModifier(survivor, stat, value)
-    assert(CheckStr(stat))
-    assert(CheckNum(value))
+function Survivor.Import(saveState)
+    Survivor.Init(saveState)
+end
 
-    Log.Debugf("Setting temporary modifier %s to %d for survivor %d", stat, value, survivor.id)
+---------------------------------------------------------------------------------------------------
 
-    local oldValue = Survivor_GetModified(survivor, stat)
-    survivor[stat.."Temporary"] = value
-    local newValue = Survivor_GetModified(survivor, stat)
-    if newValue != oldValue then
-        Survivor_FireStatChangeEvent(survivor, stat, newValue)
+function Survivor.Export()
+    return Survivor.Save()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.MoveBefore(survivor, beforeSurvivor)
+    if survivor == beforeSurvivor then
+        return
+    end
+
+    local survivorIndex = nil
+    local beforeSurvivorIndex = nil
+    for i, s in ipairs(Survivor.survivors) do
+        if s == survivor then
+            survivorIndex = i
+        elseif s == beforeSurvivor then
+            beforeSurvivorIndex = i
+        end
+    end
+
+    assert(Check(survivorIndex != nil))
+    assert(Check(beforeSurvivorIndex != nil))
+
+    table.insert(Survivor.survivors, beforeSurvivorIndex, Survivor.survivors[survivorIndex])
+    if survivorIndex < beforeSurvivorIndex then
+        table.remove(Survivor.survivors, survivorIndex)
+    else
+        table.remove(Survivor.survivors, survivorIndex + 1)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SurvivorClass.SetPermanentModifier(survivor, stat, value)
-    assert(CheckStr(stat))
-    assert(CheckNum(value))
-
-    Log.Debugf("Setting permanent modifier %s to %d for survivor %d", stat, value, survivor.id)
-
-    local oldValue = Survivor_GetModified(survivor, stat)
-    survivor[stat.."Permanent"] = value
-    local newValue = Survivor_GetModified(survivor, stat)
-    if newValue != oldValue then
-        Survivor_FireStatChangeEvent(survivor, stat, newValue)
+function Survivor.MoveAfter(survivor, afterSurvivor)
+    if survivor == afterSurvivor then
+        return
     end
+
+    local survivorIndex = nil
+    local afterSurvivorIndex = nil
+    for i, s in ipairs(Survivor.survivors) do
+        if s == survivor then
+            survivorIndex = i
+        elseif s == afterSurvivor then
+            afterSurvivorIndex = i
+        end
+    end
+
+    assert(Check(survivorIndex != nil))
+    assert(Check(afterSurvivorIndex != nil))
+
+    table.insert(Survivor.survivors, afterSurvivorIndex + 1, Survivor.survivors[survivorIndex])
+    if survivorIndex < afterSurvivorIndex then
+        table.remove(Survivor.survivors, survivorIndex)
+    else
+        table.remove(Survivor.survivors, survivorIndex + 1)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:__tostring()
+    return Util.SafeFormat("Survivor{id=%s,name=%s}", self.id, self:NameOrUnnamed())
 end
 
 -------------------------------------------------------------------------------------------------
 
-function SurvivorClass.SetModifiers(survivor, temporary, permanent)
-    assert(CheckTable(temporary))
-    assert(CheckTable(permanent))
+function Survivor:Id() return self.id end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:FireStatChangeEvent(stat, value)
+    log:Debugf("Firing self stat change event for %s", stat)
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGE, self, stat, value)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:SetStr(stat, value)
+    assert(Check.Str(value))
+    log:Debugf("Setting %s to %s for %s", stat, value, self)
+    self[stat] = value
+    self:FireStatChangeEvent(stat, value)
+end
+
+function Survivor:Name() return self.name end
+function Survivor:NameOrUnnamed() return (self.name and self.name != "") and self.name or "Unnamed Survivor" end
+function Survivor:SetName(value) self:SetStr("name", value) end
+
+function Survivor:Marker() return self.marker end
+function Survivor:SetMarker(value) self:SetStr("marker", value) end
+
+function Survivor:WeaponProficiencyType() return self.weaponProficiencyType end
+function Survivor:SetWeaponProficiencyType(value) self:SetStr("weaponProficiencyType", value) end
+
+function Survivor:Notes1() return self.notes1 end
+function Survivor:SetNotes1(value) self:SetStr("notes1", value) end
+
+function Survivor:Notes2() return self.notes2 end
+function Survivor:SetNotes2(value) self:SetStr("notes2", value) end
+
+function Survivor:Notes3() return self.notes3 end
+function Survivor:SetNotes3(value) self:SetStr("notes3", value) end
+
+function Survivor:Notes4() return self.notes4 end
+function Survivor:SetNotes4(value) self:SetStr("notes4", value) end
+
+function Survivor:Notes5() return self.notes5 end
+function Survivor:SetNotes5(value) self:SetStr("notes5", value) end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:GetModified(stat) return self[stat] + self.modifiers[stat] end
+function Survivor:GetUnmodified(stat) return self[stat] end
+function Survivor:SetModified(stat, value)
+    assert(Check.Num(value))
+    log:Debugf("Setting %s to %d for %s", stat, value, self)
+    self[stat] = value
+    self:FireStatChangeEvent(stat, value)
+    self:FireStatChangeEvent(stat.."Modified", self[stat] + self.modifiers[stat])
+end
+
+function Survivor:Movement() return self:GetUnmodified("movement") end
+function Survivor:ModifiedMovement() return self:GetModified("movement") end
+function Survivor:SetMovement(value) self:SetModified("movement", value) end
+
+function Survivor:Speed() return self:GetUnmodified("speed") end
+function Survivor:ModifiedSpeed() return self:GetModified("speed") end
+function Survivor:SetSpeed(value) self:SetModified("speed", value) end
+
+function Survivor:Accuracy() return self:GetUnmodified("accuracy") end
+function Survivor:ModifiedAccuracy() return self:GetModified("accuracy") end
+function Survivor:SetAccuracy(value) self:SetModified("accuracy", value) end
+
+function Survivor:Strength() return self:GetUnmodified("strength") end
+function Survivor:ModifiedStrength() return self:GetModified("strength") end
+function Survivor:SetStrength(value) self:SetModified("strength", value) end
+
+function Survivor:Evasion() return self:GetUnmodified("evasion") end
+function Survivor:ModifiedEvasion() return self:GetModified("evasion") end
+function Survivor:SetEvasion(value) self:SetModified("evasion", value) end
+
+function Survivor:Luck() return self:GetUnmodified("luck") end
+function Survivor:ModifiedLuck() return self:GetModified("luck") end
+function Survivor:SetLuck(value) self:SetModified("luck", value) end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:SetNum(stat, value, min, max)
+    assert(Check.Num(value))
+    if min != nil and value < min then
+        value = min
+    end
+    if max != nil and value > max then
+        value = max
+    end
+    log:Debugf("Setting %s to %s for %s", stat, value, self)
+    self[stat] = value
+    self:FireStatChangeEvent(stat, value)
+end
+
+function Survivor:Survival() return self.survival end
+function Survivor:SetSurvival(value) self:SetNum("survival", value, 0) end
+
+function Survivor:Insanity() return self.insanity end
+function Survivor:SetInsanity(value) self:SetNum("insanity", value, 0) end
+
+function Survivor:HuntXp() return self.huntXp end
+function Survivor:SetHuntXp(value) self:SetNum("huntXp", value, 0, 16) end
+
+function Survivor:Courage() return self.courage end
+function Survivor:SetCourage(value) self:SetNum("courage", value, 0, 9) end
+
+function Survivor:Understanding() return self.understanding end
+function Survivor:SetUnderstanding(value) self:SetNum("understanding", value, 0, 9) end
+
+function Survivor:WeaponProficiencyRank() return self.weaponProficiencyRank end
+function Survivor:SetWeaponProficiencyRank(value) self:SetNum("weaponProficiencyRank", value, 0, 8) end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:SetBool(stat, value)
+    assert(Check.BoolOrNil(value))
+    log:Debugf("Setting %s to %s for %s", stat, value and "true" or "false", self)
+    self[stat] = value
+    self:FireStatChangeEvent(stat, value)
+end
+
+function Survivor:Dead() return self.dead end
+function Survivor:SetDead(value) self:SetBool("dead", value) end
+
+function Survivor:Retired() return self.retired end
+function Survivor:SetRetired(value) self:SetBool("retired", value) end
+
+function Survivor:BrainInjury() return self.brainInjury end
+function Survivor:SetBrainInjury(value) self:SetBool("brainInjury", value) end
+
+function Survivor:Male() return self.male end
+function Survivor:SetMale(value) self:SetBool("male", value) end
+
+function Survivor:Female() return self.female end
+function Survivor:SetFemale(value) self:SetBool("female", value) end
+
+function Survivor:Reroll() return self.reroll end
+function Survivor:SetReroll(value) self:SetBool("reroll", value) end
+
+function Survivor:SkipNextHunt() return self.skipNextHunt end
+function Survivor:SetSkipNextHunt(value) self:SetBool("skipNextHunt", value) end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:Cards() return self.cards end
+function Survivor:SetCards(cards)
+    self.cards = cards
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_CARDS_CHANGE, self)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor:SetModifiers(modifiers)
+    modifiers = modifiers or {}
 
     for _, stat in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
-        local oldValue = Survivor_GetModified(survivor, stat)
-        survivor[stat.."Temporary"] = temporary[stat] or 0
-        survivor[stat.."Permanent"] = permanent[stat] or 0
-        local newValue = Survivor_GetModified(survivor, stat)
+        local oldValue = self:GetModified(stat)
+        self.modifiers[stat] = modifiers[stat] or 0
+        local newValue = self:GetModified(stat)
+        log:Debugf("Changed modified %s from %d to %d for %s", stat, oldValue, newValue, self)
         if newValue != oldValue then
-            Survivor_FireStatChangeEvent(survivor, stat, newValue)
+            EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGE, self, stat.."Modified", newValue)
         end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function SurvivorClass.HealAndReset(survivor)
-    Log.Debugf("Healing and resetting survivor %s", survivor.id)
-    for _, stat in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
-        survivor:SetTemporaryModifier(stat, 0)
-    end
-    survivor:SetBrainInjury(false)
-end
-
----------------------------------------------------------------------------------------------------
-
-function SurvivorClass.Save(survivor)
-    local saveState = {
-        id = survivor.id,
-        dead = survivor.dead,
-        name = survivor.name,
-        male = survivor.male,
-        female = survivor.female,
-        skipNextHunt = survivor.skipNextHunt,
-        reroll = survivor.reroll,
-        survival = survivor.survival,
-        movement = survivor.movement,
-        speed = survivor.speed,
-        accuracy = survivor.accuracy,
-        strength = survivor.strength,
-        evasion = survivor.evasion,
-        luck = survivor.luck,
-        huntXp = survivor.huntXp,
-        insanity = survivor.insanity,
-        brainInjury = survivor.brainInjury,
-        courage = survivor.courage,
-        understanding = survivor.understanding,
-        weaponProficiencyType = survivor.weaponProficiencyType,
-        weaponProficiencyRank = survivor.weaponProficiencyRank,
-        notes1 = survivor.notes1,
-        notes2 = survivor.notes2,
-        notes3 = survivor.notes3,
-        notes4 = survivor.notes4,
-        packedObjectPositions = survivor.packedObjectPositions,
-        cards = {},
-    }
-    for _, type in ipairs(SURVIVOR_CARD_TYPES) do
-        saveState.cards[type] = survivor.cards[type]
-    end
-
-    return saveState
-end
-
----------------------------------------------------------------------------------------------------
-
 return {
-    Create = Survivor_Create,
-    CARD_TYPES = SURVIVOR_CARD_TYPES,
-    CARD_TYPES_MAP = SURVIVOR_CARD_TYPES_MAP,
-    CARD_TYPES_STR = SURVIVOR_CARD_TYPES_STR
+    Is = Survivor.Is,
+    Init = Survivor.Init,
+    Save = Survivor.Save,
+    Import = Survivor.Import,
+    Export = Survivor.Export,
+    Create = Survivor.Create,
+    Destroy = Survivor.Destroy,
+    Survivors = function() return Survivor.survivors end,
+    ForId = function(id) return Survivor.survivorsById[id] end,
+    MoveBefore = Survivor.MoveBefore,
+    MoveAfter = Survivor.MoveAfter,
 }

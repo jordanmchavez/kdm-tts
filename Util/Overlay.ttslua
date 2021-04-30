@@ -1,6 +1,7 @@
-require("Kdm/Check")
-local Util = require("Kdm/Util")
-local Log = require("Kdm/Log").ForPackage("Overlay")
+local Check = require("Kdm/Util/Check")
+local Grid = require("Kdm/Grid")
+local log = require("Kdm/Log").ForModule("Overlay")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
@@ -8,9 +9,9 @@ local OverlayClass = {}
 OverlayClass.__index = OverlayClass
 
 local function Overlay_Create(params)
-    assert(CheckObject(params.object))
-    assert(CheckTagged(params.grid, "Grid"))
-    assert(CheckNum(params.height))
+    assert(Check.Object(params.object))
+    assert(Grid.Is(params.grid))
+    assert(Check.Num(params.height))
 
     local overlay = {
         tag = "Overlay",
@@ -66,10 +67,10 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function OverlayClass.Show(overlay, position, baseSize, radius, color)
-    assert(CheckVec3(position, "position"))
-    assert(CheckNum(baseSize, "baseSize"))
-    assert(CheckNum(radius, "radius"))
-    assert(CheckColor(color, "color"))
+    assert(Check.Vec3(position, "position"))
+    assert(Check.Num(baseSize, "baseSize"))
+    assert(Check.Num(radius, "radius"))
+    assert(Check.Color(color, "color"))
 
     overlay:Hide()
 
@@ -81,7 +82,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
 
     local localPosition = overlay.object.positionToLocal(position)
     local centerCol, centerRow = overlay.grid:ColRow(localPosition)
-    Log.Debugf("center: %d, %d", centerCol, centerRow)
+    log:Debugf("center: %d, %d", centerCol, centerRow)
     local baseLeft, baseTop  -- left-top corner of the figurine's base (1x1, 2x2, 3x3, etc)
     if baseSize % 2 == 0 then
         local offset = math.floor(baseSize / 2) - 1
@@ -92,7 +93,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
         baseLeft = math.floor(centerCol + 0.5) - offset
         baseTop = math.floor(centerRow + 0.5) - offset
     end
-    Log.Debugf("base LT: %d, %d", baseLeft, baseTop)
+    log:Debugf("base LT: %d, %d", baseLeft, baseTop)
 
     local halfRadius = math.floor(radius / 2)
 

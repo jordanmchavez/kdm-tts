@@ -1,24 +1,57 @@
-require("Kdm/Check")
-local Util = require("Kdm/Util")
-
-local Console = {}
-
-Console.CHAR = ">"
-
-Console.commandFuncs = {}
+local Check = require("Kdm/Util/Check")
+local EventManager = require("Kdm/Util/EventManager")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-function Console.Printf(fmt, ...)
-    print(Util.SafeFormat(fmt or "", ...))
+local Console = {}
+
+---------------------------------------------------------------------------------------------------
+
+function Console.Init()
+    Console.commands = {}
+
+    EventManager.AddHandler("onChat", function(message, player, previousReturnValue)
+        if message == "" or message:sub(1, 1) != ">" then
+            return (previousReturnValue == nil) or previousReturnValue
+        end
+
+        Console.Printf(message)
+
+        local args = Console.Tokenize(message)
+        local command = Console.commands[args[1]:lower()]
+        if not command then
+            Console.Printf("Unrecognized command: %s", args[1])
+            return false
+        end
+
+        command.func(args)
+
+        return false
+    end)
+
+    Console.AddCommand("help", function(args)
+        for name, command in pairs(Console.commands) do
+            Console.Printf("%s %s", name, command.description)
+        end
+    end, "Shows all commands")
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Console.AddCommand(name, commandFunc)
+function Console.Printf(fmt, ...)
+    print(Util.SafeFormat("[aaaaaa]"..fmt, ...))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Console.AddCommand(name, commandFunc, description)
     name = name:lower()
-    assert(Check(not Console.commandFuncs[name], "Command %s already registered", name))
-    Console.commandFuncs[name] = commandFunc
+    assert(Check(not Console.commands[name], "Command %s already registered", name))
+    Console.commands[name] = {
+        func = commandFunc,
+        description = description
+    }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -65,7 +98,7 @@ function Console.Tokenize(message)
             end
         end
 
-        table.insert(tokens, message:sub(tokenStart, i - 1))
+        table.insert(tokens, message:sub(tokenStart, i - 1):lower())
         i = i + 1
     end
 
@@ -74,35 +107,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function onChat(message, player)
-    if message == "" or message:sub(1, 1) != Console.CHAR then
-        return
-    end
-
-    local args = Console.Tokenize(message)
-
-    local commandFunc = Console.commandFuncs[args[1]:lower()]
-    if not commandFunc then
-        Console.Printf("Unrecognized command: %s", args[1])
-        return false
-    end
-
-    commandFunc(args)
-
-    return false
-end
-
----------------------------------------------------------------------------------------------------
-
-Console.AddCommand("help", function(args)
-    for name, _ in pairs(Console.commandFuncs) do
-        Console.Printf(name)
-    end
-end)
-
----------------------------------------------------------------------------------------------------
-
 return {
-    AddCommand = Console.AddCommand,
+    Init = Console.Init,
     Printf = Console.Printf,
+    AddCommand = Console.AddCommand,
 }

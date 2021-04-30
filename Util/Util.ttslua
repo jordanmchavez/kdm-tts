@@ -23,13 +23,10 @@ function Util.SafeFormat(fmt, ...)
     local args = table.pack(...)
     for i = 1, args.n do
         local arg = args[i]
-        if not arg then
+        if arg == nil then
             args[i] = "<nil>"
-        else
-            local t = type(arg)
-            if t == "table" then
-                args[i] = Util.TabStr(arg)
-            end
+        elseif type(arg) == "table" then
+            args[i] = tostring(arg)
         end
     end
 

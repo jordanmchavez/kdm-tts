@@ -1,4 +1,4 @@
-local Util = require("Kdm/Util")
+local Util = require("Kdm/Util/Util")
 
 local Trie = {}
 

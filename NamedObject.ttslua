@@ -1,133 +1,139 @@
-require("Kdm/Check")
-local Log = require("Kdm/Log").ForPackage("NamedObject")
-local EventManager = require("Kdm/EventManager")
+local Check = require("Kdm/Util/Check")
 local Console = require("Kdm/Console")
+local EventManager = require("Kdm/Util/EventManager")
+local Expansion = require("Kdm/Expansion")
+local log = require("Kdm/Log").ForModule("NamedObject")
 
 ---------------------------------------------------------------------------------------------------
 
 local NamedObject = {}
 
-NamedObject.guidNames = {
-    ["0b2ed0"] = "Table",
-    ["bafa19"] = "Top Table",
-    ["8bf5e2"] = "Left Table",
-    ["dff000"] = "Bottom Table",
-    ["f7805a"] = "Right Table",
+NamedObject.data = {
+    ["0b2ed0"] = { name = "Table", noninteractible = true },
+    ["bafa19"] = { name = "Top Table", noninteractible = true },
+    ["8bf5e2"] = { name = "Left Table", noninteractible = true },
+    ["dff000"] = { name = "Bottom Table", noninteractible = true },
+    ["f7805a"] = { name = "Right Table", noninteractible = true },
 
-    ["da72c5"] = "Abilities Archive",
-    ["0dc4b8"] = "Fighting Arts Archive",
-    ["13a43d"] = "Secret Fighting Arts Archive",
-    ["590a4f"] = "Disorders Archive",
-    ["1d3367"] = "Severe Injuries Archive",
-    ["379dcf"] = "Tactics Archive",
-    ["a80b96"] = "Weapon Proficiencies Archive",
-    ["d843fb"] = "Armor Sets Archive",
-    ["43ac01"] = "Vermin Archive",
-    ["dd76f7"] = "Strange Resources Archive",
-    ["57a8b5"] = "Basic Resources Archive",
-    ["7223e1"] = "Terrain Archive",
-    ["2551b1"] = "Terrain Tiles Archive",
-    ["916de5"] = "Settlement Events Archive",
-    ["7a04ec"] = "Rare Gear Archive",
-    ["166a4f"] = "All Gear Archive",
-    ["26dc61"] = "Monster Resources Archive",
-    ["5d72f3"] = "Hunt Events Archive",
-    ["174926"] = "Survivor Sheets Archive",
-    ["9b15e7"] = "Survivor Boxes Archive",
+    ["da72c5"] = { name = "Abilities Archive" },
+    ["0dc4b8"] = { name = "Fighting Arts Archive" },
+    ["13a43d"] = { name = "Secret Fighting Arts Archive" },
+    ["590a4f"] = { name = "Disorders Archive" },
+    ["1d3367"] = { name = "Severe Injuries Archive" },
+    ["379dcf"] = { name = "Tactics Archive" },
+    ["a80b96"] = { name = "Weapon Proficiencies Archive" },
+    ["d843fb"] = { name = "Armor Sets Archive" },
+    ["43ac01"] = { name = "Vermin Archive" },
+    ["dd76f7"] = { name = "Strange Resources Archive" },
+    ["57a8b5"] = { name = "Basic Resources Archive" },
+    ["7223e1"] = { name = "Terrain Archive" },
+    ["2551b1"] = { name = "Terrain Tiles Archive" },
+    ["916de5"] = { name = "Settlement Events Archive" },
+    ["7a04ec"] = { name = "Rare Gear Archive" },
+    ["166a4f"] = { name = "All Gear Archive" },
+    ["26dc61"] = { name = "Monster Resources Archive" },
+    ["5d72f3"] = { name = "Hunt Events Archive" },
+    ["fdb47b"] = { name = "Survivor Sheets Archive" },
+    ["174926"] = { name = "Survivor Boxes Archive" },
 
-    ["437cd7"] = "Showdown Board",
-    ["51a21e"] = "Hunt Board",
-    ["226d8a"] = "Settlement Board",
-    ["456dc5"] = "Rules Board",
-    ["58f2b5"] = "Rules Navigation Board",
-    ["05e4ab"] = "Export/Import Board",
+    ["437cd7"] = { name = "Showdown Board", noninteractible = true },
+    ["51a21e"] = { name = "Hunt Board", noninteractible = true },
+    ["226d8a"] = { name = "Settlement Board", noninteractible = true },
+    ["456dc5"] = { name = "Rules Board", noninteractible = true },
+    ["58f2b5"] = { name = "Rules Navigation Board", noninteractible = true },
+    ["05e4ab"] = { name = "Export/Import Board", noninteractible = true },
 
-    ["34bfdb"] = "Player 1 Board",
-    ["9f3675"] = "Player 2 Board",
-    ["fbebc8"] = "Player 3 Board",
-    ["d70755"] = "Player 4 Board",
+    ["d2a564"] = { name = "Survivor Board", noninteractible = true },
+    ["b9c2e9"] = { name = "Survivor Board Cell 1", noninteractible = true },
+    ["a56349"] = { name = "Survivor Board Cell 2", noninteractible = true },
+    ["89842b"] = { name = "Survivor Board Cell 3", noninteractible = true },
+    ["e0af8f"] = { name = "Survivor Board Cell 4", noninteractible = true },
+    ["951600"] = { name = "Survivor Board Cell 5", noninteractible = true },
+    ["1d1ccc"] = { name = "Survivor Board Cell 6", noninteractible = true },
+    ["bea4c0"] = { name = "Survivor Board Cell 7", noninteractible = true },
+    ["142a23"] = { name = "Survivor Board Cell 8"  },
+    ["8a4bfd"] = { name = "Survivor Board Cell 9", noninteractible = true },
+    ["484be9"] = { name = "Survivor Board Cell 10", noninteractible = true },
+    ["bf278c"] = { name = "Survivor Board Cell 11", noninteractible = true },
+    ["076ed5"] = { name = "Survivor Board Cell 12", noninteractible = true },
+    ["385d8a"] = { name = "Survivor Board Cell 13", noninteractible = true },
+    ["efc41f"] = { name = "Survivor Board Cell 14", noninteractible = true },
+    ["a98661"] = { name = "Survivor Board Cell 15", noninteractible = true },
+    ["40baee"] = { name = "Survivor Board Cell 16", noninteractible = true },
+    ["d57548"] = { name = "Survivor Board Cell 17", noninteractible = true },
+    ["411c2f"] = { name = "Survivor Board Cell 18", noninteractible = true },
+    ["fecd6f"] = { name = "Survivor Board Cell 19", noninteractible = true },
+    ["a61dd0"] = { name = "Survivor Board Cell 20", noninteractible = true },
 
-    ["27334a"] = "Player 1 Marker",
-    ["c6d863"] = "Player 2 Marker",
-    ["a8d948"] = "Player 3 Marker",
-    ["e00244"] = "Player 4 Marker",
+    ["34bfdb"] = { name = "Player 1 Board", noninteractible = true },
+    ["61f946"] = { name = "Player 2 Board", noninteractible = true },
+    ["4f139d"] = { name = "Player 3 Board", noninteractible = true },
+    ["276ea7"] = { name = "Player 4 Board", noninteractible = true },
 
-    ["b07b40"] = "Overlay",
+    ["27334a"] = { name = "Player 1 Marker", noninteractible = true },
+    ["c6d863"] = { name = "Player 2 Marker", noninteractible = true },
+    ["a8d948"] = { name = "Player 3 Marker", noninteractible = true },
+    ["e00244"] = { name = "Player 4 Marker", noninteractible = true },
+
+    ["b07b40"] = { name = "Overlay", noninteractible = true },
 }
-
-NamedObject.guids = {}
-NamedObjects_index = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function NamedObject.Init(expansions)
-    for guid, name in pairs(NamedObject.guidNames) do
-        NamedObject.Set(name, guid)
+function NamedObject.Init()
+    NamedObject.objectsByName = {}
+    NamedObject.guids = {}
+
+    for guid, data in pairs(NamedObject.data) do
+        NamedObject.Set(data.name, guid)
     end
 
-    for _, expansion in ipairs(expansions) do
+    for _, expansion in pairs(Expansion.AllExpansions()) do
         for guid, name in pairs(expansion.guidNames or {}) do
             NamedObject.Set(name, guid)
         end
     end
 
-    NamedObject.MakeInteractable(false)
+    NamedObject.SetInteractable(false)
 
-    EventManager.AddHandler("onObjectDestroy", NamedObject.OnObjectDestroy)
-    EventManager.AddHandler("filterObjectEnterContainer", NamedObject.FilterObjectEnterContainer)
+    EventManager.AddHandler("onObjectDestroy", function(object)
+        if NamedObject.guids[object.getGUID()] then
+            log:Broadcastf("A critical game component '%s' (GUID %s) was just deleted. This may cause the mod to malfunction. Please restore an earlier save game.", object.getName(), object.getGUID())
+        end
+    end)
+
+    EventManager.AddHandler("tryObjectEnterContainer", function(container, object, previousReturnValue)
+        if previousReturnValue == false then
+            return false
+        end
+
+        if NamedObject.guids[object.getGUID()] then
+            log:Broadcastf("%s (%s) is a critical game component. The mod will break if it's put in a container.", object.getName(), object.getGUID())
+            return false
+        end
+
+        return true
+    end)
+
+    Console.AddCommand("interact", function(args)
+        if #args != 2 or (args[2] != "on" and args[2] != "off") then
+            Console.Printf("Usage: interact <on|off>")
+            return
+        end
+        local interactible = args[2] == "on"
+        NamedObject.SetInteractable(interactible)
+        Console.Printf("Set critical game objects to %s", interactible and "interactible" or "non-interactible")
+    end, "Toggles whether critical game objects are interactible")
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function NamedObject.MakeInteractable(toggle)
-    local uninteractable = {
-        "Table",
-        "Top Table",
-        "Left Table",
-        "Bottom Table",
-        "Right Table",
-        "Showdown Board",
-        "Hunt Board",
-        "Settlement Board",
-        "Rules Board",
-        "Rules Navigation Board",
-        "Export/Import Board",
-        "Player 1 Board",
-        "Player 2 Board",
-        "Player 3 Board",
-        "Player 4 Board",
-        "Player 1 Marker",
-        "Player 2 Marker",
-        "Player 3 Marker",
-        "Player 4 Marker",
-        "Overlay",
-    }
-    for _, name in ipairs(uninteractable) do
-        NamedObject.Get(name).interactable = toggle
+function NamedObject.SetInteractable(interactible)
+    for _, data in pairs(NamedObject.data) do
+        if data.noninteractible then
+            NamedObject.Get(data.name).interactable = interactible
+        end
     end
-end
-
----------------------------------------------------------------------------------------------------
-
-function NamedObject.OnObjectDestroy(object)
-    if NamedObject.guids[object.getGUID()] then
-        Log.Broadcastf("A critical game component '%s' (GUID %s) was just deleted. This may cause the mod to malfunction. Please restore an earlier save game.", object.getName(), object.getGUID())
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function NamedObject.FilterObjectEnterContainer(container, object, previousReturnValue)
-    if previousReturnValue == false then
-        return false
-    end
-
-    if NamedObject.guids[object.getGUID()] then
-        Log.Broadcastf("%s (%s) is a critical game component. The mod may break if it's put in a container.", object.getName(), object.getGUID())
-        return false
-    end
-
-    return true
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -135,33 +141,22 @@ end
 function NamedObject.Set(name, guid)
     local object = getObjectFromGUID(guid)
     assert(Check(object != nil, "Couldn't find critical component '%s' with guid %s. If you accidentally deleted this object, then you may need to restore an earlier save.", name, guid))
-    local existing = NamedObjects_index[name]
+    local existing = NamedObject.objectsByName[name]
     if existing then
-        assert(CheckFail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
+        assert(Check.Fail("Tried to add object '%s' with guid %s, but already exists with guid %s", name, existing.getGUID(), guid))
     end
 
-    NamedObjects_index[name] = object
+    NamedObject.objectsByName[name] = object
     NamedObject.guids[guid] = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function NamedObject.Get(name)
-    local object = NamedObjects_index[name]
+    local object = NamedObject.objectsByName[name]
     assert(Check(object, "Unknown object '%s'", name))
-
     return object
 end
-
----------------------------------------------------------------------------------------------------
-
-Console.AddCommand("no_interact", function(args)
-    if #args != 2 or (args[2] != "true" and args[2] != "false") then
-        Console.Printf("Usage: no_interact <true|false>")
-        return
-    end
-    NamedObject.MakeInteractable(args[2] == "true")
-end)
 
 ---------------------------------------------------------------------------------------------------
 
