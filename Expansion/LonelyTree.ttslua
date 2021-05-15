@@ -20,6 +20,7 @@ return {
 
     terrainTileSizes = {
         ["The Lonely Tree"] = { x = 3, y = 3 },
+        ["Lonely Fruit"] = { x = 1, y = 1 },
     },
 
     guidNames = { ["0857d8"] = "Lonely Tree Archive" },

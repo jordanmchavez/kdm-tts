@@ -24,7 +24,7 @@ function Location.Init()
     Location.locationsByCell = {}
     Location.locationsByObject = {}
 
-    for name, data in pairs(LocationData.data) do
+    for name, data in pairs(LocationData) do
         local location = nil
         if data.fromObject then
             location = Location.CreateFromObject(NamedObject.Get(data.fromObject))
@@ -38,7 +38,7 @@ function Location.Init()
         Location.Add(location)
     end
 
-    for _, expansion in pairs(Expansion.AllExpansions()) do
+    for _, expansion in ipairs(Expansion.All()) do
         for name, locationParams in pairs(expansion.locations or {}) do
             locationParams.object = NamedObject.Get(locationParams.board)
             Location.Add(Location.Create(locationParams))
@@ -73,7 +73,7 @@ function Location.Init()
 
         local location = Location.locationsByName[args[2]:lower()]
         if not location then
-            return Console.printf("No such location: %s", args[2])
+            return Console.Printf("No such location: %s", args[2])
         end
 
         location:BoxCast({ debug = true })
@@ -133,7 +133,9 @@ function Location.Get(locationOrName)
 
     assert(Check.Str(locationOrName))
     local location = Location.locationsByName[locationOrName:lower()]
-    assert(Check(location, "Unknown location: %s", locationOrName))
+    if not location then
+        log:Debugf("Unknown location: %s", locationOrName)
+    end
     return location
 end
 
@@ -211,6 +213,7 @@ end
 function Location.Create(params)
     assert(Check.Table(params))
     assert(Check.ObjectOrNil(params.object))
+    assert(Check.Str(params.name))
 
     local location = {
         name = params.name,
@@ -221,8 +224,8 @@ function Location.Create(params)
     setmetatable(location, Location)
 
     if params.center and params.size then
-        if location.object then
-            location.center = location.object.positionToWorld(params.center)
+        if params.object then
+            location.center = params.object.positionToWorld(params.center)
         else
             location.center = params.center
         end
@@ -236,10 +239,6 @@ function Location.Create(params)
             y = location.center.y + (params.size.y / 2),
             z = location.center.z + (params.size.z / 2),
         }
-        if params.name == "Abilities" then
-            log(params, "params")
-            log(location, "location")
-        end
 
     elseif params.p1 and params.p2 then
         local p1 = params.p1
@@ -370,9 +369,9 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Location:FirstObject(tag)
-    for object, _ in ipairs(self.objects) do
-        if not object.held_by_color and object.interactable and (tag == nil or object.getGMNotes() == tag) then
+function Location:FirstObject(params)
+    for object, _ in pairs(self.objects) do
+        if not object.held_by_color and object.interactable and Location.Matches(object, params.tags, params.types) then
             return object
         end
     end
@@ -411,11 +410,13 @@ function Location:Clean(params, castFunc)
     for _, hit in ipairs(hits) do
         local obj = hit.hit_object
 
+        log:Debugf("Hit object [%s]%s with type %s and tag %s", obj.getGUID(), obj.getName(), obj.getGMNotes(), obj.tag)
+
         if Location.Matches(obj, Location.CLEAN_IGNORE_TAGS, params.ignoreTypes) or not obj.interactable then
             -- ignore
 
         elseif Location.Matches(obj, tags, types) then
-            log:Debugf("Destroying hit object %s (%s) with matching type %s/tag %s", obj.getName(), obj.getGUID(), obj.getGMNotes(), obj.tag)
+            log:Debugf("Destroying hit object [%s] %s with matching type %s/tag %s", obj.getGUID(), obj.getName(), obj.getGMNotes(), obj.tag)
             obj.destruct()
 
         else
@@ -429,6 +430,12 @@ end
 
 function Location:BoxClean(params) return self:Clean(params, Location.BoxCast) end
 function Location:RayClean(params) return self:Clean(params, Location.RayCast) end
+
+---------------------------------------------------------------------------------------------------
+
+function Location:LookAt(params)
+    Util.LookAt({ position = self:Center(), pitch = params.pitch, distance = params.distance })
+end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -446,15 +453,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local returnTable = {
+return {
     Is = Location.Is,
     Init = Location.Init,
     Get = Location.Get,
+    LocationsAtPosition = Location.LocationsAtPosition,
     ObjectLocations = Location.ObjectLocations,
 }
-
-for k, v in pairs(LocationData.maxes) do
-    returnTable[k] = v
-end
-
-return returnTable

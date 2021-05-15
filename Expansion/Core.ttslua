@@ -12,17 +12,12 @@ return {
         ["Vermin"] = "Core Vermin",
         ["Strange Resources"] = "Core Strange Resources",
         ["Basic Resources"] = "Core Basic Resources",
-
         ["Terrain"] = "Core Terrain",
         ["Terrain Tiles"] = "Core Terrain Tiles",
-
         ["Settlement Events"] = "Core Settlement Events",
-
         ["Innovations"] = "Core Innovations",
-
         ["Settlement Locations"] = "Core Settlement Locations",
         ["Rare Gear"] = "Core Rare Gear",
-
         ["Hunt Events"] = "Core Hunt Events",
     },
 
@@ -73,7 +68,7 @@ return {
                 { year = 30, type = "ShowdownEvent", monster = "Gold Smoke Knight" },
             },
             survivalActions = {
-                { name = "Dodge" },
+                { name = "Dodge", checked = true },
                 { name = "Encourage" },
                 { name = "Dash" },
                 { name = "Surge" },
@@ -85,25 +80,39 @@ return {
                 { name = "15 Population", event = "Principle: Society" },
                 { name = "5 Innovations", event = "Hooded Knight" },
             },
-            startingInnovations = {
-                { name = "Language", location = "Innovation 1" },
-            },
-            startingInnovationDeck = {
-                "Ammonia - Language Consequence",
-                "Drums - Language Consequence",
-                "Hovel - Language Consequence",
-                "Inner Lantern - Language Consequence",
-                "Paint - Language Consequence",
-                "Symposium - Language Consequence",
-            },
-            startingSettlementLocations = {
-                { name = "Lantern Hoard", location = "Settlement Location 1" },
+            objectsByLocation = {
+                ["Innovation Deck"] = { tag = "Deck", name = "Innovation Deck", type = "Innovations", faceDown = true, cards = {
+                    { name = "Ammonia - Language Consequence", type = "Innovations" },
+                    { name = "Drums - Language Consequence", type = "Innovations" },
+                    { name = "Hovel - Language Consequence", type = "Innovations" },
+                    { name = "Inner Lantern - Language Consequence", type = "Innovations" },
+                    { name = "Paint - Language Consequence", type = "Innovations" },
+                    { name = "Symposium - Language Consequence", type = "Innovations" },
+                } },
+                ["Principle: Death"] = { tag = "Deck", name = "Principle: Death", type = "Innovations", faceDown = true, cards = {
+                    { name = "Cannibalize - Death Principle", type = "Innovations" },
+                    { name = "Graves - Death Principle", type = "Innovations" },
+                } },
+                ["Principle: New Life"] = { tag = "Deck", name = "Principle: New Life", type = "Innovations", faceDown = true, cards = {
+                    { name = "Protect the Young - New Life Principle", type = "Innovations" },
+                    { name = "Survival of the Fittest - New Life Principle", type = "Innovations" },
+                } },
+                ["Principle: Society"] = { tag = "Deck", name = "Principle: Society", type = "Innovations", faceDown = true, cards = {
+                    { name = "Accept Darkness - Society Principle", type = "Innovations" },
+                    { name = "Collective Toil - Society Principle", type = "Innovations" },
+                } },
+                ["Principle: Conviction"] = { tag = "Deck", name = "Principle: Conviction", type = "Innovations", faceDown = true, cards = {
+                    { name = "Barbaric - Conviction Principle", type = "Innovations" },
+                    { name = "Romantic - Conviction Principle", type = "Innovations" },
+                } },
+                ["Innovation 1"] = { tag = "Card", name = "Language", type = "Innovations" },
+                ["Settlement Location 1"] = { tag = "Card", name = "Lantern Hoard", type = "Settlement Locations" },
             },
             references = {
-                { name = "Age Reference", location = "Age Reference" },
-                { name = "Intimacy Reference", location = "Intimacy Reference" },
-                { name = "Bold Reference", location = "Bold Reference" },
-                { name = "Insight Reference", location = "Insight Reference" },
+                { name = "Age Reference", location = "Reference 1" },
+                { name = "Intimacy Reference", location = "Reference 2" },
+                { name = "Bold Reference", location = "Reference 3" },
+                { name = "Insight Reference", location = "Reference 4" },
             },
         },
     },
@@ -336,10 +345,10 @@ return {
         archive = "Core Archive",
         entries = {
             { "Core Rules", "Rulebook" },
-            { "Age Reference", "Reference" },
-            { "Intimacy Reference", "Reference" },
-            { "Bold Reference", "Reference" },
-            { "Insight Reference", "Reference" },
+            { "Age Reference", "References" },
+            { "Intimacy Reference", "References" },
+            { "Bold Reference", "References" },
+            { "Insight Reference", "References" },
 
             { "Core Abilities", "Abilities" },
             { "Core Fighting Arts", "Fighting Arts" },

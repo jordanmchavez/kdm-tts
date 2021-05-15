@@ -1,45 +1,50 @@
 local Check = require("Kdm/Util/Check")
+local Expansion = require("Kdm/Expansion")
 local log = require("Kdm/Log").ForModule("Terrain")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local Terrain_data = {}
-local Terrain_tileSizes = {}
+local Terrain = {}
 
 ---------------------------------------------------------------------------------------------------
 
-local function Terrain_Init(modules, saveState, expansions)
-    for _, expansion in ipairs(expansions) do
-        for terrain, data in pairs(expansion.terrain or {}) do
-            assert(Check(Terrain_data[terrain] == nil, "Terrain %s is already registered with data %s", terrain, Terrain_data[terrain]))
-            Terrain_data[terrain] = data
+function Terrain.Init()
+    Terrain.dataByName = {}
+    Terrain.tileSizesByName = {}
+    for _, expansion in ipairs(Expansion.All()) do
+        for name, data in pairs(expansion.terrain or {}) do
+            assert(Check(not Terrain.dataByName[name], "Terrain %s is already registered", name))
+            Terrain.dataByName[name] = data
         end
 
         for terrainTile, size in pairs(expansion.terrainTileSizes or {}) do
-            assert(Check(Terrain_tileSizes[terrainTile] == nil, "Terrain tile %s is already registered with size %s", terrainTile, Terrain_tileSizes[terrainTile]))
-            Terrain_tileSizes[terrainTile] = size
+            assert(Check, not Terrain.tileSizesByName[terrainTile], "Terrain tile %s is already registered", terrainTile)
+            Terrain.tileSizesByName[terrainTile] = size
         end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Terrain_Data(terrain)
-    local data = Terrain_data[terrain]
-    assert(Check(data, "Unrecognized terrain '%s", terrain))
+function Terrain.Data(name)
+    local data = Terrain.dataByName[name]
+    assert(Check(data, "Unrecognized terrain '%s", name))
     return data
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Terrain_TileSize(terrainTile)
-    return Terrain_tileSizes[terrainTile]
+function Terrain.TileSize(name)
+    local tileSize = Terrain.tileSizesByName[name]
+    assert(Check(tileSize, "Unrecognized terrain tile '%s'", name))
+    return tileSize
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = Terrain_Init,
-    Data = Terrain_Data,
-    TileSize = Terrain_TileSize,
+    Init = Terrain.Init,
+    Data = Terrain.Data,
+    TileSize = Terrain.TileSize
 }

@@ -37,45 +37,61 @@ return {
                 { year = 25, type = "RulebookEvent", name = "Death of the Dragon King" },
             },
             survivalActions = {
-                { name = "Dodge" },
-                { name = "Encourage" },
-                { name = "Dash" },
-                { name = "Surge" },
+                { name = "Dodge", checked = true },
+                { name = "Encourage", checked = false },
+                { name = "Dash", checked = false },
+                { name = "Surge", checked = false },
             },
             milestones = {
                 { name = "First Birth", event = "Principle: New Life" },
                 { name = "First Death", event = "Principle: Death" },
                 { name = "15 Population", event = "Principle: Society" },
             },
-            removedInnovations = {
-                "Language",
-                "Lantern Oven - Ammonia Consequence",
-                "Family - Hovel Consequence",
-                "Clan of Death - Family Consequence",
-            },
-            startingInnovations = {
-                { name = "Dragon Speech", location = "Innovation 1" },
-            },
-            startingInnovationDeck = {
-                "Ammonia - Language Consequence",
-                "Drums - Language Consequence",
-                "Hovel - Language Consequence",
-                "Inner Lantern - Language Consequence",
-                "Paint - Language Consequence",
-                "Symposium - Language Consequence",
-            },
-            startingSettlementLocations = {
-                { name = "Throne", location = "Settlement Location 1" },
+            objectsByLocation = {
+                ["Innovation Deck"] = { tag = "Deck", name = "Innovation Deck", type = "Innovations", faceDown = true, cards = {
+                    { name = "Ammonia - Language Consequence", type = "Innovations" },
+                    { name = "Drums - Language Consequence", type = "Innovations" },
+                    { name = "Hovel - Language Consequence", type = "Innovations" },
+                    { name = "Inner Lantern - Language Consequence", type = "Innovations" },
+                    { name = "Paint - Language Consequence", type = "Innovations" },
+                    { name = "Symposium - Language Consequence", type = "Innovations" },
+                } },
+                ["Principle: Death"] = { tag = "Deck", name = "Principle: Death", type = "Innovations", faceDown = true, cards = {
+                    { name = "Cannibalize - Death Principle", type = "Innovations" },
+                    { name = "Graves - Death Principle", type = "Innovations" },
+                } },
+                ["Principle: New Life"] = { tag = "Deck", name = "Principle: New Life", type = "Innovations", faceDown = true, cards = {
+                    { name = "Protect the Young - New Life Principle", type = "Innovations" },
+                    { name = "Survival of the Fittest - New Life Principle", type = "Innovations" },
+                } },
+                ["Principle: Society"] = { tag = "Deck", name = "Principle: Society", type = "Innovations", faceDown = true, cards = {
+                    { name = "Accept Darkness - Society Principle", type = "Innovations" },
+                    { name = "Collective Toil - Society Principle", type = "Innovations" },
+                } },
+                ["Principle: Conviction"] = { tag = "Deck", name = "Principle: Conviction", type = "Innovations", faceDown = true, cards = {
+                    { name = "Barbaric - Conviction Principle", type = "Innovations" },
+                    { name = "Romantic - Conviction Principle", type = "Innovations" },
+                } },
+                ["Innovation 1"] = { tag = "Card", name = "Dragon Speech", type = "Innovations" },
+                ["Settlement Location 1"] = { tag = "Card", name = "Throne", type = "Settlement Locations" },
             },
             references = {
-                { name = "Constellations Reference", location = "Misc Reference" },
-                { name = "Age Reference", location = "Age Reference" },
-                { name = "Intimacy (People of the Stars) Reference", location = "Intimacy Reference"  },
-                { name = "Awake (Courage) Reference", location = "Bold Reference"  },
-                { name = "Awake (Understanding) Reference", location = "Insight Reference" },
+                { name = "Age Reference", location = "Reference 1" },
+                { name = "Intimacy (People of the Stars) Reference", location = "Reference 2" },
+                { name = "Awake (Courage) Reference", location = "Reference 3" },
+                { name = "Awake (Understanding) Reference", location = "Reference 4" },
+                { name = "Constellations Reference", location = "Reference 5" },
             },
-            customSpawns = {
+            misc = {
                 { name = "Constellations", type = "Abilities", position = { x = 110.875267, y = 4, z = -62.095192 }, rotation = { x = 0, y = 180, z = 180 } },
+            },
+            remove = {
+                ["Innovation Archive"] = {
+                    "Language",
+                    "Lantern Oven - Ammonia Consequence",
+                    "Family - Hovel Consequence",
+                    "Clan of Death - Family Consequence",
+                },
             },
         },
     },
@@ -132,10 +148,10 @@ return {
             { "Dragon King Rules", "Rulebook" },
 
             { "Constellations", "Abilities" },
-            { "Constellations Reference", "Reference" },
-            { "Intimacy (People of the Stars) Reference", "Reference" },
-            { "Awake (Courage) Reference", "Reference" },
-            { "Awake (Understanding) Reference", "Reference" },
+            { "Constellations Reference", "References" },
+            { "Intimacy (People of the Stars) Reference", "References" },
+            { "Awake (Courage) Reference", "References" },
+            { "Awake (Understanding) Reference", "References" },
 
             { "Dragon King Abilities", "Abilities" },
             { "Dragon King Fighting Arts", "Fighting Arts" },

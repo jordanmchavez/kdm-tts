@@ -1,0 +1,203 @@
+local Check = require("Kdm/Util/Check")
+local EventManager = require("Kdm/Util/EventManager")
+local Location = require("Kdm/Location")
+local log = require("Kdm/Log").ForModule("Monster")
+local NamedObject = require("Kdm/NamedObject")
+local Ui = require("Kdm/Ui")
+local Util = require("Kdm/Util/Util")
+
+---------------------------------------------------------------------------------------------------
+
+local Monster = {}
+
+Monster.STATS = {
+    ["movement"] = true,
+    ["toughness"] = true,
+    ["damage"] = true,
+    ["speed"] = true,
+    ["accuracy"] = true,
+    ["evasion"] = true,
+    ["luck"] = true,
+}
+
+Monster.TOKEN_STATS = {
+    ["Movement Token"] = "movement",
+    ["Toughness Token"] = "toughness",
+    ["Damage Token"] = "damage",
+    ["Speed Token"] = "speed",
+    ["Accuracy Token"] = "accuracy",
+    ["Evasion Token"] = "evasion",
+    ["Luck Token"] = "luck",
+}
+
+---------------------------------------------------------------------------------------------------
+
+
+function Monster.Init(saveState)
+    Monster.boardObject = NamedObject.Get("Showdown Board")
+
+    Monster.stats = {}
+    Monster.tokenStats = {}
+    for stat, _ in pairs(Monster.STATS) do
+        Monster.stats[stat] = saveState[stat] or 0
+        Monster.tokenStats[stat] = 0
+    end
+
+    -----------------------------------------------------------------------------------------------
+
+    local ui = Ui.Create3d("Monster", Monster.boardObject, 10.74)
+    Monster.ui = ui
+
+    Monster.statCounters = {}
+    local x = -6.264187
+    local xEnd = -6.628941
+    local width = xEnd - x
+    local y1 = 1.288212
+    local y1End = 1.649527
+    local height = y1End - y1
+    local y7 = 4.921028
+    local dy = (y7 - y1) / 6
+    for i, stat in ipairs({
+        "movement",
+        "toughness",
+        "damage",
+        "speed",
+        "accuracy",
+        "evasion",
+        "luck",
+    }) do
+        local y = y1 + (i - 1) * dy
+        Monster.statCounters[stat] = ui:Counter({ id = stat, topLeft = { x = x, y = y }, bottomRight = { x = x + width, y = y + height }, fontSize = 260, text = Monster.Stat(stat), onValueChanged = function(delta)
+            Monster.SetStat(stat, Monster.stats[stat] + delta)
+        end })
+    end
+
+    ui:ApplyToObject()
+
+    -----------------------------------------------------------------------------------------------
+
+    local monsterTokensLocation = Location.Get("Monster Tokens")
+    monsterTokensLocation:AddDropHandler(function(object)
+        Monster.UpdateStats()
+    end)
+    monsterTokensLocation:AddPickUpHandler(function(object)
+        if object and object.getGMNotes() == "Tokens" and Monster.TOKEN_STATS[object.getName()] then
+            log:Debugf("Unregistering token [%s]%s for collisions", object.getGUID(), object.getName())
+            object.unregisterCollisions()
+        end
+        Monster.UpdateStats()
+    end)
+
+    EventManager.AddHandler("onObjectCollisionEnter", Monster.OnObjectCollisionEnter)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.PostInit()
+    Monster.UpdateStats()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.Save()
+    local saveState = {}
+    for stat, _ in pairs(Monster.STATS) do
+        saveState[stat] = Monster.stats[stat] or 0
+    end
+    return saveState
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.Stat(stat)
+    assert(Check(Monster.STATS[stat]))
+    return Monster.stats[stat] + Monster.tokenStats[stat]
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.SetStat(stat, value)
+    assert(Check(Monster.STATS[stat], "Unrecognized stat %s", stat))
+    assert(Check.Num(value))
+
+    log:Debugf("Setting monster stat %s to %d", stat, value)
+
+    if Monster.stats[stat] != value then
+        Monster.stats[stat] = value
+        local newValue = Monster.Stat(stat)
+        Monster.statCounters[stat]:SetText(newValue)
+        EventManager.FireEvent(EventManager.ON_MONSTER_STAT_CHANGED, stat, newValue)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.UpdateStats()
+    local tokenStats = {}
+
+    for _, object in ipairs(Location.Get("Monster Tokens"):AllObjects()) do
+        local stat = Monster.TOKEN_STATS[object.getName()]
+        if object.getGMNotes() == "Tokens" and stat then
+            local value = Util.TokenValue(object)
+            log:Debugf("Found token [%s]%s with value %d", object.getGUID(), object.getName(), value)
+            tokenStats[stat] = (tokenStats[stat] or 0) + value
+            object.registerCollisions()
+        end
+    end
+
+    Monster.UpdateTokenStats(tokenStats)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.UpdateTokenStats(tokenStats)
+    for stat, _ in pairs(Monster.STATS) do
+        local tokenStat = tokenStats[stat] or 0
+        if Monster.tokenStats[stat] != tokenStat then
+            Monster.tokenStats[stat] = tokenStat
+            local newValue = Monster.Stat(stat)
+            log:Debugf("Updating monster stat %s to %d", stat, newValue)
+            Monster.statCounters[stat]:SetText(newValue)
+            EventManager.FireEvent(EventManager.ON_MONSTER_STAT_CHANGED, stat, newValue)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Monster.OnObjectCollisionEnter(object, collisionInfo)
+    -- This is a hack to detect flipped tokens
+    -- There's no onFlip event, and flipping doesn't trigger onPickUp, so we rely on this to detect flips
+    -- of *already registered* tokens.
+
+    local collisionObject = collisionInfo.collision_object
+    if collisionObject != Monster.boardObject then
+        return
+    end
+
+    log:Debugf("[%s]%s collided with [%s]%s", object.getGUID(), object.getName(), collisionObject.getGUID(), collisionObject.getName())
+
+    local monsterTokensLocation = Location.Get("Monster Tokens")
+    for _, location in ipairs(Location.ObjectLocations(object)) do
+        if location == monsterTokensLocation then
+            log:Debugf("Token [%s]%s found in %s, updating stats", object.getGUID(), object.getName(), location)
+            Monster.UpdateStats()
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init      = Monster.Init,
+    PostInit  = Monster.PostInit,
+    Save      = Monster.Save,
+    Movement  = function() return Monster.Stat("movement") end,
+    Toughness = function() return Monster.Stat("toughness") end,
+    Damage    = function() return Monster.Stat("damage") end,
+    Speed     = function() return Monster.Stat("speed") end,
+    Accuracy  = function() return Monster.Stat("accuracy") end,
+    Evasion   = function() return Monster.Stat("evasion") end,
+    Luck      = function() return Monster.Stat("luck") end,
+    SetStat   = Monster.SetStat,
+}

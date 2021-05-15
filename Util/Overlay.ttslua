@@ -1,5 +1,5 @@
 local Check = require("Kdm/Util/Check")
-local Grid = require("Kdm/Grid")
+local Grid = require("Kdm/Util/Grid")
 local log = require("Kdm/Log").ForModule("Overlay")
 local Util = require("Kdm/Util/Util")
 
@@ -8,13 +8,14 @@ local Util = require("Kdm/Util/Util")
 local OverlayClass = {}
 OverlayClass.__index = OverlayClass
 
-local function Overlay_Create(params)
+---------------------------------------------------------------------------------------------------
+
+function OverlayClass.Create(params)
     assert(Check.Object(params.object))
     assert(Grid.Is(params.grid))
     assert(Check.Num(params.height))
 
     local overlay = {
-        tag = "Overlay",
         object = params.object,
         grid = params.grid,
         height = params.height,
@@ -26,10 +27,10 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Overlay_Dud() end
+local function Overlay_Dud() end
 
-local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
-    local grid = overlay.grid
+function OverlayClass:ClampAndAddRect(left, top, width, height, color)
+    local grid = self.grid
 
     -- inclusive
     local right = left + width - 1
@@ -49,9 +50,9 @@ local function Overlay_ClampAndAddRect(overlay, left, top, width, height, color)
     local centerCol = left + (right - left) / 2
     local centerRow = top + (bottom - top) / 2
     local x, z = grid:XZ(centerCol, centerRow)
-    local l = overlay.object.positionToLocal(grid:Object().positionToWorld({ x, overlay.height, z }))
+    local l = self.object.positionToLocal(grid:Object().positionToWorld({ x, self.height, z }))
     local squareSize = 10900    -- this depends on the size/scale of the underlying object, it should be a parameter not hard-coded
-    overlay.object.createButton({
+    self.object.createButton({
         function_owner = self,
         position = { x = -l.x, y = l.y, z = l.z },
         scale = { x = 0.1, y = 0.1, z = 0.1 },
@@ -66,13 +67,13 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function OverlayClass.Show(overlay, position, baseSize, radius, color)
+function OverlayClass:Show(position, baseSize, radius, color)
     assert(Check.Vec3(position, "position"))
     assert(Check.Num(baseSize, "baseSize"))
     assert(Check.Num(radius, "radius"))
     assert(Check.Color(color, "color"))
 
-    overlay:Hide()
+    self:Hide()
 
     -- the movement overlay looks like a diamond
     -- we want to draw this diamond using as few squares as possible, since each square must be represented by a button
@@ -80,8 +81,8 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
     -- all of the following math is to construct the smallest number of squares for a given movement overlay.
     -- there's one big central square, then rectangles on the top/bottom/left/right that get progressively smaller and taper off to zero.
 
-    local localPosition = overlay.object.positionToLocal(position)
-    local centerCol, centerRow = overlay.grid:ColRow(localPosition)
+    local localPosition = self.object.positionToLocal(position)
+    local centerCol, centerRow = self.grid:ColRow(localPosition)
     log:Debugf("center: %d, %d", centerCol, centerRow)
     local baseLeft, baseTop  -- left-top corner of the figurine's base (1x1, 2x2, 3x3, etc)
     if baseSize % 2 == 0 then
@@ -105,7 +106,7 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
 
     local size = baseSize + (2 * halfRadius)
 
-    Overlay_ClampAndAddRect(overlay, bigLeft, bigTop, size, size, color)
+    self:ClampAndAddRect(bigLeft, bigTop, size, size, color)
 
     local distance = 1
     local offset = 0
@@ -115,13 +116,13 @@ function OverlayClass.Show(overlay, position, baseSize, radius, color)
     end
     while size >= baseSize do
         -- left
-        Overlay_ClampAndAddRect(overlay, bigLeft - distance, bigTop + offset, 1, size, color)
+        self:ClampAndAddRect(bigLeft - distance, bigTop + offset, 1, size, color)
         -- top
-        Overlay_ClampAndAddRect(overlay, bigLeft + offset, bigTop - distance, size, 1, color)
+        self:ClampAndAddRect(bigLeft + offset, bigTop - distance, size, 1, color)
         -- right
-        Overlay_ClampAndAddRect(overlay, bigRight + distance, bigTop + offset, 1, size, color)
+        self:ClampAndAddRect(bigRight + distance, bigTop + offset, 1, size, color)
         -- bottom
-        Overlay_ClampAndAddRect(overlay, bigLeft + offset, bigBottom + distance, size, 1, color)
+        self:ClampAndAddRect(bigLeft + offset, bigBottom + distance, size, 1, color)
 
         size = size - 2
         distance = distance + 1
@@ -131,10 +132,13 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function OverlayClass.Hide(overlay)
-    overlay.object.clearButtons()
+function OverlayClass:Hide()
+    self.object.clearButtons()
 end
 
 ---------------------------------------------------------------------------------------------------
 
-return Overlay_Create
+return {
+    Create = OverlayClass.Create,
+    Is = function(x) return getmetatable(x) == OverlayClass end,
+}

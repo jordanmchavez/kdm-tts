@@ -39,41 +39,51 @@ return {
                 { year = 25, type = "RulebookEvent", name = "The Great Devourer" },
             },
             survivalActions = {
-                { name = "Dodge" },
-                { name = "Embolden" },
-                { name = "Dash" },
-                { name = "Overcharge" },
+                { name = "Dodge", checked = true },
+                { name = "Embolden", checked = false },
+                { name = "Dash", checked = false },
+                { name = "Overcharge", checked = false },
             },
             milestones = {
                 { name = "First Death", event = "Principle: Death" },
                 { name = "15 Population", event = "Principle: Society" },
                 { name = "8 Innovations", event = "Edged Tonometry" },
             },
-            removedFightingArts = { "Leader" },
-            removedInnovations = { "Language", "Inner Lantern - Language Consequence" },
-            startingInnovations = {
-                { name = "Sun Language", location = "Innovation 1" },
-            },
-            startingInnovationDeck = {
-                "Ammonia - Language Consequence",
-                "Drums - Language Consequence",
-                "Hovel - Language Consequence",
-                "Paint - Language Consequence",
-                "Symposium - Language Consequence",
-                "Hands of the Sun", -- may be a typo, but Hands of the Sun doesn't actually have "language consequence" on the card
-            },
-            startingPrinciples = {
-                { name = "Survival of the Fittest - New Life Principle", location = "Principle: New Life" },
-            },
-            startingSettlementLocations = {
-                { name = "The Sun", location = "Settlement Location 1" },
-                { name = "Sacred Pool", location = "Settlement Location 2" },
+            objectsByLocation = {
+                ["Innovation Deck"] = { tag = "Deck", name = "Innovation Deck", type = "Innovations", faceDown = true, cards = {
+                    { name = "Ammonia - Language Consequence", type = "Innovations" },
+                    { name = "Drums - Language Consequence", type = "Innovations" },
+                    { name = "Hovel - Language Consequence", type = "Innovations" },
+                    { name = "Hands of the Sun", type = "Innovations" },
+                    { name = "Paint - Language Consequence", type = "Innovations" },
+                    { name = "Symposium - Language Consequence", type = "Innovations" },
+                } },
+                ["Principle: Death"] = { tag = "Deck", name = "Principle: Death", type = "Innovations", faceDown = true, cards = {
+                    { name = "Cannibalize - Death Principle", type = "Innovations" },
+                    { name = "Graves - Death Principle", type = "Innovations" },
+                } },
+                ["Principle: Society"] = { tag = "Deck", name = "Principle: Society", type = "Innovations", faceDown = true, cards = {
+                    { name = "Accept Darkness - Society Principle", type = "Innovations" },
+                    { name = "Collective Toil - Society Principle", type = "Innovations" },
+                } },
+                ["Principle: Conviction"] = { tag = "Deck", name = "Principle: Conviction", type = "Innovations", faceDown = true, cards = {
+                    { name = "Barbaric - Conviction Principle", type = "Innovations" },
+                    { name = "Romantic - Conviction Principle", type = "Innovations" },
+                } },
+                ["Innovation 1"] = { tag = "Card", name = "Sun Language", type = "Innovations" },
+                ["Principle: New Life"] = { tag = "Card", name = "Survival of the Fittest - New Life Principle", type = "Innovations" },
+                ["Settlement Location 1"] = { tag = "Card", name = "The Sun", type = "Settlement Locations" },
+                ["Settlement Location 2"] = { tag = "Card", name = "Sacred Pool", type = "Settlement Locations" },
             },
             references = {
-                { name = "Age Reference", location = "Age Reference" },
-                { name = "Intimacy (People of the Sun) Reference", location = "Intimacy Reference" },
-                { name = "Bold Reference", location = "Bold Reference" },
-                { name = "Insight Reference", location = "Insight Reference" },
+                { name = "Age Reference", location = "Reference 1" },
+                { name = "Intimacy (People of the Sun) Reference", location = "Reference 2" },
+                { name = "Bold Reference", location = "Reference 3" },
+                { name = "Insight Reference", location = "Reference 4" },
+            },
+            remove = {
+                ["Fighting Arts"] = { "Leader" },
+                ["Innovation Archive"] = { "Language", "Inner Lantern - Language Consequence" },
             },
         },
     },
@@ -133,7 +143,7 @@ return {
         entries = {
             { "Sunstalker Rules", "Rulebook" },
 
-            { "Intimacy (People of the Sun) Reference", "Reference"},
+            { "Intimacy (People of the Sun) Reference", "References"},
 
             { "Sunstalker Abilities", "Abilities" },
             { "Sunstalker Fighting Arts", "Fighting Arts" },
@@ -160,7 +170,7 @@ return {
             { "Sunstalker Hunt Events", "Monster Hunt Events" },
             { "Sky Fishing", "Special Hunt Events" },
 
-            { "Shades", "AI" },
+            { "Shades", "Minion Figurine" },
             { "Sunstalker Info", "AI" },
             { "Sunstalker Basic Action", "AI" },
             { "Sunstalker Basic AI", "AI" },
@@ -250,6 +260,14 @@ return {
         },
     },
 
+    minions = {
+        {
+            name = "Shade",
+            movement = 4,
+            size = { x = 1, y = 1 },
+        }
+    },
+
     monsters = {
         {
             name = "Sunstalker",
@@ -267,7 +285,7 @@ return {
                     rotation = { x = 0, y = 180, z = 0 },
                 },
             },
-            miscObject = { name = "Shades", type = "AI" },
+            miscObject = { name = "Shades", type = "Minion Figurine" },
             fixedTerrain = {
                 {
                     terrain = "3 Stone Columns",

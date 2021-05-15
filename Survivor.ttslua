@@ -1,39 +1,1201 @@
+local Archive = require("Kdm/Archive")
 local Check = require("Kdm/Util/Check")
 local EventManager = require("Kdm/Util/EventManager")
+local Location = require("Kdm/Location")
 local log = require("Kdm/Log").ForModule("Survivor")
+local MessageBox = require("Kdm/MessageBox")
+local NamedObject = require("Kdm/NamedObject")
+local Ui = require("Kdm/Ui")
 local Util = require("Kdm/Util/Util")
 
 -------------------------------------------------------------------------------------------------
 
 local Survivor = {}
-Survivor.__index = Survivor
-function Survivor.Is(x) return getmetatable(x) == Survivor end
+
+local SurvivorClass = {}
+SurvivorClass.__index = SurvivorClass
+function SurvivorClass.Is(x) return getmetatable(x) == SurvivorClass end
+
+local SurvivorSheetClass = {}
+SurvivorSheetClass.__index = SurvivorSheetClass
+function SurvivorSheetClass.Is(x) return getmetatable(x) == SurvivorSheetClass end
+
+local SurvivorBoxClass = {}
+SurvivorBoxClass.__index = SurvivorBoxClass
+function SurvivorBoxClass.Is(x) return getmetatable(x) == SurvivorBoxClass end
+
+-------------------------------------------------------------------------------------------------
+
+Survivor.MODIFIED_STATS = {
+    movement = "modifiedMovement",
+    speed = "modifiedSpeed",
+    accuracy = "modifiedAccuracy",
+    strength = "modifiedStrength",
+    evasion = "modifiedEvasion",
+    luck = "modifiedLuck",
+}
+
+Survivor.CHECKBOX_SEQUENCE_MAXES = {
+    ["huntXp"] = 16,
+    ["courage"] = 9,
+    ["understanding"] = 9,
+    ["weaponProficiencyRank"] = 8,
+}
+
+Survivor.ALLOWED_CARD_TYPES = {
+    ["Secret Fighting Arts"] = true,
+    ["Fighting Arts"] = true,
+    ["Disorders"] = true,
+    ["Abilities"] = true,
+    ["Severe Injuries"] = true,
+    ["Weapon Proficiencies"] = true,
+    ["Player Figurine"] = true,
+}
+
+Survivor.MARKER_EMPTY = "MarkerEmpty"
+Survivor.MARKER_YELLOW_STAR = "MarkerYellowStar"
+Survivor.MARKER_GREEN_TRIANGLE = "MarkerGreenTriangle"
+Survivor.MARKER_BLUE_SQUARE = "MarkerBlueSquare"
+Survivor.MARKER_RED_CIRCLE = "MarkerRedCircle"
+Survivor.MARKER_PURPLE_DIAMOND = "MarkerPurpleDiamond"
+
+Survivor.NEXT_MARKER = {
+    [Survivor.MARKER_EMPTY] = Survivor.MARKER_YELLOW_STAR,
+    [Survivor.MARKER_YELLOW_STAR] = Survivor.MARKER_GREEN_TRIANGLE,
+    [Survivor.MARKER_GREEN_TRIANGLE] = Survivor.MARKER_BLUE_SQUARE,
+    [Survivor.MARKER_BLUE_SQUARE] = Survivor.MARKER_RED_CIRCLE,
+    [Survivor.MARKER_RED_CIRCLE] = Survivor.MARKER_PURPLE_DIAMOND,
+    [Survivor.MARKER_PURPLE_DIAMOND] = Survivor.MARKER_EMPTY,
+}
+
+Survivor.PREV_MARKER = {
+    [Survivor.MARKER_EMPTY] = Survivor.MARKER_PURPLE_DIAMOND,
+    [Survivor.MARKER_PURPLE_DIAMOND] = Survivor.MARKER_RED_CIRCLE,
+    [Survivor.MARKER_RED_CIRCLE] = Survivor.MARKER_BLUE_SQUARE,
+    [Survivor.MARKER_BLUE_SQUARE] = Survivor.MARKER_GREEN_TRIANGLE,
+    [Survivor.MARKER_GREEN_TRIANGLE] = Survivor.MARKER_YELLOW_STAR,
+    [Survivor.MARKER_YELLOW_STAR] = Survivor.MARKER_EMPTY,
+}
+
+Survivor.CUSTOM_ASSETS = {
+    {
+        name = "CheckBoxFilled",
+        url = "http://cloud-3.steamusercontent.com/ugc/1189461526463396506/7C8173ABCCC39B1FB8EB5FF188FAC0B5CF5A3F69/",
+    },
+    {
+        name = Survivor.MARKER_EMPTY,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Empty.png",
+    },
+    {
+        name = Survivor.MARKER_YELLOW_STAR,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Yellow Star.png",
+    },
+    {
+        name = Survivor.MARKER_GREEN_TRIANGLE,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Green Triangle.png",
+    },
+    {
+        name = Survivor.MARKER_BLUE_SQUARE,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Blue Square.png",
+    },
+    {
+        name = Survivor.MARKER_RED_CIRCLE,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Red Circle.png",
+    },
+    {
+        name = Survivor.MARKER_PURPLE_DIAMOND,
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Purple Diamond.png",
+    },
+    {
+        name = "IconFightingArt",
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Fighting Art Icon.png",
+    },
+    {
+        name = "IconDisorder",
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Disorder Icon.png",
+    },
+    {
+        name = "IconAbility",
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Ability Icon.png",
+    },
+    {
+        name = "IconSevereInjury",
+        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Severe Injury Icon.png",
+    },
+}
 
 -------------------------------------------------------------------------------------------------
 
 function Survivor.Init(saveState)
+    Survivor.InitSaveState(saveState)
+    Survivor.InitUi()
+    Survivor.InitEvents()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.InitSaveState(saveState)
     Survivor.nextSurvivorId = 1
 
     Survivor.survivors = {}
     Survivor.survivorsById = {}
-    for _, survivorSaveState in ipairs(saveState) do
-        local survivor = Survivor.Create(survivorSaveState)
-        Survivor.nextSurvivorId = Util.Max(Survivor.nextSurvivorId, survivor:Id() + 1)
+    for _, survivorSaveState in ipairs(saveState.survivors or {}) do
+        local survivor = SurvivorClass.Create(survivorSaveState)
+        table.insert(Survivor.survivors, survivor)
+        Survivor.survivorsById[survivor.id] = survivor
+        Survivor.nextSurvivorId = Util.Max(Survivor.nextSurvivorId, survivor.id + 1)
     end
+
+    Survivor.survivorBoxesBySurvivor = {}
+    Survivor.survivorBoxesByObject = {}
+    for _, survivorBoxSaveState in ipairs(saveState.survivorBoxes or {}) do
+        local survivor = Survivor.survivorsById[survivorBoxSaveState.survivorId]
+        if not survivor then
+            return log:Errorf("Survivor box %s was saved with non-existant survivor %d", survivorBoxSaveState.objectGuid, survivorBoxSaveState.survivorId)
+        end
+
+        local object = getObjectFromGUID(survivorBoxSaveState.objectGuid)
+        if not object then
+            return log:Errorf("Survivor %s had saved survivor box GUID %s, but that object doesn't exist. Try re-creating this survivor's sheet from the Survivor Board.", survivor:NameOrUnnamed(), survivorBoxSaveState.objectGuid)
+        end
+
+        local survivorBox = SurvivorBoxClass.Create(survivor, object)
+        Survivor.survivorBoxesBySurvivor[survivor] = survivorBox
+        Survivor.survivorBoxesByObject[object] = survivorBox
+    end
+
+    Survivor.survivorSheetsBySurvivor = {}
+    Survivor.survivorSheetsByObject = {}
+    for _, survivorSheetSaveState in ipairs(saveState.survivorSheets or {}) do
+        local survivor = Survivor.survivorsById[survivorSheetSaveState.survivorId]
+        if not survivor then
+            return log:Errorf("Survivor sheet %s was saved with non-existant survivor %d", survivorSheetSaveState.survivorSheetGuid, survivorSheetSaveState.survivorId)
+        end
+
+        local object = getObjectFromGUID(survivorSheetSaveState.objectGuid)
+        if not object then
+            return log:Errorf("Survivor %d had saved survivor sheet GUID %s, but that object doesn't exist. Try re-spawning this survivor's box from the survivor board.", survivor.id, survivorSheetSaveState.objectGuid)
+        end
+
+        local survivorSheet = SurvivorSheetClass.Create(survivor, object)
+        Survivor.survivorSheetsBySurvivor[survivor] = survivorSheet
+        Survivor.survivorSheetsByObject[object] = survivorSheet
+    end
+
+    Survivor.newSurvivorBonuses = saveState.newSurvivorBonuses
+    Survivor.page = saveState.page or 1
+    Survivor.hideLiving = saveState.hideLiving
+    Survivor.hideDead = saveState.hideDead
+    Survivor.hideSkipNextHunt = saveState.hideSkipNextHunt
+    Survivor.hideRetired = saveState.hideRetired
+    Survivor.hideYellowStar = saveState.hideYellowStar
+    Survivor.hideGreenTriangle = saveState.hideGreenTriangle
+    Survivor.hideBlueSquare = saveState.hideBlueSquare
+    Survivor.hideRedCircle = saveState.hideRedCircle
+    Survivor.hidePurpleDiamond = saveState.hidePurpleDiamond
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.InitUi()
+    Survivor.boardObject = NamedObject.Get("Survivor Board")
+
+    local ui = Ui.Create3d("survivorBoard", Survivor.boardObject, 0.6)
+    Survivor.ui = ui
+
+    Survivor.livingSurvivorsText = ui:Text({ id = "livingSurvivors", topLeft = { x = 5.284441, y = -7.640587 }, bottomRight = { x = 5.023291, y = -7.052870 }, fontSize = 220, alignment = "MiddleCenter" })
+
+    Survivor.deadSurvivorsText = ui:Text({ id = "deadSurvivors", topLeft = { x = 4.319638, y = -7.642143 }, bottomRight = { x = 4.065874, y = -7.059141 }, fontSize = 220, alignment = "MiddleCenter" })
+
+    Survivor.newSurvivorBonusesInput = ui:Input({ id = "newSurvivorBonuses", topLeft = { x = 3.778204, y = -7.33247 }, bottomRight = { x = 1.031039, y = -7.164494 }, fontSize = 80, alignment = "LowerLeft", text = Survivor.newSurvivorBonuses, onValueChanged = function(value)
+        Survivor.newSurvivorBonuses = value
+        Survivor.newSurvivorBonusesInput:SetText(value)
+    end })
+
+    Survivor.newSurvivorButton = ui:Button({ id = "newSurvivor", topLeft = { x = 0.756925, y = -7.658921 }, bottomRight = { x = -0.617333,y = -7.045891 }, onClick = function()
+        local id = Survivor.nextSurvivorId
+        Survivor.nextSurvivorId = Survivor.nextSurvivorId + 1
+        local survivor = SurvivorClass.Create({ id = id })
+        table.insert(Survivor.survivors, survivor)
+        Survivor.survivorsById[survivor.id] = survivor
+
+        Survivor.UpdateLivingDeadCounts()
+        Survivor.SetPageAndRefresh(Survivor.MaxPage())
+    end })
+
+    Survivor.clearSkipNextHuntButton = ui:Button({ id = "clearSkipNextHunt", topLeft = { x = -0.897427, y = -7.661951 }, bottomRight = { x = -2.819457, y = -7.049488 }, onClick = function()
+        for _, survivor in ipairs(Survivor.survivors) do
+            if survivor:SkipNextHunt() then
+                survivor:SetSkipNextHunt(false)
+                log:Printf("Cleared 'Skip Next Hunt' on %s", survivor:NameOrUnnamed())
+            end
+        end
+    end })
+
+    Survivor.previousPageButton = ui:Button({ id = "previousPage", topLeft = { x = -6.576738, y = -7.658603 }, bottomRight = { x = -6.846550, y = -7.060284 }, onClick = function()
+        Survivor.SetPageAndRefresh(Survivor.page - 1)
+    end })
+
+    Survivor.pageText = ui:Text({ id = "page", topLeft = { x = -6.846550, y = -7.658603 }, bottomRight = { x = -7.783247, y = -7.040886 }, fontSize = 160, alignment = "MiddleCenter" })
+
+    Survivor.nextPageButton = ui:Button({ id = "nextPage", topLeft = { x = -7.783247, y = -7.662317 }, bottomRight = { x = -8.049563, y = -7.040886 }, onClick = function()
+        Survivor.SetPageAndRefresh(Survivor.page + 1)
+    end })
+
+    local hideButtons = {
+        Living = { topLeft = { x = 6.963151, y = 7.208137 }, bottomRight = { x = 6.771221, y = 7.645597 } },
+        Dead = { topLeft = { x = 5.844892, y = 7.202434 }, bottomRight = { x = 5.652242, y = 7.643736 } },
+        SkipNextHunt = { topLeft = { x = 4.765475, y = 7.211676 }, bottomRight = { x = 4.574671, y = 7.644533 } },
+        Retired = { topLeft = { x = 2.946023, y = 7.215670 }, bottomRight = { x = 2.755053, y = 7.645678 } },
+        YellowStar = { topLeft = { x = 1.748184, y = 7.208223 }, bottomRight = { x = 1.556422, y = 7.639410 } },
+        GreenTriangle = { topLeft = { x = 0.734323, y = 7.214246 }, bottomRight = { x = 0.539239, y = 7.645326 } },
+        BlueSquare = { topLeft = { x = -0.292644, y = 7.217496 }, bottomRight = { x = -0.487164, y = 7.649194 } },
+        RedCircle = { topLeft = { x = -1.291453, y = 7.216863 }, bottomRight = { x = -1.484272, y = 7.650930 } },
+        PurpleDiamond = { topLeft = { x = -2.282465, y = 7.207262 }, bottomRight = { x = -2.476591, y = 7.642169 } },
+    }
+    for suffix, data in pairs(hideButtons) do
+        local attr = "hide"..suffix
+        local cb = attr.."CheckBox"
+        Survivor[cb] = ui:CheckBox({ id = attr, topLeft = data.topLeft, bottomRight = data.bottomRight, checked = Survivor[attr], onClick = function()
+            Survivor[attr] = not Survivor[attr]
+            Survivor[cb]:Check(Survivor[attr])
+            Survivor.SetPageAndRefresh(1)
+        end })
+    end
+
+    Survivor.cells = {}
+    for i = 1, 20 do
+        local cell = {
+            object = NamedObject.Get("Survivor Board Cell "..i),
+            ordinal = i,
+        }
+        Survivor.InitSurvivorCellUi(cell)
+        Survivor.cells[i] = cell
+    end
+
+    -- total hack because the board is so large and text get weird
+    Survivor.livingSurvivorsText.attributes.scale = "0.1 0.2246487"
+    Survivor.deadSurvivorsText.attributes.scale = "0.1 0.2246487"
+    Survivor.newSurvivorBonusesInput.attributes.scale = "0.1 0.2246487"
+    Survivor.pageText.attributes.scale = "0.1 0.2246487"
+
+
+    Survivor.boardObject.UI.setCustomAssets(Survivor.CUSTOM_ASSETS)
+    Survivor.ui:ApplyToObject()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.InitSurvivorCellUi(cell)
+    local ui = Ui.Create3d("survivorCell"..cell.ordinal, cell.object, 0.11)
+    cell.ui = ui
+
+    cell.survivalCounter = ui:Counter({ id = "survival", topLeft = { x = 0.488679, y = -0.960464 }, bottomRight = { x = 0.294088, y = -0.766285 }, fontSize = 140, text = 0, onValueChanged = function(delta)
+        cell.survivor:SetSurvival(cell.survivor:Survival() + delta)
+    end })
+
+    cell.insanityCounter = ui:Counter({ id = "insanity", topLeft = { x = -0.293847, y = -0.964120 }, bottomRight = { x = -0.489293, y = -0.764670 }, fontSize = 140, text = 0, onValueChanged = function(delta)
+        cell.survivor:SetInsanity(cell.survivor:Insanity() + delta)
+    end })
+
+    for stat, data in pairs({
+        ["movement"] = { topLeft = { x = 0.237461, y = -0.963491 }, bottomRight = { x = 0.098091, y = -0.824870 } },
+        ["speed"] = { topLeft = { x = 0.070339, y = -0.964019 }, bottomRight = { x = -0.069972, y = -0.823512 } },
+        ["accuracy"] = { topLeft = { x = -0.095285, y = -0.960736 }, bottomRight = { x = -0.235804, y = -0.823606 } },
+        ["strength"] = { topLeft = { x = 0.238673, y = -0.745258 }, bottomRight = { x = 0.097487, y = -0.610387 } },
+        ["evasion"] = { topLeft = { x = 0.068523, y = -0.746108 }, bottomRight = { x = -0.068570, y = -0.609721 } },
+        ["luck"] = { topLeft = { x = -0.097451, y = -0.747023 }, bottomRight = { x = -0.236673, y = -0.608649 } },
+    }) do
+        cell[stat.."Counter"] = ui:Counter({ id = stat, topLeft = data.topLeft, bottomRight = data.bottomRight, fontSize = 90, onValueChanged = function(delta)
+            cell.survivor:SetModified(stat, cell.survivor[stat] + delta)
+        end })
+    end
+
+    cell.markerButton = ui:Button({ id = "marker", topLeft = { x = 0.490351, y = -0.667075 }, bottomRight = { x = 0.295514, y = -0.556129 }, colors = Ui.IMAGE_COLORS, onClick = function(button)
+        local value = cell.survivor:Marker() or Survivor.MARKER_EMPTY
+        if button == Ui.LEFT_MOUSE_BUTTON then
+            value = Survivor.NEXT_MARKER[value]
+        else
+            value = Survivor.PREV_MARKER[value]
+        end
+        cell.survivor:SetMarker(value)
+    end })
+
+    cell.nameInput = ui:Input({ id = "name", topLeft = { x = 0.374686, y = -0.555475 }, bottomRight = { x = -0.492332, y = -0.471773 }, fontSize = 60, placeholder = "Unnamed Survivor", onValueChanged = function(value)
+        cell.survivor:SetName(value)
+    end })
+
+    local smallCheckBoxSize = 0.0352955
+    local bigCheckBoxSize = 0.04039
+
+    for stat, topLeft in pairs({
+        ["male"] = { x = 0.488708, y = -0.450130 },
+        ["female"] = { x = 0.391058, y = -0.451183 },
+        ["reroll"] = { x = 0.301735, y = -0.448962 },
+        ["skipNextHunt"] = { x = 0.097530, y = -0.451439 },
+        ["retired"] = { x = -0.156637, y = -0.451290 },
+        ["dead"] = { x = -0.334745, y = -0.450177 },
+    }) do
+        cell[stat.."CheckBox"] = ui:CheckBox({ id = stat, topLeft = topLeft, bottomRight = { x = topLeft.x - smallCheckBoxSize, y = topLeft.y + smallCheckBoxSize }, onClick = function()
+            cell.survivor:SetBool(stat, not cell.survivor[stat])
+        end })
+    end
+
+    for stat, seq in pairs({
+        ["huntXp"] = {
+            { topLeft = { x = 0.312961, y = -0.358888 }, big = false },
+            { topLeft = { x = 0.260530, y = -0.362141 }, big = true },
+            { topLeft = { x = 0.205214, y = -0.358888 }, big = false },
+            { topLeft = { x = 0.158189, y = -0.358888 }, big = false },
+            { topLeft = { x = 0.111091, y = -0.358888 }, big = false },
+            { topLeft = { x = 0.060947, y = -0.362141 }, big = true },
+            { topLeft = { x = 0.004465, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.043838, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.089868, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.138367, y = -0.362141 }, big = true },
+            { topLeft = { x = -0.195562, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.242767, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.290438, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.336773, y = -0.358888 }, big = false },
+            { topLeft = { x = -0.386495, y = -0.362141 }, big = true },
+            { topLeft = { x = -0.447584, y = -0.362141 }, big = true },
+        },
+        ["courage"] = {
+            { topLeft = { x = 0.489029, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.440906, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.391424, y = -0.209982 }, big = true },
+            { topLeft = { x = 0.335180, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.287784, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.240546, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.193479, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.146031, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.096573, y = -0.209982 }, big = true },
+        },
+        ["understanding"] = {
+            { topLeft = { x = 0.489029 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.440906 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.391424 + -0.542864, y = -0.209982 }, big = true },
+            { topLeft = { x = 0.335180 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.287784 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.240546 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.193479 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.146031 + -0.542864, y = -0.207650 }, big = false },
+            { topLeft = { x = 0.096573 + -0.542864, y = -0.209982 }, big = true },
+        },
+        ["weaponProficiencyRank"] = {
+            { topLeft = { x = 0.488380, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.441384, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.391489, y = -0.060015  }, big = true },
+            { topLeft = { x = 0.335152, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.288189, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.240844, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.194179, y = -0.056321 }, big = false },
+            { topLeft = { x = 0.143038, y = -0.060015  }, big = true },
+        }
+    }) do
+        for i, data in ipairs(seq) do
+            local bottomRight = { x = data.topLeft.x, y = data.topLeft.y }
+            if data.big then
+                bottomRight.x = bottomRight.x - bigCheckBoxSize
+                bottomRight.y = bottomRight.y + bigCheckBoxSize
+            else
+                bottomRight.x = bottomRight.x - smallCheckBoxSize
+                bottomRight.y = bottomRight.y + smallCheckBoxSize
+            end
+
+            local stati = stat..i
+            cell[stati.."CheckBox"] = ui:CheckBox({ id = stati, topLeft = data.topLeft, bottomRight = bottomRight, onClick = function()
+                local value = i
+                if cell.survivor[stat] >= i then
+                    value = value - 1
+                end
+                cell.survivor:SetNum(stat, value)
+            end })
+        end
+    end
+
+    cell.weaponProficiencyTypeInput = ui:Input({ id = "weaponProficiencyType", topLeft = { x = -0.054834, y = -0.064679 }, bottomRight = { x = -0.490963, y = -0.017972 }, fontSize = 40, onValueChanged = function(value)
+        cell.survivor:SetWeaponProficiencyType(value)
+    end })
+
+    local image1TopLeft = { x = 0.492351, y = 0.091029 }
+    local image1BottomRight = { x = 0.446708, y = 0.136740 }
+    local image14TopLeft = { x = 0.001845, y = 0.426968 }
+    local imageWidth = image1BottomRight.x - image1TopLeft.x
+    local imageHeight = image1BottomRight.y - image1TopLeft.y
+    local imageColDelta = image14TopLeft.x - image1TopLeft.x
+    local imageRowDelta = (image14TopLeft.y - image1TopLeft.y) / 6
+    local textOffset = -0.01
+    for col = 1, 2 do
+        local x = image1TopLeft.x + ((col - 1) * imageColDelta)
+        for row = 1, 7 do
+            local y = image1TopLeft.y + ((row - 1) * imageRowDelta)
+            local i = ((col - 1) * 7) + row
+            cell["card"..i.."Image"] = ui:Image({
+                id = "card"..i,
+                topLeft = { x = x , y = y },
+                bottomRight = { x = x + imageWidth, y = y + imageHeight },
+            })
+            cell["card"..i.."Text"] = ui:Text({
+                id = "card"..i,
+                topLeft = { x = x + imageWidth + textOffset, y = y },
+                bottomRight = { x = x + imageColDelta, y = y + imageHeight },
+                fontSize = 40,
+                alignment = "MiddleLeft",
+            })
+        end
+    end
+
+    for i, data in pairs({
+        { topLeft = { x = 0.494516, y = 0.550233 }, bottomRight = { x = -0.491173, y = 0.594320 } },
+        { topLeft = { x = 0.494516, y = 0.609200 }, bottomRight = { x = -0.491173, y = 0.654265 } },
+        { topLeft = { x = 0.494516, y = 0.668215 }, bottomRight = { x = -0.491173, y = 0.713223 } },
+        { topLeft = { x = 0.494516, y = 0.727703 }, bottomRight = { x = -0.491173, y = 0.773722 } },
+        { topLeft = { x = 0.494516, y = 0.787172 }, bottomRight = { x = -0.491173, y = 0.833688 } },
+    }) do
+        cell["notes"..i.."Input"] = ui:Input({ id = "notes"..i, topLeft = data.topLeft, bottomRight = data.bottomRight, fontSize = 30, onValueChanged = function(value)
+            cell.survivor["SetNotes"..i](cell.survivor, value)
+        end })
+    end
+
+    cell.moveToBeginningButton = ui:Button({ id = "moveToBeginning", topLeft = { x = 0.490387, y = 0.862018 }, bottomRight = { x = 0.392043, y = 0.960771 }, onClick = function()
+        Survivor.MoveBefore(cell.survivor, Survivor.SurvivorsMatchingCurrentFilters()[1])
+        Survivor.SetPageAndRefresh(Survivor.page)
+    end })
+
+    cell.moveBackButton = ui:Button({ id = "moveBack", topLeft = { x = 0.368695, y = 0.863741 }, bottomRight = { x = 0.271971, y = 0.959538 }, onClick = function()
+        local index = ((Survivor.page - 1) * 20) + cell.ordinal
+        Survivor.MoveBefore(cell.survivor, Survivor.SurvivorsMatchingCurrentFilters()[index - 1])
+        Survivor.SetPageAndRefresh(math.ceil((index - 1) / 20))
+    end })
+
+    cell.spawnButton = ui:Button({ id = "spawn", topLeft = { x = 0.246005, y = 0.862302 }, bottomRight = { x = 0.011954, y = 0.962470 }, onClick = function()
+        Survivor.SpawnSurvivorBox(cell.survivor, "Survivor Box Spawn")
+    end })
+
+    cell.deleteButton = ui:Button({ id = "delete", topLeft = { x = -0.013713, y = 0.860059 }, bottomRight = { x = -0.252386, y = 0.958966 }, onClick = function()
+        Survivor.DestroySurvivor(cell.survivor)
+    end })
+
+    cell.moveForwardButton = ui:Button({ id = "moveForward", topLeft = { x = -0.274279, y = 0.857828 }, bottomRight = { x = -0.369863, y = 0.959786 }, onClick = function()
+        local index = ((Survivor.page - 1) * 20) + cell.ordinal
+        Survivor.MoveAfter(cell.survivor, Survivor.SurvivorsMatchingCurrentFilters()[index + 1])
+        Survivor.SetPageAndRefresh(math.ceil((index + 1) / 20))
+    end })
+
+    cell.moveToEndButton = ui:Button({ id = "moveToEnd", topLeft = { x = -0.392412, y = 0.860326 }, bottomRight = { x = -0.492170, y = 0.961336 }, onClick = function()
+        local survivors = Survivor.SurvivorsMatchingCurrentFilters()
+        Survivor.MoveAfter(cell.survivor, survivors[#survivors])
+        Survivor.SetPageAndRefresh(Survivor.page)
+    end })
+
+    cell.object.UI.setCustomAssets(Survivor.CUSTOM_ASSETS)
+    cell.ui:ApplyToObject()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.InitEvents()
+    EventManager.AddHandler("onObjectDestroy", function(object)
+        local survivorBox = Survivor.survivorBoxesByObject[object]
+        if survivorBox then
+            log:Debugf("%s was destroyed", survivorBox)
+            Survivor.survivorBoxesBySurvivor[survivorBox.survivor] = nil
+            Survivor.survivorBoxesByObject[object] = nil
+            return
+        end
+
+        local survivorSheet = Survivor.survivorSheetsByObject[object]
+        if survivorSheet then
+            log:Debugf("%s was destroyed", survivorSheet)
+            Survivor.survivorSheetsBySurvivor[survivorSheet.survivor] = nil
+            Survivor.survivorSheetsByObject[object] = nil
+            return
+        end
+    end)
+
+    EventManager.AddHandler("onObjectEnterContainer", function(container, object)
+        local survivorBox = Survivor.survivorBoxesByObject[container]
+        if survivorBox then
+            survivorBox:UpdateCards()
+        end
+    end)
+
+    EventManager.AddHandler("onObjectLeaveContainer", function(container, object)
+        local survivorBox = Survivor.survivorBoxesByObject[container]
+        if survivorBox then
+            survivorBox:UpdateCards()
+        end
+    end)
+
+    EventManager.AddHandler("tryObjectEnterContainer", function(container, object, previousReturnValue)
+        if previousReturnValue == false then
+            return false
+        end
+
+        if Survivor.survivorBoxesByObject[object]  then
+            log:Printf("Survivor boxes cannot be put into containers.")
+            return false
+        end
+
+        if Survivor.survivorBoxesByObject[container] and not Survivor.ALLOWED_CARD_TYPES[object.getGMNotes()] then
+            log:Printf("Only Fighting Arts, Disorders, Abilities, and Impairments can go into survivor boxes.")
+            return false
+        end
+
+        return true
+    end)
+
+    EventManager.AddHandler(EventManager.ON_SURVIVOR_STAT_CHANGED, function(survivor, stat, value)
+        if stat == "name" then
+            local survivorBox = Survivor.survivorBoxesBySurvivor[survivor]
+            if survivorBox then
+                survivorBox:SetName(value)
+            end
+        end
+
+        if stat == "dead" then
+            Survivor.UpdateLivingDeadCounts()
+        end
+
+        if stat == "dead" or stat == "retired" or stat == "skipNextHunt" or stat == "marker" then
+            Survivor.SetPageAndRefresh(Util.Min(Survivor.MaxPage(), Survivor.page))
+        end
+
+        local survivorSheet = Survivor.survivorSheetsBySurvivor[survivor]
+        if survivorSheet then
+            local updater = Survivor.statUpdaters[stat]
+            if updater then
+                log:Debugf("%s %s changed to %s", survivor, stat, value)
+                updater(survivorSheet, stat, value)
+            end
+        end
+
+        for _, cell in ipairs(Survivor.cells) do
+            if cell.survivor == survivor then
+                local updater = Survivor.statUpdaters[stat]
+                if updater then  -- some stats don't have UI
+                    updater(cell, stat, value)
+                    break
+                end
+            end
+        end
+    end)
+
+    EventManager.AddHandler(EventManager.ON_SURVIVOR_CARDS_CHANGED, function(survivor)
+        for _, cell in ipairs(Survivor.cells) do
+            if cell.survivor == survivor then
+                Survivor.UpdateCellCards(cell)
+            end
+        end
+    end)
 end
 
 -------------------------------------------------------------------------------------------------
 
-function Survivor.Create(params)
-    params = params or {}
+function Survivor.PostInit()
+    Survivor.UpdateLivingDeadCounts()
+    Survivor.SetPageAndRefresh(Survivor.page)
+end
 
-    if not params.id then
-        params.id = Survivor.nextSurvivorId
-        Survivor.nextSurvivorId = Survivor.nextSurvivorId + 1
+---------------------------------------------------------------------------------------------------
+
+function Survivor.Save()
+    local survivors = {}
+    for _, survivor in ipairs(Survivor.survivors) do
+        table.insert(survivors, survivor:Save())
     end
 
+    local survivorBoxes = {}
+    for _, survivorBox in pairs(Survivor.survivorBoxesBySurvivor) do
+        table.insert(survivorBoxes, survivorBox:Save())
+    end
+
+    local survivorSheets = {}
+    for _, survivorSheet in pairs(Survivor.survivorSheetsBySurvivor) do
+        table.insert(survivorSheets, survivorSheet:Save())
+    end
+
+    return {
+        survivors = survivors,
+        survivorBoxes = survivorBoxes,
+        survivorSheets = survivorSheets,
+
+        newSurvivorBonuses = Survivor.newSurvivorBonuses,
+        page = Survivor.page,
+        hideLiving = Survivor.hideLiving,
+        hideDead = Survivor.hideDead,
+        hideSkipNextHunt = Survivor.hideSkipNextHunt,
+        hideRetired = Survivor.hideRetired,
+        hideYellowStar = Survivor.hideYellowStar,
+        hideGreenTriangle = Survivor.hideGreenTriangle,
+        hideBlueSquare = Survivor.hideBlueSquare,
+        hideRedCircle = Survivor.hideRedCircle,
+        hidePurpleDiamond = Survivor.hidePurpleDiamond,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.Import(data)
+    for object, _ in pairs(Survivor.survivorBoxesByObject) do
+        object.destruct()
+    end
+    Survivor.survivorBoxesBySurvivor = {}
+    Survivor.survivorBoxesByObject = {}
+
+    for object, survivorSheet in pairs(Survivor.survivorSheetsByObject) do
+        object.destruct()
+    end
+    Survivor.survivorSheetsBySurvivor = {}
+    Survivor.survivorSheetsByObject = {}
+
+    Survivor.InitSaveState(data)
+
+    Survivor.UpdateLivingDeadCounts()
+    Survivor.SetPageAndRefresh(Survivor.page)
+end
+
+-------------------------------------------------------------------------------------------------
+
+-- same as save except we don't include physical objects: sheets and boxes
+function Survivor.Export()
+    local survivors = {}
+    for _, survivor in ipairs(Survivor.survivors) do
+        table.insert(survivors, survivor:Save())
+    end
+
+    return {
+        survivors = survivors,
+
+        newSurvivorBonuses = Survivor.newSurvivorBonuses,
+        page = Survivor.page,
+        hideLiving = Survivor.hideLiving,
+        hideDead = Survivor.hideDead,
+        hideSkipNextHunt = Survivor.hideSkipNextHunt,
+        hideRetired = Survivor.hideRetired,
+        hideYellowStar = Survivor.hideYellowStar,
+        hideGreenTriangle = Survivor.hideGreenTriangle,
+        hideBlueSquare = Survivor.hideBlueSquare,
+        hideRedCircle = Survivor.hideRedCircle,
+        hidePurpleDiamond = Survivor.hidePurpleDiamond,
+    }
+end
+
+-------------------------------------------------------------------------------------------------
+
+function Survivor.UpdateLivingDeadCounts()
+    local numLiving = 0
+    local numDead = 0
+    for _, survivor in ipairs(Survivor.survivors) do
+        if survivor:Dead() then
+            numDead = numDead + 1
+        else
+            numLiving = numLiving + 1
+        end
+    end
+
+    Survivor.livingSurvivorsText:SetText(numLiving)
+    Survivor.deadSurvivorsText:SetText(numDead)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.SurvivorsMatchingCurrentFilters()
+    local survivors = {}
+
+    for i, survivor in ipairs(Survivor.survivors) do
+        local hideSurvivor = (
+            (Survivor.hideLiving and not survivor:Dead()) or
+            (Survivor.hideDead and survivor:Dead()) or
+            (Survivor.hideSkipNextHunt and survivor:SkipNextHunt()) or
+            (Survivor.hideRetired and survivor:Retired()) or
+            (Survivor.hideYellowStar and survivor:Marker() == Survivor.MARKER_YELLOW_STAR) or
+            (Survivor.hideGreenTriangle and survivor:Marker() == Survivor.MARKER_GREEN_TRIANGLE) or
+            (Survivor.hideBlueSquare and survivor:Marker() == Survivor.MARKER_BLUE_SQUARE) or
+            (Survivor.hideRedCircle and survivor:Marker() == Survivor.MARKER_RED_CIRCLE) or
+            (Survivor.hidePurpleDiamond and survivor:Marker() == Survivor.MARKER_PURPLE_DIAMOND)
+        )
+        if not hideSurvivor then
+            table.insert(survivors, survivor)
+        end
+    end
+
+    return survivors
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.MaxPage()
+    return Util.Max(1, math.ceil(#Survivor.SurvivorsMatchingCurrentFilters() / 20))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.SetPageAndRefresh(page)
+    local survivors = Survivor.SurvivorsMatchingCurrentFilters()
+
+    local maxPage = Util.Max(1, math.ceil(#survivors / 20))
+    if page < 1 then
+        log:Debugf("Capping page to 1")
+        page = 1
+    elseif page > maxPage then
+        log:Debugf("Capping page to maxPage=%d", maxPage)
+        page = maxPage
+    end
+
+    Survivor.page = page
+
+    local baseIndex = (page - 1) * 20
+    local numSurvivorsOnPage = Util.Min(baseIndex + 20, #survivors) - baseIndex
+
+    log:Debugf("Found %d survivors on page %d", numSurvivorsOnPage, page)
+
+    for i = 1, numSurvivorsOnPage do
+        Survivor.ShowCell(Survivor.cells[i], survivors[baseIndex + i])
+    end
+    for i = numSurvivorsOnPage + 1, 20 do
+        Survivor.HideCell(Survivor.cells[i])
+    end
+
+    Survivor.pageText:SetText("Page "..page.."/"..maxPage)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.MoveBefore(survivor, beforeSurvivor)
+    if not beforeSurvivor or survivor == beforeSurvivor then
+        return
+    end
+
+    local survivorIndex = nil
+    local beforeSurvivorIndex = nil
+    for i, s in ipairs(Survivor.survivors) do
+        if s == survivor then
+            survivorIndex = i
+        elseif s == beforeSurvivor then
+            beforeSurvivorIndex = i
+        end
+    end
+
+    assert(Check(survivorIndex != nil))
+    assert(Check(beforeSurvivorIndex != nil))
+
+    table.insert(Survivor.survivors, beforeSurvivorIndex, Survivor.survivors[survivorIndex])
+    if survivorIndex < beforeSurvivorIndex then
+        table.remove(Survivor.survivors, survivorIndex)
+    else
+        table.remove(Survivor.survivors, survivorIndex + 1)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.MoveAfter(survivor, afterSurvivor)
+    if not afterSurvivor or survivor == afterSurvivor then
+        return
+    end
+
+    local survivorIndex = nil
+    local afterSurvivorIndex = nil
+    for i, s in ipairs(Survivor.survivors) do
+        if s == survivor then
+            survivorIndex = i
+        elseif s == afterSurvivor then
+            afterSurvivorIndex = i
+        end
+    end
+
+    assert(Check(survivorIndex != nil))
+    assert(Check(afterSurvivorIndex != nil))
+
+    table.insert(Survivor.survivors, afterSurvivorIndex + 1, Survivor.survivors[survivorIndex])
+    if survivorIndex < afterSurvivorIndex then
+        table.remove(Survivor.survivors, survivorIndex)
+    else
+        table.remove(Survivor.survivors, survivorIndex + 1)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.CanDestroySurvivor(survivor)
+    local survivorBox = Survivor.survivorBoxesBySurvivor[survivor]
+    if survivorBox then
+        log:Broadcastf("Please delete survivor box first.")
+        Util.Highlight(survivorBox.object)
+        return
+    end
+
+    local survivorSheet = Survivor.survivorSheetsBySurvivor[survivor]
+    if survivorSheet then
+        log:Broadcastf("Please return survivor to settlement first.")
+        Util.Highlight(survivorSheet.object)
+        return
+    end
+
+    return true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.DestroySurvivor(survivor)
+    if not Survivor.CanDestroySurvivor(survivor) then
+        return
+    end
+
+    MessageBox.Show(Util.SafeFormat("Are you sure you want to delete '%s'", survivor:NameOrUnnamed()), function()
+        -- We have to check again for the pathological case of spawning a box/sheet while the message box is up
+        if not Survivor.CanDestroySurvivor(survivor) then
+            return
+        end
+
+        for i, s in ipairs(Survivor.survivors) do
+            if s == survivor then
+                table.remove(Survivor.survivors, i)
+                Survivor.survivorsById[survivor.id] = nil
+
+                log:Printf("Deleted survivor %s", survivor:NameOrUnnamed())
+
+                Survivor.UpdateLivingDeadCounts()
+                Survivor.SetPageAndRefresh(Util.Min(Survivor.MaxPage(), Survivor.page))
+
+                EventManager.FireEvent(EventManager.ON_SURVIVOR_DESTROYED, survivor)
+            end
+        end
+
+        log:Debugf("Survivor %s not found, it must have already been deleted", survivor)
+    end)
+end
+
+---------------------------------------------------------------------------------------------------
+
+-- to generate cell positions:
+-- local notes = ""
+-- for i = 1, 20 do
+--     local pos = Survivor.cells[i].object.getPosition()
+--     notes = notes..string.format("{ x = %f, y = %f, z = %f },\n", pos.x, pos.y, pos.z)
+-- end
+-- setNotes(notes)
+
+Survivor.CELL_POSITIONS = {
+    { x = -44.897339, y = 3.424418, z = -87.435417 },
+    { x = -34.916607, y = 3.424421, z = -87.436218 },
+    { x = -24.935480, y = 3.424424, z = -87.436760 },
+    { x = -14.954360, y = 3.424428, z = -87.437302 },
+    { x = -4.973239, y = 3.424431, z = -87.437851 },
+    { x = 5.007882, y = 3.424434, z = -87.438400 },
+    { x = 14.989003, y = 3.424437, z = -87.438942 },
+    { x = 24.970661, y = 3.424440, z = -87.439453 },
+    { x = 34.951500, y = 3.424444, z = -87.440254 },
+    { x = 44.932381, y = 3.424447, z = -87.440941 },
+    { x = -44.898739, y = 3.424458, z = -105.875778 },
+    { x = -34.917610, y = 3.424461, z = -105.876328 },
+    { x = -24.936489, y = 3.424464, z = -105.876877 },
+    { x = -14.955368, y = 3.424467, z = -105.877419 },
+    { x = -4.974248, y = 3.424470, z = -105.877968 },
+    { x = 5.006873, y = 3.424474, z = -105.878510 },
+    { x = 14.987995, y = 3.424477, z = -105.879059 },
+    { x = 24.969114, y = 3.424480, z = -105.879601 },
+    { x = 34.950699, y = 3.424483, z = -105.880150 },
+    { x = 44.931355, y = 3.424486, z = -105.880692 },
+}
+
+function Survivor.ShowCell(cell, survivor)
+    log:Debugf("Showing cell %d with survivor %s", cell.ordinal, survivor)
+
+    if cell.survivor == survivor then
+        log:Debugf("Cell %d already has survivor %s", cell.ordinal, survivor)
+        return
+    end
+
+    cell.survivor = survivor
+
+    cell.markerButton:SetImage(survivor:Marker() or Survivor.MARKER_EMPTY)
+
+    -- counters
+    cell.survivalCounter:SetText(survivor:Survival())
+    cell.insanityCounter:SetText(survivor:Insanity())
+    cell.movementCounter:SetText(survivor:Movement())
+    cell.speedCounter:SetText(survivor:Speed())
+    cell.accuracyCounter:SetText(survivor:Accuracy())
+    cell.strengthCounter:SetText(survivor:Strength())
+    cell.evasionCounter:SetText(survivor:Evasion())
+    cell.luckCounter:SetText(survivor:Luck())
+
+    -- inputs
+    cell.nameInput:SetText(survivor:Name())
+    cell.weaponProficiencyTypeInput:SetText(survivor:WeaponProficiencyType())
+    cell.notes1Input:SetText(survivor:Notes1())
+    cell.notes2Input:SetText(survivor:Notes2())
+    cell.notes3Input:SetText(survivor:Notes3())
+    cell.notes4Input:SetText(survivor:Notes4())
+    cell.notes5Input:SetText(survivor:Notes5())
+
+    -- checkboxes
+    cell.maleCheckBox:Check(survivor:Male())
+    cell.femaleCheckBox:Check(survivor:Female())
+    cell.rerollCheckBox:Check(survivor:Reroll())
+    cell.skipNextHuntCheckBox:Check(survivor:SkipNextHunt())
+    cell.retiredCheckBox:Check(survivor:Retired())
+    cell.deadCheckBox:Check(survivor:Dead())
+
+    -- checkbox sequences
+    for stat, max in pairs(Survivor.CHECKBOX_SEQUENCE_MAXES) do
+        local value = Util.Min(survivor[stat], max)
+        for i = 1, value do
+            cell[stat..i.."CheckBox"]:Check(true)
+        end
+        for i = value + 1, max do
+            cell[stat..i.."CheckBox"]:Check(false)
+        end
+    end
+
+    Survivor.UpdateCellCards(cell)
+
+    cell.object.setScale({ x = 9.01, y = 1, z = 9.01 })
+    cell.object.setRotation({ x = 0, y = 180, z = 0 })
+    cell.object.setPosition(Survivor.CELL_POSITIONS[cell.ordinal])
+end
+
+---------------------------------------------------------------------------------------------------
+Survivor.ICONS_BY_TYPE = {
+    ["Secret Fighting Arts"] = "IconFightingArt",
+    ["Fighting Arts"] = "IconFightingArt",
+    ["Disorders"] = "IconDisorder",
+    ["Abilities"] = "IconAbility",
+    ["Severe Injuries"] = "IconSevereInjury",
+}
+
+function Survivor.UpdateCellCards(cell)
+    local cardsByType = {
+        ["Abilities"] = {},
+        ["Disorders"] = {},
+        ["Fighting Arts"] = {},
+        ["Secret Fighting Arts"] = {},
+        ["Severe Injuries"] = {},
+    }
+    for _, card in ipairs(cell.survivor:Cards()) do
+        if cardsByType[card.type] then
+            table.insert(cardsByType[card.type], card)
+        end
+    end
+
+    for i = 1, 14 do
+        cell["card"..i.."Text"]:Hide()
+        cell["card"..i.."Image"]:Hide()
+    end
+
+    local function PickIndex(list1, list2)
+        local i = nil
+        if #list1 > 0 then
+            i = list1[#list1]
+            table.remove(list1)
+        elseif #list2 > 0 then
+            i = list2[#list2]
+            table.remove(list2)
+        end
+        return i
+    end
+
+    -- we pick starting from the end
+    local left = { 7, 6, 5, 4, 3, 2, 1 }
+    local right = { 14, 13, 12, 11, 10, 9, 8 }
+
+    -- prefer left
+    for _, type in ipairs({ "Fighting Arts", "Secret Fighting Arts", "Abilities" }) do
+        for _, card in ipairs(cardsByType[type]) do
+            local i = PickIndex(left, right)
+            if i then
+                log:Debugf("Picked %d for %s/%s", i, card.name, card.type)
+
+                local text = cell["card"..i.."Text"]
+                text:SetText(card.name)
+                text:Show()
+
+                local image = cell["card"..i.."Image"]
+                image:SetImage(Survivor.ICONS_BY_TYPE[card.type])
+                image:Show()
+            end
+        end
+    end
+
+    -- prefer right
+    for _, type in ipairs({ "Disorders", "Severe Injuries" }) do
+        for _, card in ipairs(cardsByType[type]) do
+            local i = PickIndex(right, left)
+            if i then
+                log:Debugf("Picked %d for %s/%s", i, card.name, card.type)
+
+                local text = cell["card"..i.."Text"]
+                text:SetText(card.name)
+                text:Show()
+
+                local image = cell["card"..i.."Image"]
+                image:SetImage(Survivor.ICONS_BY_TYPE[card.type])
+                image:Show()
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.HideCell(cell)
+    log:Debugf("Hiding cell %d", cell.ordinal)
+    cell.object.setScale({ x = 0.01, y = 0.01, z = 0.01 })
+    cell.object.setRotation({ x = 0, y = 180, z = 0 })
+    local pos = Survivor.CELL_POSITIONS[cell.ordinal]
+    cell.object.setPosition({ x = pos.x, y = 0, z = pos.z })
+    cell.survivor = nil
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.UpdateInputStat(thing, stat, value)
+    thing[stat.."Input"]:SetText(value)
+end
+
+function Survivor.UpdateCheckBoxStat(thing, stat, value)
+    thing[stat.."CheckBox"]:Check(value)
+end
+
+function Survivor.UpdateCounterStat(thing, stat, value)
+    -- pure hack since sheets update on modified stats while cells update on regular stats
+    local counter = thing[stat.."Counter"]
+    if counter then
+        thing[stat.."Counter"]:SetText(value)
+    end
+end
+
+function Survivor.UpdateCheckBoxSequenceStat(thing, stat, value)
+    for i = 1, value do
+        thing[stat..i.."CheckBox"]:Check(true)
+    end
+    for i = value + 1, Survivor.CHECKBOX_SEQUENCE_MAXES[stat] do
+        thing[stat..i.."CheckBox"]:Check(false)
+    end
+end
+
+Survivor.statUpdaters = {
+    ["name"] = Survivor.UpdateInputStat,
+    ["weaponProficiencyType"] = Survivor.UpdateInputStat,
+    ["notes1"] = Survivor.UpdateInputStat,
+    ["notes2"] = Survivor.UpdateInputStat,
+    ["notes3"] = Survivor.UpdateInputStat,
+    ["notes4"] = Survivor.UpdateInputStat,
+    ["notes5"] = Survivor.UpdateInputStat,
+
+    ["brainInjury"] = Survivor.UpdateCheckBoxStat,
+    ["male"] = Survivor.UpdateCheckBoxStat,
+    ["female"] = Survivor.UpdateCheckBoxStat,
+    ["reroll"] = Survivor.UpdateCheckBoxStat,
+    ["skipNextHunt"] = Survivor.UpdateCheckBoxStat,
+    ["retired"] = Survivor.UpdateCheckBoxStat,
+    ["dead"] = Survivor.UpdateCheckBoxStat,
+
+    ["survival"] = Survivor.UpdateCounterStat,
+    ["insanity"] = Survivor.UpdateCounterStat,
+    ["movement"] = Survivor.UpdateCounterStat,
+    ["speed"] = Survivor.UpdateCounterStat,
+    ["accuracy"] = Survivor.UpdateCounterStat,
+    ["strength"] = Survivor.UpdateCounterStat,
+    ["evasion"] = Survivor.UpdateCounterStat,
+    ["luck"] = Survivor.UpdateCounterStat,
+    ["modifiedMovement"] = Survivor.UpdateCounterStat,
+    ["modifiedSpeed"] = Survivor.UpdateCounterStat,
+    ["modifiedAccuracy"] = Survivor.UpdateCounterStat,
+    ["modifiedStrength"] = Survivor.UpdateCounterStat,
+    ["modifiedEvasion"] = Survivor.UpdateCounterStat,
+    ["modifiedLuck"] = Survivor.UpdateCounterStat,
+
+    ["huntXp"] = Survivor.UpdateCheckBoxSequenceStat,
+    ["courage"] = Survivor.UpdateCheckBoxSequenceStat,
+    ["understanding"] = Survivor.UpdateCheckBoxSequenceStat,
+    ["weaponProficiencyRank"] = Survivor.UpdateCheckBoxSequenceStat,
+
+    ["marker"] = function(thing, _, value)
+        thing.markerButton:SetImage(value or Survivor.MARKER_EMPTY)
+    end,
+}
+
+---------------------------------------------------------------------------------------------------
+
+function Survivor.SpawnSurvivorBox(survivor, location)
+    location = Location.Get(location)
+
+    local survivorBox = Survivor.survivorBoxesBySurvivor[survivor]
+    if survivorBox then
+        Util.Highlight(survivorBox.object)
+        Util.LookAt({ object = survivorBox.object })
+        return
+    end
+
+    local survivorSheet = Survivor.survivorSheetsBySurvivor[survivor]
+    if survivorSheet then
+        Util.Highlight(survivorSheet.object)
+        Util.LookAt({ object = survivorSheet.object })
+        return
+    end
+
+    local blocking = location:BoxClean({ size = { x = 6, y = 5, z = 6 } })
+    if #blocking > 0 then
+        log:Broadcastf("Please move the highlighted objects out of the way and try again.")
+        Util.HighlightAll(blocking)
+        location:LookAt()
+        return
+    end
+
+    Archive.Take({
+       name = "Survivor Box",
+       type = "Survivor Box",
+       location = location,
+       rotation = { x = 0, y = 180, z = 0 },
+       spawnFunc = function(survivorBoxObject)
+           local survivorBox = SurvivorBoxClass.Create(survivor, survivorBoxObject)
+           Survivor.survivorBoxesBySurvivor[survivor] = survivorBox
+           Survivor.survivorBoxesByObject[survivorBoxObject] = survivorBox
+
+
+           log:Debugf("Created survivor box %s for survivor %s", survivorBoxObject.getGUID(), survivor)
+
+           -- Custom model boxes are mad sketchy the turn they come into play: they're treated as "Generic" not "Boxes" for 1 frame
+           Wait.frames(function()
+               -- Copy the cards table since we need to clear survivor cards before putting them into the box
+               local cardsToSpawn = {}
+               for _, card in ipairs(survivor:Cards()) do
+                   table.insert(cardsToSpawn, card)
+               end
+               log:Debugf("%s cards to spawn: %s", survivor, cardsToSpawn)
+
+
+               log:Debugf("Clearing %s cards", survivor)
+               survivor:SetCards({})
+
+               -- Spawn all cards
+               local height = 3
+               for _, card in ipairs(cardsToSpawn) do
+                   Archive.Take({ archive = card.type.." Archive", name = card.name, type = card.type, location = location, height = height, spawnFunc = function(cardObject)
+                       survivorBoxObject.putObject(cardObject)
+                   end})
+                   height = height + 0.5
+
+                   -- Must clean up after each Take() since a survivor could have more than one of the same card
+                   Archive.Clean()
+               end
+
+               Util.LookAt({ object = survivorBoxObject })
+           end, 1)
+       end,
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorClass.Create(params)
+    assert(Check.Num(params.id))
+
     local survivor = {
-        tag = "Survivor",
         id = params.id,
         name = params.name,
         marker = params.marker,
@@ -71,240 +1233,142 @@ function Survivor.Create(params)
         notes4 = params.notes4,
         notes5 = params.notes5,
         cards = params.cards or {},
+        positionsByCardNameType = params.positionsByCardNameType or {},
     }
-    setmetatable(survivor, Survivor)
+    setmetatable(survivor, SurvivorClass)
 
-    table.insert(Survivor.survivors, survivor)
-    Survivor.survivorsById[survivor:Id()] = survivor
-
-    log:Debugf("Created new survivor %d", survivor:Id())
-
-    EventManager.FireEvent(EventManager.ON_SURVIVOR_CREATED, survivor)
+    log:Debugf("Created new %s", survivor)
 
     return survivor
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor.Destroy(survivor)
-    local index = nil
-    for i, s in ipairs(Survivor.survivors) do
-        if s == survivor then
-            index = i
-            break
-        end
-    end
-
-    if not index then
-        return log:Debugf("Survivor %s not found, it must have already been deleted", survivor)
-    end
-
-    table.remove(Survivor.survivors, i)
-    Survivor.survivorsById[survivor:Id()] = nil
-
-    log:Printf("Deleted survivor %s", survivor:NameOrUnnamed())
-
-    EventManager.FireEvent(EventManager.ON_SURVIVOR_DESTROYED, survivor)
+function SurvivorClass:__tostring()
+    return Util.SafeFormat("SurvivorClass{id=%s,name=%s}", self.id, self:NameOrUnnamed())
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor.Save(survivor)
-    local saveState = {}
-    for _, survivor in ipairs(Survivor.survivors) do
-        table.insert(saveState, {
-            id = survivor.id,
-            name = survivor.name,
-            male = survivor.male,
-            female = survivor.female,
-            reroll = survivor.reroll,
-            skipNextHunt = survivor.skipNextHunt,
-            retired = survivor.retired,
-            dead = survivor.dead,
-            marker = survivor.marker,
-            survival = survivor.survival,
-            movement = survivor.movement,
-            speed = survivor.speed,
-            accuracy = survivor.accuracy,
-            strength = survivor.strength,
-            evasion = survivor.evasion,
-            luck = survivor.luck,
-            huntXp = survivor.huntXp,
-            insanity = survivor.insanity,
-            brainInjury = survivor.brainInjury,
-            courage = survivor.courage,
-            understanding = survivor.understanding,
-            weaponProficiencyType = survivor.weaponProficiencyType,
-            weaponProficiencyRank = survivor.weaponProficiencyRank,
-            notes1 = survivor.notes1,
-            notes2 = survivor.notes2,
-            notes3 = survivor.notes3,
-            notes4 = survivor.notes4,
-            notes5 = survivor.notes5,
-            cards = survivor.cards,
-        })
-    end
-    return saveState
-end
-
----------------------------------------------------------------------------------------------------
-
-function Survivor.Import(saveState)
-    Survivor.Init(saveState)
-end
-
----------------------------------------------------------------------------------------------------
-
-function Survivor.Export()
-    return Survivor.Save()
-end
-
----------------------------------------------------------------------------------------------------
-
-function Survivor.MoveBefore(survivor, beforeSurvivor)
-    if survivor == beforeSurvivor then
-        return
-    end
-
-    local survivorIndex = nil
-    local beforeSurvivorIndex = nil
-    for i, s in ipairs(Survivor.survivors) do
-        if s == survivor then
-            survivorIndex = i
-        elseif s == beforeSurvivor then
-            beforeSurvivorIndex = i
-        end
-    end
-
-    assert(Check(survivorIndex != nil))
-    assert(Check(beforeSurvivorIndex != nil))
-
-    table.insert(Survivor.survivors, beforeSurvivorIndex, Survivor.survivors[survivorIndex])
-    if survivorIndex < beforeSurvivorIndex then
-        table.remove(Survivor.survivors, survivorIndex)
-    else
-        table.remove(Survivor.survivors, survivorIndex + 1)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function Survivor.MoveAfter(survivor, afterSurvivor)
-    if survivor == afterSurvivor then
-        return
-    end
-
-    local survivorIndex = nil
-    local afterSurvivorIndex = nil
-    for i, s in ipairs(Survivor.survivors) do
-        if s == survivor then
-            survivorIndex = i
-        elseif s == afterSurvivor then
-            afterSurvivorIndex = i
-        end
-    end
-
-    assert(Check(survivorIndex != nil))
-    assert(Check(afterSurvivorIndex != nil))
-
-    table.insert(Survivor.survivors, afterSurvivorIndex + 1, Survivor.survivors[survivorIndex])
-    if survivorIndex < afterSurvivorIndex then
-        table.remove(Survivor.survivors, survivorIndex)
-    else
-        table.remove(Survivor.survivors, survivorIndex + 1)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-function Survivor:__tostring()
-    return Util.SafeFormat("Survivor{id=%s,name=%s}", self.id, self:NameOrUnnamed())
+function SurvivorClass:Save()
+    return {
+        id = self.id,
+        name = self.name,
+        male = self.male,
+        female = self.female,
+        reroll = self.reroll,
+        skipNextHunt = self.skipNextHunt,
+        retired = self.retired,
+        dead = self.dead,
+        marker = self.marker,
+        survival = self.survival,
+        movement = self.movement,
+        speed = self.speed,
+        accuracy = self.accuracy,
+        strength = self.strength,
+        evasion = self.evasion,
+        luck = self.luck,
+        huntXp = self.huntXp,
+        insanity = self.insanity,
+        brainInjury = self.brainInjury,
+        courage = self.courage,
+        understanding = self.understanding,
+        weaponProficiencyType = self.weaponProficiencyType,
+        weaponProficiencyRank = self.weaponProficiencyRank,
+        notes1 = self.notes1,
+        notes2 = self.notes2,
+        notes3 = self.notes3,
+        notes4 = self.notes4,
+        notes5 = self.notes5,
+        cards = self.cards,
+        positionsByCardNameType = self.positionsByCardNameType,
+    }
 end
 
 -------------------------------------------------------------------------------------------------
 
-function Survivor:Id() return self.id end
+function SurvivorClass:Id() return self.id end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:FireStatChangeEvent(stat, value)
+function SurvivorClass:FireStatChangeEvent(stat, value)
     log:Debugf("Firing self stat change event for %s", stat)
-    EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGE, self, stat, value)
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGED, self, stat, value)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:SetStr(stat, value)
+function SurvivorClass:SetStr(stat, value)
     assert(Check.Str(value))
     log:Debugf("Setting %s to %s for %s", stat, value, self)
     self[stat] = value
     self:FireStatChangeEvent(stat, value)
 end
 
-function Survivor:Name() return self.name end
-function Survivor:NameOrUnnamed() return (self.name and self.name != "") and self.name or "Unnamed Survivor" end
-function Survivor:SetName(value) self:SetStr("name", value) end
+function SurvivorClass:Name() return self.name end
+function SurvivorClass:NameOrUnnamed() return (self.name and self.name != "") and self.name or "Unnamed Survivor" end
+function SurvivorClass:SetName(value) self:SetStr("name", value) end
 
-function Survivor:Marker() return self.marker end
-function Survivor:SetMarker(value) self:SetStr("marker", value) end
+function SurvivorClass:Marker() return self.marker end
+function SurvivorClass:SetMarker(value) self:SetStr("marker", value) end
 
-function Survivor:WeaponProficiencyType() return self.weaponProficiencyType end
-function Survivor:SetWeaponProficiencyType(value) self:SetStr("weaponProficiencyType", value) end
+function SurvivorClass:WeaponProficiencyType() return self.weaponProficiencyType end
+function SurvivorClass:SetWeaponProficiencyType(value) self:SetStr("weaponProficiencyType", value) end
 
-function Survivor:Notes1() return self.notes1 end
-function Survivor:SetNotes1(value) self:SetStr("notes1", value) end
+function SurvivorClass:Notes1() return self.notes1 end
+function SurvivorClass:SetNotes1(value) self:SetStr("notes1", value) end
 
-function Survivor:Notes2() return self.notes2 end
-function Survivor:SetNotes2(value) self:SetStr("notes2", value) end
+function SurvivorClass:Notes2() return self.notes2 end
+function SurvivorClass:SetNotes2(value) self:SetStr("notes2", value) end
 
-function Survivor:Notes3() return self.notes3 end
-function Survivor:SetNotes3(value) self:SetStr("notes3", value) end
+function SurvivorClass:Notes3() return self.notes3 end
+function SurvivorClass:SetNotes3(value) self:SetStr("notes3", value) end
 
-function Survivor:Notes4() return self.notes4 end
-function Survivor:SetNotes4(value) self:SetStr("notes4", value) end
+function SurvivorClass:Notes4() return self.notes4 end
+function SurvivorClass:SetNotes4(value) self:SetStr("notes4", value) end
 
-function Survivor:Notes5() return self.notes5 end
-function Survivor:SetNotes5(value) self:SetStr("notes5", value) end
+function SurvivorClass:Notes5() return self.notes5 end
+function SurvivorClass:SetNotes5(value) self:SetStr("notes5", value) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:GetModified(stat) return self[stat] + self.modifiers[stat] end
-function Survivor:GetUnmodified(stat) return self[stat] end
-function Survivor:SetModified(stat, value)
+function SurvivorClass:GetModified(stat) return self[stat] + self.modifiers[stat] end
+function SurvivorClass:GetUnmodified(stat) return self[stat] end
+function SurvivorClass:SetModified(stat, value)
     assert(Check.Num(value))
     log:Debugf("Setting %s to %d for %s", stat, value, self)
     self[stat] = value
     self:FireStatChangeEvent(stat, value)
-    self:FireStatChangeEvent(stat.."Modified", self[stat] + self.modifiers[stat])
+    self:FireStatChangeEvent(Survivor.MODIFIED_STATS[stat], self[stat] + self.modifiers[stat])
 end
 
-function Survivor:Movement() return self:GetUnmodified("movement") end
-function Survivor:ModifiedMovement() return self:GetModified("movement") end
-function Survivor:SetMovement(value) self:SetModified("movement", value) end
+function SurvivorClass:Movement() return self:GetUnmodified("movement") end
+function SurvivorClass:ModifiedMovement() return self:GetModified("movement") end
+function SurvivorClass:SetMovement(value) self:SetModified("movement", value) end
 
-function Survivor:Speed() return self:GetUnmodified("speed") end
-function Survivor:ModifiedSpeed() return self:GetModified("speed") end
-function Survivor:SetSpeed(value) self:SetModified("speed", value) end
+function SurvivorClass:Speed() return self:GetUnmodified("speed") end
+function SurvivorClass:ModifiedSpeed() return self:GetModified("speed") end
+function SurvivorClass:SetSpeed(value) self:SetModified("speed", value) end
 
-function Survivor:Accuracy() return self:GetUnmodified("accuracy") end
-function Survivor:ModifiedAccuracy() return self:GetModified("accuracy") end
-function Survivor:SetAccuracy(value) self:SetModified("accuracy", value) end
+function SurvivorClass:Accuracy() return self:GetUnmodified("accuracy") end
+function SurvivorClass:ModifiedAccuracy() return self:GetModified("accuracy") end
+function SurvivorClass:SetAccuracy(value) self:SetModified("accuracy", value) end
 
-function Survivor:Strength() return self:GetUnmodified("strength") end
-function Survivor:ModifiedStrength() return self:GetModified("strength") end
-function Survivor:SetStrength(value) self:SetModified("strength", value) end
+function SurvivorClass:Strength() return self:GetUnmodified("strength") end
+function SurvivorClass:ModifiedStrength() return self:GetModified("strength") end
+function SurvivorClass:SetStrength(value) self:SetModified("strength", value) end
 
-function Survivor:Evasion() return self:GetUnmodified("evasion") end
-function Survivor:ModifiedEvasion() return self:GetModified("evasion") end
-function Survivor:SetEvasion(value) self:SetModified("evasion", value) end
+function SurvivorClass:Evasion() return self:GetUnmodified("evasion") end
+function SurvivorClass:ModifiedEvasion() return self:GetModified("evasion") end
+function SurvivorClass:SetEvasion(value) self:SetModified("evasion", value) end
 
-function Survivor:Luck() return self:GetUnmodified("luck") end
-function Survivor:ModifiedLuck() return self:GetModified("luck") end
-function Survivor:SetLuck(value) self:SetModified("luck", value) end
+function SurvivorClass:Luck() return self:GetUnmodified("luck") end
+function SurvivorClass:ModifiedLuck() return self:GetModified("luck") end
+function SurvivorClass:SetLuck(value) self:SetModified("luck", value) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:SetNum(stat, value, min, max)
+function SurvivorClass:SetNum(stat, value, min, max)
     assert(Check.Num(value))
     if min != nil and value < min then
         value = min
@@ -317,65 +1381,68 @@ function Survivor:SetNum(stat, value, min, max)
     self:FireStatChangeEvent(stat, value)
 end
 
-function Survivor:Survival() return self.survival end
-function Survivor:SetSurvival(value) self:SetNum("survival", value, 0) end
+function SurvivorClass:Survival() return self.survival end
+function SurvivorClass:SetSurvival(value) self:SetNum("survival", value, 0) end
 
-function Survivor:Insanity() return self.insanity end
-function Survivor:SetInsanity(value) self:SetNum("insanity", value, 0) end
+function SurvivorClass:Insanity() return self.insanity end
+function SurvivorClass:SetInsanity(value) self:SetNum("insanity", value, 0) end
 
-function Survivor:HuntXp() return self.huntXp end
-function Survivor:SetHuntXp(value) self:SetNum("huntXp", value, 0, 16) end
+function SurvivorClass:HuntXp() return self.huntXp end
+function SurvivorClass:SetHuntXp(value) self:SetNum("huntXp", value, 0, 16) end
 
-function Survivor:Courage() return self.courage end
-function Survivor:SetCourage(value) self:SetNum("courage", value, 0, 9) end
+function SurvivorClass:Courage() return self.courage end
+function SurvivorClass:SetCourage(value) self:SetNum("courage", value, 0, 9) end
 
-function Survivor:Understanding() return self.understanding end
-function Survivor:SetUnderstanding(value) self:SetNum("understanding", value, 0, 9) end
+function SurvivorClass:Understanding() return self.understanding end
+function SurvivorClass:SetUnderstanding(value) self:SetNum("understanding", value, 0, 9) end
 
-function Survivor:WeaponProficiencyRank() return self.weaponProficiencyRank end
-function Survivor:SetWeaponProficiencyRank(value) self:SetNum("weaponProficiencyRank", value, 0, 8) end
+function SurvivorClass:WeaponProficiencyRank() return self.weaponProficiencyRank end
+function SurvivorClass:SetWeaponProficiencyRank(value) self:SetNum("weaponProficiencyRank", value, 0, 8) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:SetBool(stat, value)
-    assert(Check.BoolOrNil(value))
+function SurvivorClass:SetBool(stat, value)
+    assert(Check.BooleanOrNil(value))
     log:Debugf("Setting %s to %s for %s", stat, value and "true" or "false", self)
     self[stat] = value
     self:FireStatChangeEvent(stat, value)
 end
 
-function Survivor:Dead() return self.dead end
-function Survivor:SetDead(value) self:SetBool("dead", value) end
+function SurvivorClass:Dead() return self.dead end
+function SurvivorClass:SetDead(value) self:SetBool("dead", value) end
 
-function Survivor:Retired() return self.retired end
-function Survivor:SetRetired(value) self:SetBool("retired", value) end
+function SurvivorClass:Retired() return self.retired end
+function SurvivorClass:SetRetired(value) self:SetBool("retired", value) end
 
-function Survivor:BrainInjury() return self.brainInjury end
-function Survivor:SetBrainInjury(value) self:SetBool("brainInjury", value) end
+function SurvivorClass:BrainInjury() return self.brainInjury end
+function SurvivorClass:SetBrainInjury(value) self:SetBool("brainInjury", value) end
 
-function Survivor:Male() return self.male end
-function Survivor:SetMale(value) self:SetBool("male", value) end
+function SurvivorClass:Male() return self.male end
+function SurvivorClass:SetMale(value) self:SetBool("male", value) end
 
-function Survivor:Female() return self.female end
-function Survivor:SetFemale(value) self:SetBool("female", value) end
+function SurvivorClass:Female() return self.female end
+function SurvivorClass:SetFemale(value) self:SetBool("female", value) end
 
-function Survivor:Reroll() return self.reroll end
-function Survivor:SetReroll(value) self:SetBool("reroll", value) end
+function SurvivorClass:Reroll() return self.reroll end
+function SurvivorClass:SetReroll(value) self:SetBool("reroll", value) end
 
-function Survivor:SkipNextHunt() return self.skipNextHunt end
-function Survivor:SetSkipNextHunt(value) self:SetBool("skipNextHunt", value) end
+function SurvivorClass:SkipNextHunt() return self.skipNextHunt end
+function SurvivorClass:SetSkipNextHunt(value) self:SetBool("skipNextHunt", value) end
 
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:Cards() return self.cards end
-function Survivor:SetCards(cards)
+function SurvivorClass:Cards() return self.cards end
+function SurvivorClass:SetCards(cards)
     self.cards = cards
-    EventManager.FireEvent(EventManager.ON_SURVIVOR_CARDS_CHANGE, self)
+    EventManager.FireEvent(EventManager.ON_SURVIVOR_CARDS_CHANGED, self)
 end
 
+function SurvivorClass:PositionsByCardNameType() return self.positionsByCardNameType end
+function SurvivorClass:SetPositionsByCardNameType(positionsByCardNameType) self.positionsByCardNameType = positionsByCardNameType end
+
 ---------------------------------------------------------------------------------------------------
 
-function Survivor:SetModifiers(modifiers)
+function SurvivorClass:SetModifiers(modifiers)
     modifiers = modifiers or {}
 
     for _, stat in ipairs({ "movement", "speed", "accuracy", "strength", "evasion", "luck" }) do
@@ -384,23 +1451,290 @@ function Survivor:SetModifiers(modifiers)
         local newValue = self:GetModified(stat)
         log:Debugf("Changed modified %s from %d to %d for %s", stat, oldValue, newValue, self)
         if newValue != oldValue then
-            EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGE, self, stat.."Modified", newValue)
+            EventManager.FireEvent(EventManager.ON_SURVIVOR_STAT_CHANGED, self, Survivor.MODIFIED_STATS[stat], newValue)
         end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
+function SurvivorBoxClass.Create(survivor, object)
+    assert(SurvivorClass.Is(survivor))
+    assert(Check.Object(object))
+
+    log:Debugf("Creating SurvivorBoxClass for %s", survivor)
+
+    local survivorBox = {
+        survivor = survivor,
+        object = object,
+    }
+    setmetatable(survivorBox, SurvivorBoxClass)
+
+    survivorBox.object.setName(survivor:NameOrUnnamed())
+
+    survivorBox.ui = Ui.Create3d("survivorBox"..object.getGUID(), object, 0.22)
+    survivorBox.nameText = survivorBox.ui:Text({ id = "Name", topLeft = { x = 0.946971, y = -0.948742 }, bottomRight = { x = -0.946971, y = -0.52 }, text = Util.TruncateString(survivor:NameOrUnnamed(), 20), fontSize = 180, alignment = "MiddleCenter" })
+    survivorBox.ui:ApplyToObject()
+
+
+    return survivorBox
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:__tostring()
+    return Util.SafeFormat("SurvivorBoxClass{survivor=%s,object=%s}", self.survivor:NameOrUnnamed(), self.object.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:Save()
+    return {
+        survivorId = self.survivor:Id(),
+        objectGuid = self.object.getGUID(),
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:Survivor()
+    return self.survivor
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:Object()
+    return self.object
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:SetName(name)
+    self.object.setName(name)
+    self.nameText:SetText(Util.TruncateString(name, 20))
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorBoxClass:UpdateCards()
+    local cards = {}
+    for _, objectInBox in ipairs(self.object.getObjects()) do
+        if Survivor.ALLOWED_CARD_TYPES[objectInBox.gm_notes] then
+            table.insert(cards, { name = objectInBox.name, type = objectInBox.gm_notes })
+        end
+    end
+    log:Debugf("Updated %s cards", self)
+    self.survivor:SetCards(cards)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorSheetClass.Create(survivor, object)
+    log:Debugf("Creating survivor sheet for %s and object %s", survivor, object.getGUID())
+
+    local survivorSheet = {
+        survivor = survivor,
+        object = object,
+    }
+    setmetatable(survivorSheet, SurvivorSheetClass)
+
+    local ui = Ui.Create3d("survivorSheet"..object.getGUID(), survivorSheet.object, 0.11)
+    survivorSheet.ui = ui
+
+    survivorSheet.survivalCounter = ui:Counter({ id = "survival", topLeft = { x = 0.711521, y = -0.936434 }, bottomRight = { x = 0.426820, y = -0.659977 }, fontSize = 190, text = survivor:Survival(), onValueChanged = function(delta)
+        survivorSheet.survivor:SetSurvival(survivorSheet.survivor:Survival() + delta)
+    end })
+
+    survivorSheet.insanityCounter = ui:Counter({ id = "insanity", topLeft = { x = -0.430935, y = -0.938893 }, bottomRight = { x = -0.709772, y = -0.663436 }, fontSize = 190, text = survivor:Insanity(), onValueChanged = function(delta)
+        survivorSheet.survivor:SetInsanity(survivorSheet.survivor:Insanity() + delta)
+    end })
+
+    for stat, data in pairs({
+        ["movement"] = { topLeft = { x =  0.340122, y = -0.938595 }, bottomRight = { x =  0.140848, y = -0.748847 } },
+        ["speed"]    = { topLeft = { x =  0.096356, y = -0.938595 }, bottomRight = { x = -0.094326, y = -0.748847 } },
+        ["accuracy"] = { topLeft = { x = -0.146921, y = -0.938595 }, bottomRight = { x = -0.340642, y = -0.748847 } },
+        ["strength"] = { topLeft = { x =  0.340122, y = -0.628745 }, bottomRight = { x =  0.140848, y = -0.438532 } },
+        ["evasion"]  = { topLeft = { x =  0.096356, y = -0.628745 }, bottomRight = { x = -0.094326, y = -0.438532 } },
+        ["luck"]    = { topLeft = { x =  -0.146921, y = -0.628745 }, bottomRight = { x = -0.340642, y = -0.438532 } },
+    }) do
+        survivorSheet["modified"..Util.Capitalize(stat).."Counter"] = ui:Counter({ id = stat, topLeft = data.topLeft, bottomRight = data.bottomRight, fontSize = 130, text = survivor:GetModified(stat), onValueChanged = function(delta)
+            survivorSheet.survivor:SetModified(stat, survivorSheet.survivor[stat] + delta)
+        end })
+    end
+
+    survivorSheet.markerButton = ui:Button({ id = "marker", topLeft = { x = 0.711521, y = -0.535331 }, bottomRight = { x = 0.426820, y = -0.366424 }, image = survivor.marker or Survivor.MARKER_EMPTY, onClick = function(button)
+        local value = survivorSheet.survivor:Marker() or Survivor.MARKER_EMPTY
+        if button == Ui.LEFT_MOUSE_BUTTON then
+            value = Survivor.NEXT_MARKER[value]
+        else
+            value = Survivor.PREV_MARKER[value]
+        end
+        survivorSheet.survivor:SetMarker(value)
+    end })
+
+    survivorSheet.brainInjuryCheckBox = ui:CheckBox({ id = "brainInjury", topLeft = { x = -0.520929, y = -0.527068 }, bottomRight = { x = -0.628231, y = -0.419554 }, checked = survivor.brainInjury, onClick = function()
+        local value = survivorSheet.survivor:BrainInjury()
+        survivorSheet.survivor:SetBrainInjury(not value)
+    end })
+
+    survivorSheet.nameInput = ui:Input({ id = "name", topLeft = { x = 0.532309, y = -0.344423 }, bottomRight = { x = -0.713491, y = -0.238286 }, fontSize = 80, placeholder = "Unnamed Survivor", text = survivor:Name(), onValueChanged = function(value)
+        survivorSheet.survivor:SetName(value)
+    end })
+
+    local smallCheckBoxSize = 0.055
+    local bigCheckBoxSize = 0.0623
+
+    for stat, topLeft in pairs({
+        ["male"] = { x = 0.714648, y = -0.203562 },
+        ["female"] = { x = 0.570787, y = -0.203562 },
+        ["reroll"] = { x = 0.438556, y = -0.203562 },
+        ["skipNextHunt"] = { x = 0.145875, y = -0.203562 },
+        ["retired"] = { x = -0.227551, y = -0.203562 },
+        ["dead"] = { x = -0.484378, y = -0.203562 },
+    }) do
+        survivorSheet[stat.."CheckBox"] = ui:CheckBox({ id = stat, topLeft = topLeft, bottomRight = { x = topLeft.x - smallCheckBoxSize, y = topLeft.y + smallCheckBoxSize }, checked = survivor[stat], onClick = function()
+            survivorSheet.survivor:SetBool(stat, not survivorSheet.survivor[stat])
+        end })
+    end
+
+    for stat, seq in pairs({
+        ["huntXp"] = {
+            { topLeft = { x = 0.453219, y = -0.068927 }, big = false },
+            { topLeft = { x = 0.382765, y = -0.073718 }, big = true },
+            { topLeft = { x = 0.299559, y = -0.068927 }, big = false },
+            { topLeft = { x = 0.230707, y = -0.068927 }, big = false },
+            { topLeft = { x = 0.160401, y = -0.068927 }, big = false },
+            { topLeft = { x = 0.091089, y = -0.073718 }, big = true },
+            { topLeft = { x = 0.005319, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.061338, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.132377, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.202206, y = -0.073718 }, big = true },
+            { topLeft = { x = -0.287922, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.356490, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.421105, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.489654, y = -0.068927 }, big = false },
+            { topLeft = { x = -0.559425, y = -0.073718 }, big = true },
+            { topLeft = { x = -0.646168, y = -0.073718 }, big = true },
+        },
+        ["courage"] = {
+            { topLeft = { x = 0.710780, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.640421, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.570907, y = 0.146450 }, big = true },
+            { topLeft = { x = 0.490000, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.420000, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.353000, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.285000, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.213460, y = 0.150083 }, big = false },
+            { topLeft = { x = 0.142766, y = 0.146450 }, big = true },
+        },
+        ["understanding"] = {
+            { topLeft = { x = -0.073370, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.145900, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.219752, y = 0.146450 }, big = true },
+            { topLeft = { x = -0.297472, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.366772, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.436125, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.501339, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.572758, y = 0.150083 }, big = false },
+            { topLeft = { x = -0.646109, y = 0.146450 }, big = true },
+        },
+        ["weaponProficiencyRank"] = {
+            { topLeft = { x = 0.710780, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.640421, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.570907, y = 0.364543 }, big = true },
+            { topLeft = { x = 0.490000, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.420000, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.353000, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.285000, y = 0.370248 }, big = false },
+            { topLeft = { x = 0.210000, y = 0.364543 }, big = true },
+        }
+    }) do
+        local value = survivorSheet.survivor[stat]
+        for i, data in ipairs(seq) do
+            local bottomRight = { x = data.topLeft.x, y = data.topLeft.y }
+            if data.big then
+                bottomRight.x = bottomRight.x - bigCheckBoxSize
+                bottomRight.y = bottomRight.y + bigCheckBoxSize
+            else
+                bottomRight.x = bottomRight.x - smallCheckBoxSize
+                bottomRight.y = bottomRight.y + smallCheckBoxSize
+            end
+
+            local stati = stat..i
+            survivorSheet[stati.."CheckBox"] = ui:CheckBox({ id = stati, topLeft = data.topLeft, bottomRight = bottomRight, checked = (value >= i), onClick = function()
+                local value = i
+                if survivorSheet.survivor[stat] >= i then
+                    value = value - 1
+                end
+                survivorSheet.survivor:SetNum(stat, value)
+            end })
+        end
+    end
+
+    survivorSheet.weaponProficiencyTypeInput = ui:Input({ id = "weaponProficiencyType", topLeft = { x = -0.074150, y = 0.357813 }, bottomRight = { x = -0.714426, y = 0.422490 }, fontSize = 50, text = survivor.weaponProficiencyType, onValueChanged = function(value)
+        survivorSheet.survivor:SetWeaponProficiencyType(value)
+    end })
+
+    for i, data in pairs({
+        { topLeft = { x = 0.715, y = 0.558 }, bottomRight = { x = -0.708, y = 0.626 } },
+        { topLeft = { x = 0.715, y = 0.650 }, bottomRight = { x = -0.708, y = 0.718 } },
+        { topLeft = { x = 0.715, y = 0.736 }, bottomRight = { x = -0.708, y = 0.804 } },
+        { topLeft = { x = 0.715, y = 0.825 }, bottomRight = { x = -0.708, y = 0.893 } },
+        { topLeft = { x = 0.715, y = 0.913 }, bottomRight = { x = -0.708, y = 0.981 } },
+    }) do
+        local notesi = "notes"..i
+        survivorSheet[notesi.."Input"] = ui:Input({ id = notesi, topLeft = data.topLeft, bottomRight = data.bottomRight, fontSize = 50, text = survivor[notesi], onValueChanged = function(value)
+            survivorSheet.survivor["SetNotes"..i](survivorSheet.survivor, value)
+        end })
+    end
+
+    survivorSheet.object.UI.setCustomAssets(Survivor.CUSTOM_ASSETS)
+    survivorSheet.ui:ApplyToObject()
+
+    return survivorSheet
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorSheetClass:__tostring()
+    return Util.SafeFormat("SurvivorSheet{survivor=%s,object=%s}", self.survivor:NameOrUnnamed(), self.object.getGUID())
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorSheetClass:Save()
+    return {
+        survivorId = self.survivor.id,
+        objectGuid = self.object.getGUID(),
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function SurvivorSheetClass:Survivor() return self.survivor end
+function SurvivorSheetClass:Object() return self.object end
+
+---------------------------------------------------------------------------------------------------
+
 return {
-    Is = Survivor.Is,
     Init = Survivor.Init,
+    PostInit = Survivor.PostInit,
     Save = Survivor.Save,
     Import = Survivor.Import,
     Export = Survivor.Export,
-    Create = Survivor.Create,
-    Destroy = Survivor.Destroy,
-    Survivors = function() return Survivor.survivors end,
-    ForId = function(id) return Survivor.survivorsById[id] end,
-    MoveBefore = Survivor.MoveBefore,
-    MoveAfter = Survivor.MoveAfter,
+
+    SurvivorForId            = function(id)       return Survivor.survivorsById[id] end,
+    SurvivorBoxForSurvivor   = function(survivor) return Survivor.survivorBoxesBySurvivor[survivor] end,
+    SurvivorBoxForObject     = function(object)   return Survivor.survivorBoxesByObject[object] end,
+    SurvivorSheetForSurvivor = function(survivor) return Survivor.survivorSheetsBySurvivor[survivor] end,
+    SurvivorSheetForObject   = function(object)   return Survivor.survivorSheetsByObject[object] end,
+
+    CreateSurvivorSheet = function(survivor, object)
+        local survivorSheet = SurvivorSheetClass.Create(survivor, object)
+        Survivor.survivorSheetsBySurvivor[survivor] = survivorSheet
+        Survivor.survivorSheetsByObject[object] = survivorSheet
+        return survivorSheet
+    end,
+
+    ALLOWED_CARD_TYPES = Survivor.ALLOWED_CARD_TYPES,
 }

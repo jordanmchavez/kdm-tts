@@ -10,7 +10,7 @@ Armor.__index = Armor
 
 function Armor.Init(saveState)
     Armor.armor = {}
-    for _, expansion in pairs(Expansion.AllExpansions()) do
+    for _, expansion in ipairs(Expansion.All()) do
         for name, stats in pairs(expansion.armorStats or {}) do
             if Armor.armor[name] then
                 assert(false, string.format("Armor %s was already registered by expansion %s", name, Armor.armor[name].expansion))

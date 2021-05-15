@@ -5,40 +5,36 @@ local Util = require("Kdm/Util/Util")
 ---------------------------------------------------------------------------------------------------
 
 local Ui = {}
+Ui.__index = Ui
 
 Ui.DEFAULT_Z = 10.5
 Ui.SCALE = 0.1
-Ui.DARK_BROWN = "#453824"
+
 Ui.LIGHT_BROWN = "#bbb4a1"
+Ui.MID_BROWN = "#7f7059"
+Ui.DARK_BROWN = "#453824"
+
+Ui.MID_BROWN_COLORS = "#7f7059|#655741|#655741|#ffffff"
+Ui.DARK_BROWN_COLORS = "#453824|#2f2410|#2f2410|#ffffff"
 Ui.INVISIBLE_COLORS = "#00000000|#00000088|#00000088|#00000000"
-Ui.INVISIBLE_COLORS = "#ff008888|#ff0088cc|#ff008888|#ff008888"
+--Ui.INVISIBLE_COLORS = "#ff008888|#ff0088cc|#ff008888|#ff008888"
+
 Ui.IMAGE_COLORS = "#ffffff|#dddddd|#dddddd|#ffffff"
 Ui.LEFT_MOUSE_BUTTON = "-1"
-
-Ui.uisByObject = {}
 
 ---------------------------------------------------------------------------------------------------
 
 function Ui.Init()
-    Ui.globalUi = {
-        tag = "Ui2d",
-        children = self.UI.getXmlTable(),
-        object = self,
-        attributes = {
-            id = "G",
-        },
-        Apply = Ui.Apply,
-    }
-    Ui.AddCreateFunctions(Ui.globalUi, Ui.CreateElem2d)
-    Ui.uisByObject = {
-        [self] = Ui.globalUi
-    }
-end
+    Ui.root3dsByObject = {}
 
----------------------------------------------------------------------------------------------------
-
-function Ui.Get2d()
-    return Ui.globalUi
+    Ui.globalRoot2d = {}
+    Ui.globalRoot2d.children = GLOBAL_OBJECT.UI.getXmlTable()
+    Ui.globalRoot2d.object = GLOBAL_OBJECT
+    Ui.globalRoot2d.attributes = {
+        id = "G",
+    }
+    Ui.globalRoot2d.CreateElem = Ui.CreateElem2d
+    setmetatable(Ui.globalRoot2d, Ui)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -48,205 +44,75 @@ function Ui.Create3d(id, object, z)
     assert(Check.Object(object))
     assert(Check.Num(z))
 
-    local ui = Ui.uisByObject[object]
-    if ui == nil then
-        local objectSize = object.getBounds().size
-        local scaleX, scaleY
-        if objectSize.x > objectSize.z then
-            scaleX = 1
-            scaleY = objectSize.x / objectSize.z
-        else
-            -- seems to only be needed for very *wide* objects, like the Survivor Board?
-            -- scaleX = objectSize.z / objectSize.x
-            scaleX = 1
-            scaleY = 1
-        end
-
-        ui = {
-            tag = "Ui3d",
+    local root3d = Ui.root3dsByObject[object]
+    if root3d == nil then
+        root3d = {
             object = object,
             z = z * -100,
             rotation = "0 0 180",
             positionFactor = 100,
-            widthFactor = 1000 / scaleX,
-            heightFactor = 1000 / scaleY,
-            scale = (scaleX / 10).." "..(scaleY / 10),
+            widthFactor = 1000,
+            heightFactor = 1000,
+            scale = "0.1 0.1",
             children = object.UI.getXmlTable(),
             attributes = {
                 id = id,
             },
-            Apply = Ui.Apply,
         }
-        Ui.AddCreateFunctions(ui, Ui.CreateElem3d)
+        root3d.CreateElem = Ui.CreateElem3d
+        setmetatable(root3d, Ui)
 
-        Ui.uisByObject[object] = ui
+        Ui.root3dsByObject[object] = root3d
     end
 
-    return ui
+    return root3d
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.CreateElem2d(tag, parent, params)
-    assert(Check.Str(params.id))
-
-    local id = parent.attributes.id.."_"..params.id..tag
-
-    log:Debugf("Creating %s %s", tag, id)
-
-    assert(Check.Num(params.x))
-    assert(Check.Num(params.y))
-    assert(Check.Num(params.width))
-    assert(Check.Num(params.height))
-
-    local elem = {
-        tag = tag,
-        object = parent.object,
-        children = {},
-        attributes = {
-            id = id,
-            rectAlignment = params.rectAlignment or "UpperLeft",
-            offsetXY = params.x.." "..params.y,
-            width = params.width,
-            height = params.height,
-            active = params.active == nil or params.active,
-        },
-    }
-
-    if params.onClick then
-        elem.onClick = params.onClick
-        local onClickFunctionName = id.."_OnClick"
-        self.setVar(onClickFunctionName, function(_, mouseButton)
-            elem.onClick(mouseButton)
-        end)
-        elem.attributes.onClick = "Global/"..onClickFunctionName
-    end
-
-    if params.onValueChanged then
-        elem.onValueChanged = params.onValueChanged
-        local onValueChangedFunctionName = id.."_OnValueChanged"
-        self.setVar(onValueChangedFunctionName, function(_, value)
-            elem.onValueChanged(value)
-        end)
-        elem.attributes.onValueChanged = "Global/"..onValueChangedFunctionName
-    end
-
-    table.insert(parent.children, elem)
-
-    return elem
+function Ui.Get2d()
+    return Ui.globalRoot2d
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.CreateElem3d(tag, parent, params)
-    assert(Check.Str(params.id))
+function Ui:Panel(params)
+    local panel = self:CreateElem("Panel", params)
+    panel.attributes.color = params.color or "#00000000"
+    panel.z = self.z
+    panel.rotation = "0 0 0"
+    panel.positionFactor = self.positionFactor
+    panel.widthFactor = self.widthFactor
+    panel.heightFactor = self.heightFactor
+    panel.scale = self.scale
+    panel.CreateElem = self.CreateElem
+    setmetatable(panel, Ui)
 
-    local id = parent.attributes.id.."_"..params.id..tag
-
-    log:Debugf("Creating %s %s", tag, id)
-
-    assert(Check.Vec2(params.topLeft))
-    assert(Check.Vec2(params.bottomRight))
-
-    local topLeft = params.topLeft
-    local bottomRight = params.bottomRight
-    local centerX = ((topLeft.x + bottomRight.x) / 2) * parent.positionFactor
-    local centerY = ((topLeft.y + bottomRight.y) / 2) * parent.positionFactor
-    local centerZ = params.z and (params.z * -100) or parent.z
-
-    local elem = {
-        tag = tag,
-        object = parent.object,
-        children = {},
-        attributes = {
-            id = id,
-            position = centerX.." "..centerY.." "..centerZ,
-            width = math.abs(bottomRight.x - topLeft.x) * parent.widthFactor,
-            height = math.abs(bottomRight.y - topLeft.y) * parent.heightFactor,
-            scale = parent.scale,
-            rotation = parent.rotation,
-            active = params.active == nil or params.active,
-        },
-    }
-
-    if params.onClick then
-        elem.onClick = params.onClick
-        local onClickFunctionName = id.."_OnClick"
-        self.setVar(onClickFunctionName, function(_, mouseButton)
-            elem.onClick(mouseButton)
-        end)
-        elem.attributes.onClick = "Global/"..onClickFunctionName
-    end
-
-    if params.onValueChanged then
-        elem.onValueChanged = params.onValueChanged
-        local onValueChangedFunctionName = id.."_OnValueChanged"
-        self.setVar(onValueChangedFunctionName, function(_, value)
-            elem.onValueChanged(value)
-        end)
-        elem.attributes.onValueChanged = "Global/"..onValueChangedFunctionName
-    end
-
-    table.insert(parent.children, elem)
-
-    return elem
+    return panel
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.BaseClass = {
-    Show = function(elem)
-        log:Debugf("Showing %s", elem.attributes.id)
-        elem.attributes.active = true
-        elem.object.UI.setAttribute(elem.attributes.id, "active", true)
-    end,
+function Ui:VerticalScroll(params)
+    local verticalScroll = self:CreateElem("VerticalScrollView", params)
+    verticalScroll.attributes.color = params.color or "#00000000"
+    verticalScroll.z = self.z
+    verticalScroll.rotation = "0 0 0"
+    verticalScroll.positionFactor = self.positionFactor
+    verticalScroll.widthFactor = self.widthFactor
+    verticalScroll.heightFactor = self.heightFactor
+    verticalScroll.scale = self.scale
+    verticalScroll.CreateElem = self.CreateElem
+    setmetatable(verticalScroll, Ui)
 
-    Hide = function(elem)
-        log:Debugf("Hiding %s", elem.attributes.id)
-        elem.attributes.active = false
-        elem.object.UI.setAttribute(elem.attributes.id, "active", false)
-    end,
-}
-Ui.BaseClass.__index = Ui.BaseClass
-
----------------------------------------------------------------------------------------------------
-
-Ui.TextClass = {
-    Text = function(textValue)
-        return text.object.UI.getAttribute(text.attributes.id, "text")
-    end,
-
-    SetText = function(text, textValue)
-        textValue = textValue or ""   -- nil will not actually clear the text
-        log:Debugf("Setting text for %s to '%s'", text.attributes.id, textValue)
-        text.attributes.text = textValue
-        text.object.UI.setAttributes(text.attributes.id, {
-            text = textValue,
-            color = text.attributes.color, -- color is required otherwise TTS will reset it to black
-        })
-    end,
-
-    SetColor = function(text, color)
-        log:Debugf("Setting text color for %s to %s", text.attributes.id, color)
-        text.attributes.color = color  -- must track this for future SetText() invocations
-        text.object.UI.setAttribute(text.attributes.id, "color", color)
-    end,
-
-    SetFontStyle = function(text, fontStyle)
-        log:Debugf("Setting font style for %s to %s", text.attributes.id, fontStyle)
-        text.attributes.fontStyle = fontStyle
-        text.object.UI.setAttribute(text.attributes.id, "fontStyle", fontStyle)
-    end,
-}
-
-Ui.TextClass.__index = Ui.TextClass
-setmetatable(Ui.TextClass, { __index = Ui.BaseClass })
+    return verticalScroll
+end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.Text(parent, params)
+function Ui:Text(params)
     assert(Check.Num(params.fontSize))
-    local text = parent.CreateElem("Text", parent, params)
+    local text = self:CreateElem("Text", params)
     text.attributes.text = params.text or ""
     text.attributes.color = params.color or Ui.DARK_BROWN
     text.attributes.alignment = params.alignment or "MiddleLeft"
@@ -255,101 +121,26 @@ function Ui.Text(parent, params)
     text.attributes.textOffset = params.textOffset or "0 0 0 0"
     text.attributes.horizontalOverflow = params.horizontalOverflow or "Overflow"
     text.attributes.verticalOverflow = params.verticalOverflow or "Overflow"
-    setmetatable(text, Ui.TextClass)
+    setmetatable(text, Ui)
 
     return text
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.ButtonClass = {
-    SetOnClick = function(button, onClick)
-        button.onClick = onClick
-    end,
+function Ui:Image(params)
+    local image = self:CreateElem("Image", params)
+    image.attributes.image = params.image
+    image.attributes.color = params.color or "#ffffffff"
+    setmetatable(image, Ui)
 
-    SetText = function(button, text)
-        text = text or ""
-        log:Debugf("Setting %s text to %s", button.attributes.id, text)
-        button.attributes.text = text
-        button.object.UI.setAttributes(button.attributes.id, {
-            text = text,
-            textColor = button.attributes.textColor,
-        })
-    end,
-
-    SetImage = function(button, image)
-        button.attributes.image = image
-        if image then
-            log:Debugf("Setting button %s image to %s", button.attributes.id, image)
-            button.attributes.colors = Ui.IMAGE_COLORS
-            button.object.UI.setAttributes(button.attributes.id, {
-                image = image,
-                colors = Ui.IMAGE_COLORS,
-            })
-        else
-            log:Debugf("Clearing %s image", button.attributes.id)
-            button.attributes.colors = Ui.INVISIBLE_COLORS
-            button.object.UI.setAttributes(button.attributes.id, {
-                image = nil,
-                colors = Ui.INVISIBLE_COLORS,
-            })
-        end
-    end,
-
-    SetColors = function(button, colors)
-        log:Debugf("Setting colors for %s to %s", button.id, colors)
-        button.attributes.colors = colors
-        button.object.UI.setAttribute(button.attributes.id, "colors", colors)
-    end,
-}
-
-Ui.ButtonClass.__index = Ui.ButtonClass
-setmetatable(Ui.ButtonClass, { __index = Ui.BaseClass })
-
----------------------------------------------------------------------------------------------------
-
-function Ui.Button(parent, params)
-    assert(Check.Func(params.onClick))
-
-    local button = parent.CreateElem("Button", parent, params)
-    if params.image then
-        button.attributes.image = params.image
-        button.attributes.colors = Ui.IMAGE_COLORS
-    else
-        button.attributes.colors = Ui.INVISIBLE_COLORS
-    end
-    button.attributes.text = params.text
-    button.attributes.textColor = params.textColor
-    button.attributes.fontSize = params.fontSize
-    button.attributes.textAlignment = params.textAlignment or "MiddleLeft"
-    setmetatable(button, Ui.ButtonClass)
-
-    return button
+    return image
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.InputClass = {
-    Set = function(input, text)
-        text = text or ""   -- nil will not actually clear the text
-        log:Debugf("Setting text for %s to '%s'", input.attributes.id, text)
-        input.attributes.text = text
-        input.object.UI.setAttributes(input.attributes.id, {
-            text = text,
-            textColor = input.attributes.textColor,
-        })
-    end,
-}
-
-Ui.InputClass.__index = Ui.InputClass
-setmetatable(Ui.InputClass, { __index = Ui.BaseClass })
-
----------------------------------------------------------------------------------------------------
-
-function Ui.Input(parent, params)
-    assert(Check.Func(params.onValueChanged))
-
-    local input = parent.CreateElem("InputField", parent, params)
+function Ui:Input(params)
+    local input = self:CreateElem("InputField", params)
     input.attributes.colors = params.colors or Ui.INVISIBLE_COLORS
     input.attributes.text = params.text
     input.attributes.placeholder = params.placeholder or " "
@@ -361,168 +152,450 @@ function Ui.Input(parent, params)
     input.attributes.textOffset = params.textOffset or "0 0 0 0"
     input.attributes.readOnly = params.readOnly
     input.attributes.lineType = params.lineType
-    setmetatable(input, Ui.InputClass)
+    setmetatable(input, Ui)
+    input:RegisterOnValueChanged(params.onValueChanged)
 
     return input
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.CheckBoxClass = {
-    Set = function(checkBox, checked)
-        if checked then
-            checkBox.attributes.image = "CheckBoxFilled"
-            checkBox.attributes.colors = Ui.IMAGE_COLORS
-            checkBox.object.UI.setAttribute(checkBox.attributes.id, "image", "CheckBoxFilled")
-            checkBox.object.UI.setAttribute(checkBox.attributes.id, "colors", Ui.IMAGE_COLORS)
-        else
-            checkBox.attributes.image = nil
-            checkBox.attributes.colors = Ui.INVISIBLE_COLORS
-            checkBox.object.UI.setAttribute(checkBox.attributes.id, "image", nil)
-            checkBox.object.UI.setAttribute(checkBox.attributes.id, "colors", Ui.INVISIBLE_COLORS)
-        end
-    end,
-}
-Ui.CheckBoxClass.__index = Ui.CheckBoxClass
-setmetatable(Ui.CheckBoxClass, { __index = Ui.BaseClass })
+function Ui:Button(params)
+    local button = self:CreateElem("Button", params)
+    if params.image then
+        button.attributes.image = params.image
+        button.attributes.colors = params.colors or Ui.IMAGE_COLORS
+    else
+        button.attributes.colors = params.colors or Ui.INVISIBLE_COLORS
+    end
+    button.attributes.text = params.text
+    button.attributes.textColor = params.textColor
+    button.attributes.fontSize = params.fontSize
+    button.attributes.textAlignment = params.textAlignment or "MiddleLeft"
+    setmetatable(button, Ui)
+    button:RegisterOnClick(params.onClick)
+
+    return button
+end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.CheckBox(parent, params)
-    assert(Check.Func(params.onClick))
-
-    local checkBox = parent.CreateElem("Button", parent, params)
-    if params.checked then
-        checkBox.attributes.image = "CheckBoxFilled"
-        checkBox.attributes.colors = Ui.IMAGE_COLORS
+function Ui:CheckBox(params)
+    local checkBox = self:CreateElem("Button", params)
+    checkBox.checkedImage = params.checkedImage or "CheckBoxFilled"
+    checkBox.checkedColors = params.checkedColors or Ui.IMAGE_COLORS
+    checkBox.uncheckedImage = params.uncheckedImage -- or nil
+    if checkBox.uncheckedImage then
+        checkBox.uncheckedColors = params.uncheckedColors or Ui.IMAGE_COLORS
     else
-        checkBox.attributes.image = nil
-        checkBox.attributes.colors = Ui.INVISIBLE_COLORS
+        checkBox.uncheckedColors = params.uncheckedColors or Ui.INVISIBLE_COLORS
     end
-    setmetatable(checkBox, Ui.CheckBoxClass)
+    if params.checked then
+        checkBox.attributes.image = checkBox.checkedImage
+        checkBox.attributes.colors = checkBox.checkedColors
+    else
+        checkBox.attributes.image = checkBox.uncheckedImage
+        checkBox.attributes.colors = checkBox.uncheckedColors
+    end
+    setmetatable(checkBox, Ui)
+    checkBox:RegisterOnClick(params.onClick)
 
     return checkBox
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.CounterClass = {
-    Set = function(counter, value)
-        assert(Check.Num(value))
-        value = tostring(value)
-        log:Debugf("Changing %s to %d", counter.text.attributes.id, value)
-        counter.text.attributes.text = value
-        counter.object.UI.setAttribute(counter.text.attributes.id, "text", value)
-    end
-}
-Ui.CounterClass.__index = Ui.CounterClass
+function Ui:CheckButton(params)
+    assert(Check.Num(params.fontSize))
+    assert(Check.Str(params.text))
+
+    local checkButton = self:CreateElem("Button", params)
+    checkButton.checkedColors = params.checkedColors or Ui.DARK_BROWN_COLORS
+    checkButton.uncheckedColors = params.uncheckedColors or Ui.MID_BROWN_COLORS
+    checkButton.attributes.colors = params.checked and checkButton.checkedColors or checkButton.uncheckedColors
+    checkButton.attributes.textColor = params.textColor or Ui.LIGHT_BROWN
+    checkButton.attributes.text = params.text
+    checkButton.attributes.fontSize = params.fontSize
+    checkButton.attributes.textAlignment = params.textAlignment or "MiddleCenter"
+    setmetatable(checkButton, Ui)
+    checkButton:RegisterOnClick(params.onClick)
+
+    return checkButton
+end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.Counter(parent, params)
+function Ui:OptionButtonGroup(params)
+    assert(Check.Str(params.id))
+    assert(Check.Num(params.fontSize))
+    assert(Check.Func(params.onClick))
+
+    local id = params.id.."OptionButtons"
+
+    log:Debugf("Creating OptionButtonGroup %s", id)
+
+    local group = {
+        id = id,
+        parent = self,
+        options = {},
+        selectedColors = params.selectedColors or Ui.DARK_BROWN_COLORS,
+        unselectedColors = params.unselectedColors or Ui.INVISIBLE_COLORS,
+        textColor = params.textColor or Ui.LIGHT_BROWN,
+        textAlignment = params.textAlignment or "MiddleCenter",
+        fontSize = params.fontSize,
+        onClick = params.onClick,
+    }
+    setmetatable(group, Ui)
+
+    return group
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:OptionButton(params)
+    local id = self.id..(#self.options + 1)
+
+    log:Debugf("Creating OptionButton %s", id)
+
+    params.id = id
+    local optionButton = self.parent:CreateElem("Button", params)
+    optionButton.attributes.text = params.text
+    optionButton.attributes.colors = params.selected and self.selectedColors or self.unselectedColors
+    optionButton.attributes.textColor = self.textColor
+    optionButton.attributes.fontSize = self.fontSize
+    optionButton.attributes.textAlignment = self.textAlignment
+    optionButton.group = self
+    optionButton.optionValue = params.optionValue
+    setmetatable(optionButton, Ui)
+    optionButton:RegisterOnClick(function() self.onClick(optionButton) end)
+    table.insert(self.options, optionButton)
+
+    optionButton.Select = Ui.SelectOptionButton
+
+    return optionButton
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui.OptionCheckBoxGroup(self, params)
+    assert(Check.Str(params.id))
+    assert(Check.Func(params.onClick))
+
+    local id = params.id.."OptionCheckBoxes"
+
+    log:Debugf("Creating OptionCheckBoxGroup %s", id)
+
+    local group = {
+        id = id,
+        parent = self,
+        options = {},
+        checkedImage = params.checkedImage or "CheckBoxFilled",
+        checkedColors = params.checkedColors or Ui.IMAGE_COLORS,
+        uncheckedImage = params.uncheckedImage, -- or nil
+        uncheckedColors = params.uncheckedColors or Ui.INVISIBLE_COLORS,
+        onClick = params.onClick,
+    }
+    setmetatable(group, Ui)
+
+    return group
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:OptionCheckBox(params)
+    local id = self.id..(#self.options + 1)
+
+    log:Debugf("Creating OptionCheckBox %s", id)
+
+    params.id = id
+    local optionCheckBox = self.parent:CreateElem("Button", params)
+    optionCheckBox.optionValue = params.optionValue
+    optionCheckBox.checkedImage = self.checkedImage
+    optionCheckBox.checkedColors = self.checkedColors
+    optionCheckBox.uncheckedImage = self.uncheckedImage
+    optionCheckBox.uncheckedColors = self.uncheckedColors
+    if params.checked then
+        optionCheckBox.attributes.image = optionCheckBox.checkedImage
+        optionCheckBox.attributes.colors = optionCheckBox.checkedColors
+    else
+        optionCheckBox.attributes.image = optionCheckBox.uncheckedImage
+        optionCheckBox.attributes.colors = optionCheckBox.uncheckedColors
+    end
+    optionCheckBox.group = self
+    setmetatable(optionCheckBox, Ui)
+    optionCheckBox:RegisterOnClick(function() self.onClick(optionCheckBox) end)
+    table.insert(self.options, optionCheckBox)
+    optionCheckBox.Select = Ui.SelectOptionCheckBox
+
+    return optionCheckBox
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:Counter(params)
     assert(Check.Func(params.onValueChanged))
 
-    local midX = (params.topLeft.x + params.bottomRight.x) / 2
+    -- This must work with both 2d (x/y/w/h) and 3d (tl/br)
+    local x, y, width, height
+    if params.topLeft then
+        x = params.topLeft.x
+        y = params.topLeft.y
+        width = params.bottomRight.x - x
+        height = params.bottomRight.y - y
+    else
+        x = params.x
+        y = params.y
+        width = params.width
+        height = params.height
+    end
 
-    local counter = {
-        object = parent.object,
+    local counter = self:Text({
+        id = params.id,
 
-        text = Ui.Text(parent, {
-            id = params.id,
-            topLeft = params.topLeft,
-            bottomRight = params.bottomRight,
-            text = params.value or 0,
-            color = Ui.LIGHT_BROWN,
-            fontSize = params.fontSize,
-            alignment = "LowerCenter",
-            horizontalOverflow = "Overflow",
-            verticalOverflow = "Overflow",
-        }),
+        x = x,
+        y = y,
+        width = width,
+        height = height,
 
-        minusButton = Ui.Button(parent, {
-            id = params.id.."Minus",
-            topLeft = params.topLeft,
-            bottomRight = { x = midX, y = params.bottomRight.y },
-            onClick = function(mouseButton)
-                params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and -1 or -10)
-            end,
-        }),
+        topLeft = { x = x, y = y },
+        bottomRight = { x = x + width, y = y + height },
 
-        plusButton = Ui.Button(parent, {
-            id = params.id.."Plus",
-            topLeft = { x = midX, y = params.topLeft.y },
-            bottomRight = params.bottomRight,
-            onClick = function(mouseButton)
-                params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and 1 or 10)
-            end,
-        }),
-    }
-    setmetatable(counter, Ui.CounterClass)
+        text = params.text or 0,
+        color = params.color or Ui.LIGHT_BROWN,
+        fontSize = params.fontSize,
+        alignment = "LowerCenter",
+        horizontalOverflow = "Overflow",
+        verticalOverflow = "Overflow",
+    })
+
+    counter.minusButton = self:Button({
+        id = params.id.."Minus",
+
+        x = x,
+        y = y,
+        width = width / 2,
+        height = height,
+
+        topLeft = { x = x, y = y },
+        bottomRight = { x = x + (width / 2), y = y + height },
+
+        onClick = function(mouseButton)
+            params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and -1 or -10)
+        end,
+    })
+
+    counter.plusButton = self:Button({
+        id = params.id.."Plus",
+
+        x = x + (width / 2),
+        y = y,
+        width = width / 2,
+        height = height,
+
+        topLeft = { x = x + (width / 2), y = y },
+        bottomRight = { x = x + width, y = y + height },
+
+        onClick = function(mouseButton)
+            params.onValueChanged((mouseButton == Ui.LEFT_MOUSE_BUTTON) and 1 or 10)
+        end,
+    })
 
     return counter
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.PanelClass = {}
-Ui.PanelClass.__index = Ui.PanelClass
-setmetatable(Ui.PanelClass, { __index = Ui.BaseClass })
+-- 2D elements use absolute pixel positioning (x, y, width, height), so no need for scaling factors
+function Ui:CreateElem2d(tag, params)
+    assert(Check.Table(params, params.id))
+    assert(Check.Str(params.id))
+    assert(Check.Num(params.x, params.id))
+    assert(Check.Num(params.y, params.id))
+    assert(Check.Num(params.width, params.id))
+    assert(Check.Num(params.height, params.id))
 
-function Ui.Panel(parent, params)
-    local panel = parent.CreateElem("Panel", parent, params)
-    panel.attributes.color = params.color or "#00000000"
-    panel.z = parent.z
-    panel.rotation = "0 0 0"
-    panel.positionFactor = parent.positionFactor
-    panel.widthFactor = parent.widthFactor
-    panel.heightFactor = parent.heightFactor
-    panel.scale = parent.scale
-    Ui.AddCreateFunctions(panel, parent.CreateElem)
-    setmetatable(panel, Ui.PanelClass)
+    local id = self.attributes.id.."_"..params.id..tag
 
-    return panel
+    log:Debugf("Creating 2d %s %s", tag, id)
+
+    local elem = {
+        tag = tag,
+        object = self.object,
+        attributes = {
+            id = id,
+            rectAlignment = params.rectAlignment or "UpperLeft",
+            offsetXY = params.x.." "..params.y,
+            width = params.width,
+            height = params.height,
+            active = params.active == nil or params.active
+        },
+        children = {},
+    }
+    table.insert(self.children, elem)
+
+    return elem
 end
 
 ---------------------------------------------------------------------------------------------------
 
-Ui.ImageClass = {
-    SetImage = function(image, imageValue)
-        log:Debugf("Setting image for %s to '%s'", image.attributes.id, imageValue)
-        image.attributes.image = imageValue
-        image.object.UI.setAttribute(image.attributes.id, "image", imageValue)
+-- 3d uis must be scaled based on the size of the underlying object, hence position/width/heightFactor
+function Ui:CreateElem3d(tag, params)
+    assert(Check.Str(params.id, params.id))
+    assert(Check.Vec2(params.topLeft, params.id))
+    assert(Check.Vec2(params.bottomRight, params.id))
+
+    local id = self.attributes.id.."_"..params.id..tag
+
+    log:Debugf("Creating 3d %s %s", tag, id)
+
+    local topLeft = params.topLeft
+    local bottomRight = params.bottomRight
+    local centerX = ((topLeft.x + bottomRight.x) / 2) * self.positionFactor
+    local centerY = ((topLeft.y + bottomRight.y) / 2) * self.positionFactor
+    local centerZ = params.z and (params.z * -100) or self.z
+
+    local elem = {
+        tag = tag,
+        object = self.object,
+        children = {},
+        attributes = {
+            id = id,
+            position = centerX.." "..centerY.." "..centerZ,
+            width = math.abs(bottomRight.x - topLeft.x) * self.widthFactor,
+            height = math.abs(bottomRight.y - topLeft.y) * self.heightFactor,
+            scale = self.scale,
+            rotation = self.rotation,
+            active = params.active == nil or params.active,
+        },
+    }
+    table.insert(self.children, elem)
+
+    return elem
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:RegisterOnClick(onClick)
+    assert(Check.FuncOrNil(onClick))
+    self.onClick = onClick or function() end
+    local onClickFunctionName = self.attributes.id.."_OnClick"
+    GLOBAL_OBJECT.setVar(onClickFunctionName, function(_, mouseButton)
+        self.onClick(mouseButton)
+    end)
+    self.attributes.onClick = "Global/"..onClickFunctionName
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:RegisterOnValueChanged(onValueChanged)
+    assert(Check.FuncOrNil(onValueChanged))
+    self.onValueChanged = onValueChanged or function() end
+    local onValueChangedFunctionName = self.attributes.id.."_OnValueChanged"
+    GLOBAL_OBJECT.setVar(onValueChangedFunctionName, function(_, value)
+        self.onValueChanged(value)
+    end)
+    self.attributes.onValueChanged = "Global/"..onValueChangedFunctionName
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Ui:SetAttribute(attribute, type, value, nilAllowed)
+    local id = self.attributes.id
+    assert(Check.Str(attribute, id))
+    assert(Check.Str(type, id))
+    if nilAllowed then
+        assert(Check.TypeOrNil(value, type, "%s: %s %s", id, attribute, type))
+    else
+        assert(Check.Type(value, type, "%s: %s %s", id, attribute, type))
     end
-}
-Ui.ImageClass.__index = Ui.ImageClass
-setmetatable(Ui.ImageClass, { __index = Ui.BaseClass })
+    log:Debugf("Setting %s %s to %s", id, attribute, tostring(value))
+    self.attributes[attribute] = value
+    self.object.UI.setAttribute(id, attribute, value)
+end
+
+function Ui:Show() self:SetAttribute("active", "boolean", true) end
+function Ui:Hide() self:SetAttribute("active", "boolean", false) end
+function Ui:SetOffsetXY(offsetXY) self:SetAttribute("offsetXY", "string", offsetXY) end
+function Ui:SetWidth(width) self:SetAttribute("width", "number", width) end
+function Ui:SetHeight(height) self:SetAttribute("height", "number", height) end
+function Ui:SetText(text)
+    local id = self.attributes.id
+    text = (text != nil) and tostring(text) or ""   -- nil will not actually clear the text
+    log:Debugf("Setting %s text to '%s'", id, text)
+    self.attributes.text = text
+    self.object.UI.setAttribute(id, "text", self.attributes.text)
+    self.object.UI.setAttribute(id, "color", self.attributes.color)
+    self.object.UI.setAttribute(id, "colors", self.attributes.colors)
+    self.object.UI.setAttribute(id, "textColor", self.attributes.textColor)
+end
+function Ui:SetColor(color) self:SetAttribute("color", "string", color) end
+function Ui:SetColors(colors) self:SetAttribute("colors", "string", colors) end
+function Ui:SetFontStyle(fontStyle) self:SetAttribute("fontStyle", "string", fontStyle) end
+function Ui:SetFontSize(fontSize) self:SetAttribute("fontSize", "number", fontSize) end
+function Ui:SetImage(image) self:SetAttribute("image", "string", image, true) end
+
+function Ui:Check(checked)
+    if checked then
+        self.attributes.image = self.checkedImage
+        self.attributes.colors = self.checkedColors
+    else
+        self.attributes.image = self.uncheckedImage
+        self.attributes.colors = self.uncheckedColors
+    end
+    log:Debugf("Setting %s image to %s, colors to %s", self.attributes.id, self.attributes.image, self.attributes.colors)
+    self.object.UI.setAttribute(self.attributes.id, "image", self.attributes.image)
+    self.object.UI.setAttribute(self.attributes.id, "colors", self.attributes.colors)
+    self.object.UI.setAttribute(self.attributes.id, "textColor", self.attributes.textColor)
+end
+
+function Ui:SelectOptionButton()
+    for _, option in ipairs(self.group.options) do
+        if option == self then
+            option.attributes.colors = self.group.selectedColors
+        else
+            option.attributes.colors = self.group.unselectedColors
+        end
+        log:Debugf("Setting %s colors to %s and textColor to %s", option.attributes.id, option.attributes.colors, option.attributes.textColor)
+        option.object.UI.setAttribute(option.attributes.id, "colors", option.attributes.colors)
+        option.object.UI.setAttribute(option.attributes.id, "textColor", option.attributes.textColor)
+    end
+end
+
+function Ui:SelectOptionCheckBox()
+    for _, option in ipairs(self.group.options) do
+        if option == self then
+            option.attributes.image = self.group.checkedImage
+            option.attributes.colors = self.group.checkedColors
+        else
+            option.attributes.image = self.group.uncheckedImage
+            option.attributes.colors = self.group.uncheckedColors
+        end
+        log:Debugf("Setting %s image to %s and colors to %s", option.attributes.id, option.attributes.image,  option.attributes.colors)
+        option.object.UI.setAttribute(option.attributes.id, "image", option.attributes.image)
+        option.object.UI.setAttribute(option.attributes.id, "colors", option.attributes.colors)
+    end
+end
+
+function Ui:OptionValue() return self.optionValue end
+function Ui:SetOptionValue(optionValue) self.optionValue = optionValue end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.Image(parent, params)
-    local image = parent.CreateElem("Image", parent, params)
-    image.attributes.image = params.image
-    image.attributes.color = params.color or "#ffffffff";
-    setmetatable(image, Ui.ImageClass)
-    return image
+function Ui:SetOnClick(onClick)
+    assert(Check.FuncOrNil(onClick))
+    self.onClick = onClick
+end
+
+function Ui:SetOnValueChanged(onValueChanged)
+    assert(Check.FuncOrNil(onValueChanged))
+    self.onValueChanged = onValueChanged
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Ui.AddCreateFunctions(elem, createElemFunc)
-    elem.CreateElem = createElemFunc
-    elem.Text = Ui.Text
-    elem.Button = Ui.Button
-    elem.Input = Ui.Input
-    elem.CheckBox = Ui.CheckBox
-    elem.Counter = Ui.Counter
-    elem.Image = Ui.Image
-    elem.Panel = Ui.Panel
-end
-
----------------------------------------------------------------------------------------------------
-
-function Ui.Apply(ui)
-    if #ui.children > 0 then
-        ui.object.UI.setXmlTable(ui.children)
+function Ui:ApplyToObject()
+    if #self.children > 0 then
+        self.object.UI.setXmlTable(self.children)
     end
 end
 
@@ -530,8 +603,18 @@ end
 
 return {
     Init = Ui.Init,
-    PostInit = Ui.PostInit,
-    Get2d = Ui.Get2d,
     Create3d = Ui.Create3d,
+    Get2d = Ui.Get2d,
     LEFT_MOUSE_BUTTON = Ui.LEFT_MOUSE_BUTTON,
+
+    IMAGE_COLORS = Ui.IMAGE_COLORS,
+    INVISIBLE_COLORS = Ui.INVISIBLE_COLORS,
+
+    LIGHT_BROWN = Ui.LIGHT_BROWN,
+    MID_BROWN = Ui.MID_BROWN,
+    DARK_BROWN = Ui.DARK_BROWN,
+
+    --LIGHT_BROWN_COLORS = Ui.LIGHT_BROWN_COLORS,
+    MID_BROWN_COLORS = Ui.MID_BROWN_COLORS,
+    DARK_BROWN_COLORS = Ui.DARK_BROWN_COLORS,
 }

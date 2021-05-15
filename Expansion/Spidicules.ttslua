@@ -27,7 +27,7 @@ return {
         ["Egg Sacs"] = {
             terrainTile = "Egg Sac",
             count = "*",
-            miscObject = { name = "Spiderling", type = "AI" },
+            miscObject = { name = "Spiderling", type = "Minion Figurine" },
         },
         ["Silk Nest"] = { terrainTile = "Silk Nest", count = 1 },
     },
@@ -85,7 +85,7 @@ return {
             { "Spidicules Rare Gear", "Gear" },
 
             { "Spidicules", "Monster Figurine" },
-            { "Spiderling", "AI" },
+            { "Spiderling", "Minion Figurine" },
             { "Spidicules Info", "AI" },
             { "Spidicules Basic Action", "AI" },
             { "Spidicules Basic AI", "AI" },
@@ -140,6 +140,14 @@ return {
                 },
             },
         },
+    },
+
+    minions = {
+        {
+            name = "Spiderling",
+            movement = 4,
+            size = { x = 1, y = 1 },
+        }
     },
 
     monsters = {

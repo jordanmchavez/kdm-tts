@@ -1,0 +1,834 @@
+local Archive = require("Kdm/Archive")
+local Check = require("Kdm/Util/Check")
+local Container = require("Kdm/Util/Container")
+local EventManager = require("Kdm/Util/EventManager")
+local Expansion = require("Kdm/Expansion")
+local Hunt = require("Kdm/Hunt")
+local log = require("Kdm/Log").ForModule("Campaign")
+local Location = require("Kdm/Location")
+local MessageBox = require("Kdm/MessageBox")
+local NamedObject = require("Kdm/NamedObject")
+local Player = require("Kdm/Player")
+local Showdown = require("Kdm/Showdown")
+local Survivor = require("Kdm/Survivor")
+local Timeline = require("Kdm/Timeline")
+local Ui = require("Kdm/Ui")
+local Util = require("Kdm/Util/Util")
+
+-------------------------------------------------------------------------------------------------
+
+local Campaign = {}
+
+Campaign.EXPORT_VERSION = 2
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Init(saveState)
+    Campaign.InitExpansions()
+    Campaign.campaign = Campaign.campaignsByName[saveState.campaign] or Campaign.campaignsByName["People of the Lantern"]
+    assert(Campaign.campaign)
+    Campaign.InitCampaignUi()
+    Campaign.InitExportImportBoardUi()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.InitExpansions()
+    Campaign.expansionsByName = {}
+    Campaign.expansionsByCampaignName = {}
+    Campaign.campaigns = {}
+    Campaign.campaignsByName = {}
+    for _, expansion in ipairs(Expansion.All()) do
+        Campaign.expansionsByName[expansion.name] = expansion
+        for _, campaign in ipairs(expansion.campaigns or {}) do
+            Campaign.expansionsByCampaignName[campaign.name] = expansion
+            table.insert(Campaign.campaigns, campaign)
+            Campaign.campaignsByName[campaign.name] = campaign
+        end
+    end
+
+    for _, expansion in ipairs(Expansion.All()) do
+        if Expansion.IsEnabled(expansion.name) then
+            local overrides = expansion.archiveOverrides
+            if overrides then
+                log:Debugf("Overriding archive entries for %s", expansion.name)
+                Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries, allowOverrides = true })
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.InitCampaignUi()
+    local panel = Ui.Get2d():Panel({ id = "Campaign", rectAlignment = "MiddleCenter", x = 0, y = 0, width = 885, height = 723, active = false })
+    Campaign.panel = panel
+    panel:Image({ id = "Campaign", image = "Campaign", x = 0, y = 0, width = 885, height = 723 })
+    panel:Button({ id = "Close", x = 845, y = -10, width = 30, height = 30, onClick = Campaign.HideUi })
+    Campaign.selectedCampaign = Campaign.campaigns[1]
+    local x = 128
+    local y = -125
+    Campaign.campaignOptionGroup = panel:OptionButtonGroup({ id = "Campaign", unselectedColors = Ui.MID_BROWN_COLORS, fontSize = 14, onClick = function(option)
+        local campaign = option:OptionValue()
+        Campaign.selectedCampaign = campaign
+        option:Select()
+    end })
+    for _, campaign in ipairs(Campaign.campaigns) do
+        local selected = (campaign == Campaign.selectedCampaign)
+        Campaign.campaignOptionGroup:OptionButton({ x = x, y = y, width = 200, height = 30, text = campaign.name, selected = selected, optionValue = campaign })
+        x = x + 200 + 15
+    end
+    Campaign.selectedExpansionsNyName = {}
+    local x = 20
+    local y = -268
+    Campaign.expansionButtons = {}
+    for i, expansion in ipairs(Expansion:All()) do
+        if expansion.name != "Core" then
+            Campaign.expansionButtons[expansion.name] = panel:CheckButton({ id = expansion.name, x = x, y = y, width = 200, height = 30, fontSize = 14, text = expansion.name, onClick = function()
+                local checked = not Campaign.selectedExpansionsNyName[expansion.name]
+                log:Debugf("%s expansion %s", value and "Selecting" or "Deselecting", expansion.name)
+                Campaign.selectedExpansionsNyName[expansion.name] = checked
+                Campaign.expansionButtons[expansion.name]:Check(checked)
+            end })
+            x = x + 200 + 15
+            if x > 665 then
+                x = 20
+                y = y - 30 - 15
+            end
+        end
+    end
+    panel:Button({ id = "Begin", x = 117, y = -643, width = 300, height = 60, onClick = function()
+        MessageBox.Show("Are you sure you want to start a new campaign?", Campaign.ImportFromCampaign)
+    end })
+    panel:Button({ id = "Cancel", x = 468, y = -643, width = 300, height = 60, onClick = Campaign.HideUi })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.InitExportImportBoardUi()
+    local ui = Ui.Create3d("ExportImport", NamedObject.Get("Export/Import Board"), 0.11)
+    ui:Button({ id = "Export", topLeft = { x = 1.061903, y = 0.651955 }, bottomRight = { x = 0.067542, y = 0.849967 }, onClick = Campaign.ExportToOrb })
+    ui:Button({ id = "Import", topLeft = { x = -0.071813, y = 0.652758 }, bottomRight = { x = -1.065097, y = 0.848203 }, onClick = Campaign.ImportFromOrb })
+    ui:ApplyToObject()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Save()
+    return {
+        campaign = Campaign.campaign.name
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+Campaign.MAX_INNOVATIONS = 36
+Campaign.MAX_WEAPON_PROFICIENCIES = 12
+Campaign.MAX_SETTLEMENT_GEAR = 36
+Campaign.MAX_SETTLEMENT_RESOURCES = 45
+Campaign.MAX_SETTLEMENT_LOCATIONS = 20
+
+function Campaign.ExportToOrb()
+    local campaignOrbLocation = Location.Get("Campaign Orb")
+
+    local blockingObjects = campaignOrbLocation:AllObjects()
+    if #blockingObjects > 0 then
+        log:Broadcastf("Please move the highlighted objects.")
+        Util.HighlightAll(blockingObjects)
+        return
+    end
+
+    function Campaign.Clean()
+        for i = 1, 4 do
+            Location.Get("Player "..i.." Board"):BoxClean({ tags = { "Card", "Deck" }, types = { "Tokens", "Survival Tokens", "Figurine" }})
+        end
+        Location.Get("Deck Board"):BoxClean({ tags = { "Card", "Deck" }, ignoreTypes = { "Monster Resources" }, })
+        Location.Get("Terrain"):BoxClean({ tags = { "Card", "Deck" } })
+        Location.Get("Settlement Events"):BoxClean({ tags = { "Card", "Deck" } })
+        Location.Get("Settlement Board"):BoxClean({ tags = { "Card", "Deck" } })
+        Location.Get("Settlement Locations"):BoxClean({ tags = { "Card", "Deck" } })
+        for i = 1, 5 do
+            Location.Get("Reference "..i):BoxClean({ tags = { "Tile", "Card" }, types = { "References", "Abilities" } })   -- concession for DK constellations
+        end
+        Location.Get("Hunt Events"):BoxClean({ tags = { "Card", "Deck" } })
+    end
+
+    local expansions = {}
+    for _, expansion in ipairs(Expansion.All()) do
+        if Expansion.IsEnabled(expansion.name) then
+            table.insert(expansions, expansion.name)
+        end
+    end
+
+    local scanTypesByLocation = {}
+    scanTypesByLocation["Innovation Deck"] = { "Innovations" }
+    for _, principle in ipairs({
+        "Principle: Death",
+        "Principle: New Life",
+        "Principle: Society",
+        "Principle: Conviction",
+    }) do
+        scanTypesByLocation[principle] = { "Innovations" }
+    end
+    for i = 1, Campaign.MAX_INNOVATIONS do
+        scanTypesByLocation["Innovation "..i] = { "Innovations" }
+    end
+    for i = 1, Campaign.MAX_WEAPON_PROFICIENCIES do
+        scanTypesByLocation["Weapon Mastery "..i] = { "Weapon Proficiencies" }
+    end
+    for i = 1, Campaign.MAX_SETTLEMENT_GEAR do
+        scanTypesByLocation["Settlement Gear "..i] = { "Gear" }
+    end
+    for i = 1, Campaign.MAX_SETTLEMENT_RESOURCES do
+        scanTypesByLocation["Settlement Resource "..i] = { "Basic Resources", "Monster Resources", "Strange Resources", "Vermin" }
+    end
+    for i = 1, Campaign.MAX_SETTLEMENT_LOCATIONS do
+        scanTypesByLocation["Settlement Location "..i] = { "Settlement Locations" }
+    end
+    for ordinal, _ in ipairs(Player.Players()) do
+        local playerPrefix = "Player "..ordinal
+        scanTypesByLocation[playerPrefix.." Armor Set"] = { "Armor Sets" }
+        scanTypesByLocation[playerPrefix.." Fist & Tooth"] = { "Gear" }
+        for i = 1, 9 do
+            scanTypesByLocation[playerPrefix.." Gear "..i] = { "Gear" }
+        end
+    end
+
+    local objectsByLocation = {}
+    for location, types in pairs(scanTypesByLocation) do
+        local object, success = Campaign.Scan(location, types)
+        if not success then
+            return
+        end
+        objectsByLocation[location] = object
+    end
+
+    local data = {
+        version = Campaign.EXPORT_VERSION,
+        expansions = expansions,
+        campaign = Campaign.campaign.name,
+        objectsByLocation = objectsByLocation,
+        timeline = Timeline.Export(),
+        survivor = Survivor.Export(),
+    }
+
+    local campaignOrb = spawnObject({
+        type = "Metal Ball",
+        position = campaignOrbLocation:Center(),
+        scale = { x = 5, y = 5, z = 5 },
+    })
+    campaignOrb.setLuaScript("--")
+    campaignOrb.script_state = JSON.encode(data)
+    campaignOrb.setName("Campaign Orb")
+    campaignOrb.setGMNotes("Campaign Orb")
+
+    log:Broadcastf("Campaign export complete. Instructions are in the chat window.")
+    log:Printf("1. Save your game.")
+    log:Printf("2. Copy your campaign orb (right click on the orb -> Copy).")
+    log:Printf("3. Load the latest version of the mod ('Games' button on the top bar).")
+    log:Printf("4. Paste (right click anywhere -> Paste) the orb and drop it onto the same spot in the new version.")
+    log:Printf("5. Click the 'Import Campaign' button.")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Scan(location, types)
+    log:Debugf("Scanning %s for %s", location, Util.TabStr(types))
+
+    local objects = Location.Get(location):AllObjects()
+    if #objects > 1 then
+        log:Errorf("Found multiple objects at %s: please make sure there's only one object in each card slot.", location)
+        Util.HighlightAll(objects)
+        return nil, false
+    elseif #objects == 0 then
+        return nil, true
+    end
+
+    local object = objects[1]
+    if object.tag == "Card" then
+        if not Util.Find(types, object.getGMNotes()) then
+            log:Errorf("Found %s '%s' at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", object.getGMNotes(), object.getName(), location, Util.TabStr(types))
+            Util.Highlight(object)
+            return nil, false
+        end
+        log:Debugf("Recording %s '%s' at '%s'", object.getGMNotes(), object.getName(), location)
+        return { tag = "Card", name = object.getName(), type = object.getGMNotes(), location = location, faceDown = Util.IsFaceDown(object) or nil }, true
+
+    elseif object.tag == "Deck" then
+        local deck  = { tag = "Deck", name = object.getName(), type = object.getGMNotes(), location = location, faceDown = Util.IsFaceDown(object) or nil, cards = {} }
+        for _, card in ipairs(Container(object):Objects()) do
+            if not Util.Find(types, card.gm_notes) then
+                log:Errorf("Found %s '%s' in deck at '%s'. Export only records %s at this slot, so please move this card to it's correct location.", card.gm_notes, card.name, location, Util.TabStr(types))
+                Util.Highlight(object)
+                return {}, false
+            end
+
+            log:Debugf("Recording %s '%s' at '%s'", card.gm_notes, card.name, location)
+            table.insert(deck.cards, { name = card.name, type = card.gm_notes })
+        end
+        return deck, true
+    end
+
+    log:Errorf("Found %s '%s' at '%s'. Export only records cards and decks (not other objects). Please move this object out of the way.", object.tag, object.getName(), location)
+    Util.Highlight(object)
+    return nil, false
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.ImportFromOrb()
+    local location = Location.Get("Campaign Orb")
+    local object = location:FirstObject({ types = { "Campaign Orb" } })
+    if not object then
+        log:Broadcastf("Place your exported campaign orb in the highlighted area, then click 'Import Campaign'.")
+        location:BoxCast({ debug = true })
+        return
+    end
+
+    if object.getGMNotes() != "Campaign Orb" then
+        log:Errorf("This object is not a campaign orb.")
+        Util.Highlight(object)
+        return
+    end
+
+    local state = JSON.decode(object.script_state)
+
+    local campaign = Campaign.campaignsByName[state.campaign]
+    if not campaign then
+        log:Errorf("This campaign orb has an unknown campaign: %s", state.campaign)
+        return
+    end
+
+    local expansions = { Campaign.expansionsByName["Core"] }
+    for _, expansionName in ipairs(state.expansions) do
+        if expansionName != "Core" then
+            local expansion = Campaign.expansionsByName[expansionName]
+            if not expansion then
+                log:Errorf("This campaign orb has an unrecognized expansion: %s; ignoring", expansionName)
+            else
+                table.insert(expansions, expansion)
+            end
+        end
+    end
+
+    state.campaign = campaign
+    state.expansions = expansions
+    Campaign.Import(state)
+
+    Wait.frames(function() log:Broadcastf("You can now delete the campaign orb.") end, 1)
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.ImportFromCampaign()
+    local campaign = Campaign.selectedCampaign
+    local requiredExpansion = Campaign.expansionsByCampaignName[campaign.name]
+    if requiredExpansion.name != "Core" and not Campaign.selectedExpansionsNyName[requiredExpansion.name] then
+        log:Broadcastf("%s requires %s expansion", campaign.name, requiredExpansion.name)
+        return
+    end
+
+    Campaign.HideUi()
+
+    local expansions = { Campaign.expansionsByName["Core"] }
+    for expansionName, enabled in pairs(Campaign.selectedExpansionsNyName) do
+        if expansionName != "Core" and enabled then
+            table.insert(expansions, Campaign.expansionsByName[expansionName])
+        end
+    end
+
+    local objectsByLocation = {}
+    for location, object in pairs(campaign.objectsByLocation) do
+        objectsByLocation[location] = object
+    end
+    for ordinal, _ in ipairs(Player.Players()) do
+        local playerPrefix = "Player "..ordinal
+        objectsByLocation[playerPrefix.." Fist & Tooth"] = { tag = "Card", name = "Fist & Tooth", type = "Gear" }
+        objectsByLocation[playerPrefix.." Gear 1"] = { tag = "Card", name = "Founding Stone", type = "Gear" }
+        objectsByLocation[playerPrefix.." Gear 2"] = { tag = "Card", name = "Cloth",  type = "Gear" }
+    end
+
+    Campaign.Import({
+        version = Campaign.EXPORT_VERSION,
+        campaign = campaign,
+        expansions = expansions,
+        objectsByLocation = objectsByLocation,
+        remove = campaign.remove,
+        references = campaign.references,
+        misc = campaign.misc,
+        survivor = {
+            survivors = {
+                -- everything default
+                { id = 1 },
+                { id = 2 },
+                { id = 3 },
+                { id = 4 },
+            }
+        },
+        timeline = Campaign.BuildImportTimeline(expansions, campaign),
+    })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.BuildImportTimeline(expansions, campaign)
+    -- first aggregate remove/replace
+    local removeEvents = {}
+    for i = 1, 30 do removeEvents[i] = {} end
+    local replaceNemeses = {}
+    for _, expansion in ipairs(expansions) do
+        local removeEvent = expansion.removeTimelineEvent
+        if removeEvent then
+            log:Debugf("Setting up removed event: [%d] %s", removeEvent.year, removeEvent.name)
+            removeEvents[removeEvent.year][removeEvent.name] = true
+        end
+
+        local replaceNemesis = expansion.replaceNemesis
+        if replaceNemesis then
+            log:Debugf("Setting up replacement nemesis: %s -> %s", replaceNemesis.nemesis, replaceNemesis.replacement)
+            replaceNemeses[replaceNemesis.nemesis] = replaceNemesis.replacement
+        end
+    end
+
+    local events = {}
+    Util.AppendArray(events, campaign.timeline)
+    for _, expansion in ipairs(expansions) do
+        Util.AppendArray(events, expansion.timelineEvents or {})
+    end
+
+    local years = {}
+    for i = 1, Timeline.MAX_YEARS do
+        years[i] = { events = {} }
+    end
+
+    local function FindFreeEvent(year)
+        for i = 1, Timeline.MAX_YEAR_EVENTS do
+            if not year.events[i] then
+                return i
+            end
+        end
+        return nil
+    end
+
+    for _, event in ipairs(events) do
+        local yearIndex, name, type = event.year, event.name, event.type
+
+        if removeEvents[yearIndex][name] then
+            log:Debugf("Skipping removed event [%d] %s", yearIndex, name)
+
+        elseif event.notCampaign == campaign.name then
+            log:Debugf("Skipping timeline event %s for campaign %s", name, campaign.name)
+
+        elseif type == "RulebookEvent" then
+            local year = years[yearIndex]
+            local eventIndex = FindFreeEvent(year)
+            if eventIndex then
+                year.events[eventIndex] = { name = name, type = "RulebookEvent" }
+            else
+                log:Errorf("Couldn't add event '%s' to timeline year %d; no more space. Please mark it on the settlement notes.", name, yearIndex)
+            end
+
+        elseif type == "ShowdownEvent" then
+            local monster, level = event.monster, event.level
+            if monster and replaceNemeses[monster] then
+                monster = replaceNemeses[monster]
+                log:Debugf("Adding replacement showdown [%d] %s", year, name)
+            end
+            if not years[yearIndex].events[Timeline.MAX_YEAR_EVENTS] then
+                years[yearIndex].events[Timeline.MAX_YEAR_EVENTS] = { type = "ShowdownEvent", monster = monster, level = level, nemesis = true }
+            else
+                log:Errorf("Couldn't add showdown event %s/%s to timeline year %d; another event is already in the last slot. Please mark it on the settlement notes.", monster, level, yearIndex)
+            end
+
+        else
+            assert(Check.Fail("Unrecognized event type %s for event %s", type, event))
+        end
+    end
+
+    return {
+        survivalActions = campaign.survivalActions,
+        milestones = campaign.milestones,
+        years = years,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Import(data)
+    if not Campaign.ConvertToLatestVersion(data) then
+        return
+    end
+
+    Showdown:Clean()
+    Hunt:Clean()
+    Campaign.Clean()
+    Archive.Clean()
+
+    local enabledByExpansionName = {}
+    for _, expansion in ipairs(data.expansions) do
+        enabledByExpansionName[expansion.name] = true
+    end
+    Expansion.SetEnabled(enabledByExpansionName)
+
+    Campaign.SetupArchiveOverrides(data.expansions)
+
+    Campaign.SetupDeckFromExpansionComponents("Abilities", data)
+    Campaign.SetupDeckFromExpansionComponents("Fighting Arts", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Secret Fighting Arts", data)
+    Campaign.SetupDeckFromExpansionComponents("Disorders", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Severe Injuries", data)
+    Campaign.SetupDeckFromExpansionComponents("Tactics", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Weapon Proficiencies", data)
+    Campaign.SetupDeckFromExpansionComponents("Armor Sets", data)
+    Campaign.SetupDeckFromExpansionComponents("Vermin", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Strange Resources", data)
+    Campaign.SetupDeckFromExpansionComponents("Basic Resources", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Terrain", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Settlement Events", data, { shuffle = true })
+    Campaign.SetupDeckFromExpansionComponents("Rare Gear", data, { type = "Gear" })
+    Campaign.SetupDeckFromExpansionComponents("Hunt Events", data)
+    local context = {
+        cache = {},
+    }
+    context.innovationArchive = Campaign.SetupDeckFromExpansionComponents("Innovation Archive", data, { component = "Innovations", type = "Innovations", noArchive = true })
+    context.settlementLocationDeck = Campaign.SetupDeckFromExpansionComponents("Settlement Locations", data, { faceUp = true, noArchive = true })
+
+    Archive.Take({ name = "Starting Gear", type = "Gear", location = "Starting Gear", rotation = { x = 0, y = 180, z = 180 } })
+    Archive.Take({ name = "Promo Gear", type = "Gear", location = "Promo Gear", rotation = { x = 0, y = 180, z = 180 } })
+
+    for location, object in pairs(data.objectsByLocation) do
+        Campaign.SetupObject(location, object, context)
+    end
+
+    Campaign.SetupSurvivalTokens(data.timeline.survivalActions)
+    Campaign.SetupReferences(data.campaign.references)
+    Campaign.SetupMisc(data.campaign.misc)
+
+    Archive.Clean()
+
+    Survivor.Import(data.survivor)
+    Timeline.Import(data.timeline)
+
+    Campaign.campaign = data.campaign
+
+    log:Broadcastf("Campaign setup complete.")
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.ConvertToLatestVersion(data)
+    if data.version == Campaign.EXPORT_VERSION then
+        return true
+    end
+
+    if data.version == 1 then
+        data.objectsByLocation = {
+            ["Principle: Death"] = { tag = "Deck", name = "Principle: Death", type = "Innovations", faceDown = true, cards = {
+                { name = "Cannibalize - Death Principle", type = "Innovations" },
+                { name = "Graves - Death Principle", type = "Innovations" },
+            } },
+            ["Principle: New Life"] = { tag = "Deck", name = "Principle: New Life", type = "Innovations", faceDown = true, cards = {
+                { name = "Protect the Young - New Life Principle", type = "Innovations" },
+                { name = "Survival of the Fittest - New Life Principle", type = "Innovations" },
+            } },
+            ["Principle: Society"] = { tag = "Deck", name = "Principle: Society", type = "Innovations", faceDown = true, cards = {
+                { name = "Accept Darkness - Society Principle", type = "Innovations" },
+                { name = "Collective Toil - Society Principle", type = "Innovations" },
+            } },
+            ["Principle: Conviction"] = { tag = "Deck", name = "Principle: Conviction", type = "Innovations", faceDown = true, cards = {
+                { name = "Barbaric - Conviction Principle", type = "Innovations" },
+                { name = "Romantic - Conviction Principle", type = "Innovations" },
+            } },
+        }
+
+        if data.innovationDeck then
+            if #data.innovationDeck > 1 then
+                local cards = {}
+                for _, card in ipairs(data.innovationDeck or {}) do
+                    table.insert(cards, { name = card, type = "Innovations" })
+                end
+                data.objectsByLocation["Innovation Deck"] = { tag = "Deck", name = "Innovation Deck", type = "Innovations", faceDown = true, cards = cards }
+            elseif #data.innovationDeck == 1 then
+                data.objectsByLocation["Innovation Deck"] = { tag = "Card", name = data.innovationDeck[1], type = "Innovations" }
+            end
+        end
+
+        for _, cardList in ipairs({
+            data.innovations or {},
+            data.principles or {},
+            data.settlementLocations or {},
+            data.settlementGear or {},
+            data.settlementResources or {},
+            data.weaponMasteries or {},
+        }) do
+            for _, card in ipairs(cardList) do
+                data.objectsByLocation[card.location] = { tag = "Card", name = card.name, type = card.type }
+            end
+        end
+
+        for _, playerGear in ipairs(data.playerGear or {}) do
+            if playerGear.armorSet then
+                data.objectsByLocation[playerGear.armorSet.location] = { tag = "Card", name = playerGear.armorSet.name, type = playerGear.armorSet.type }
+            end
+            for _, card in ipairs(playerGear.gear or {}) do
+                data.objectsByLocation[card.location] = { tag = "Card", name = card.name, type = card.type }
+            end
+        end
+
+        data.survivor = data.population
+        data.population = nil
+        for _, survivor in ipairs(data.survivor.survivors) do
+            local newCards = {}
+            for type, cards in pairs(survivor.cards or {}) do
+                for _, card in ipairs(cards or {}) do
+                    table.insert(newCards, { name = card, type = type })
+                end
+            end
+            survivor.cards = newCards
+        end
+
+        data.version = Campaign.EXPORT_VERSION
+
+        return true
+    end
+
+    log:Errorf("Exported campaign has unrecognized version %s", tostring(data.version))
+    return false
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Clean()
+    for i = 1, 4 do
+        Location.Get("Player "..i.." Board"):BoxClean({ tags = { "Card", "Deck" }, types = { "Tokens", "Survival Tokens", "Figurine" }})
+    end
+    Location.Get("Deck Board"):BoxClean({ tags = { "Card", "Deck" }, ignoreTypes = { "Monster Resources" }, })
+    Location.Get("Terrain"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Settlement Events"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Settlement Board"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Settlement Locations"):BoxClean({ tags = { "Card", "Deck" } })
+    for i = 1, 5 do
+        Location.Get("Reference "..i):BoxClean({ tags = { "Tile", "Card" }, types = { "References", "Abilities" } })   -- concession for DK constellations
+    end
+    Location.Get("Hunt Events"):BoxClean({ tags = { "Card", "Deck" } })
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.SetupArchiveOverrides(expansions)
+    -- revert everything
+    for _, expansion in ipairs(Expansion.All()) do
+        local overrides = expansion.archiveOverrides
+        if overrides then
+            log:Debugf("Reverting archive entry overrides for %s", expansion.name)
+            Archive.RegisterEntries({ archive = overrides.oldArchive, entries = overrides.entries, allowOverrides = true })
+        end
+    end
+
+    -- apply selected expansions
+    for _, expansion in ipairs(expansions) do
+        local overrides = expansion.archiveOverrides
+        if overrides then
+            log:Debugf("Overriding archive entries for %s", expansion.name)
+            Archive.RegisterEntries({ archive = overrides.newArchive, entries = overrides.entries, allowOverrides = true })
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.SetupDeckFromExpansionComponents(name, data, params)
+    local params = params or {}
+    local location = Location.Get(name)
+    local component = params.component or name
+    local type = params.type or name
+
+    log:Debugf("Setting up %s deck", name)
+
+    local sources = {}
+    for _, expansion in ipairs(data.expansions) do
+        if expansion.components and expansion.components[component] then
+            log:Debugf("  Adding %s/%s", expansion.components[component], type)
+            table.insert(sources, Archive.ArchiveSource(expansion.components[component], type))
+        end
+    end
+
+    if #sources == 0 then
+    log:Debugf("No expansions have %s, skipping", name)
+        return
+    end
+
+    local rotation = { x = 0, y = 180, z = params.faceUp and 0 or 180 }
+    local deckContainer = Archive.CreateDeckFromSources({
+        sources = sources,
+        name = name,
+        type = type,
+        location = location,
+        rotation = rotation,
+     })
+
+    if data.remove and data.remove[name] then
+        deckContainer:Delete(data.remove[name])
+    end
+
+    if not params.noArchive then
+        local archive = NamedObject.Get(name.." Archive")
+        archive.reset()
+        archive.putObject(deckContainer.object)
+
+        deckContainer = Container(archive.takeObject({
+            position = location:Center(),
+            rotation = rotation,
+            smooth   = false,
+        }))
+    end
+
+    if params.shuffle then
+        deckContainer:Shuffle()
+    end
+
+    return deckContainer
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.Spawn(name, type, position, context)
+    local key = name..":"..type
+    local object = context.cache[key]
+    if not object then
+        if type == "Innovations" then
+             object = context.innovationArchive:Take({ name = name, type = type, position = position })
+        elseif type == "Settlement Locations" then
+            object = context.settlementLocationDeck:Take({ name = name, type = type, position = position })
+        else
+            object = Archive.Take({ archive = type.." Archive", name = name, type = type, position = position })
+        end
+        if not object then
+            return
+        end
+        context.cache[key] = object
+        return object
+    else
+        return object.clone({ position = position })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.SetupObject(locationName, objectData, context)
+    local location = Location.Get(locationName)
+    if not location then
+        return log:Errorf("Object '%s' (%s) was recorded at unrecognized location '%s'; spawning in the middle of the showdown board.", name, type, location)
+    end
+
+    local finalObject = nil
+    local position = location:Center()
+    position.y = position.y + 2
+    log:Debugf("Adding %s '%s' (%s) at %s", objectData.tag, objectData.name, objectData.type, locationName)
+    if objectData.tag == "Card" then
+        finalObject = Campaign.Spawn(objectData.name, objectData.type, position, context)
+        if not finalObject then
+            return log:Errorf("Couldn't find card '%s' (%s) for location %s", objectData.name, objectData.type, locationName)
+        end
+
+    elseif objectData.tag == "Deck" then
+        local objects = {}
+        for _, card in ipairs(objectData.cards) do
+            log:Debugf("  Adding '%s' (%s)", card.name, card.type)
+            local object = Campaign.Spawn(card.name, card.type, position, context)
+            if not object then
+                return log:Errorf("  Couldn't find card '%s' (%s) for location %s", card.name, card.type, locationName)
+            end
+            table.insert(objects, object)
+            position.y = position.y + 0.3
+        end
+        finalObject = group(objects)[1]
+        assert(Check(finalObject))
+        assert(Check(finalObject.tag == "Deck" or finalObject.tag == "Card"))
+        finalObject.setName(objectData.name)
+        finalObject.setGMNotes(objectData.type)
+
+    else
+        return log:Errof("Unrecognized object tag '%s' at location '%s'", tag, location)
+    end
+
+    if objectData.faceDown then
+        assert(finalObject)
+        --Wait.frames(function() finalObject.setRotation({ x = 0, y = 180, z = 180 }) end, 2)
+        finalObject.setRotation({ x = 0, y = 180, z = 180 })
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.SetupSurvivalTokens(survivalActions)
+    for ordinal, player in ipairs(Player.Players()) do
+        for i, survivalAction in ipairs(survivalActions or {}) do
+            if survivalAction.checked then
+                local survivalToken = Archive.Take({ archive = survivalAction.name.." Tokens", name = survivalAction.name, type = "Survival Tokens", location = "Player "..ordinal.." Survival Token "..i })
+                if not survivalToken then
+                    log:Errorf("Couldn't find survival token '%s'", survivalAction)
+                else
+                    survivalToken.setLock(false) -- for some reason these sometimes spawn locked
+                end
+            end
+        end
+        Archive.Clean()
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+
+function Campaign.SetupReferences(references)
+    for _, reference in ipairs(references or {}) do
+        local name, location = reference.name, reference.location
+        -- height 0 because we lock these immediately after spawning
+        if not Archive.Take({ name = name, type = "References", location = location, height = 0, spawnFunc = function(spawnedObject)
+            spawnedObject.setLock(true)
+        end }) then
+            log:Errorf("Couldn't find '%s'", name)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.SetupMisc(misc)
+    for _, m in ipairs(misc or {}) do
+        if not Archive.Take(m) then
+            log:Errorf("Couldn't find '%s' (%s)", m.name, m.type)
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.ShowUi()
+    log:Debugf("Showing Campaign UI")
+    Campaign.panel:Show()
+    Campaign.uiOpen = true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.HideUi()
+    log:Debugf("Hiding Campaign UI")
+    Campaign.panel:Hide()
+    Campaign.uiOpen = false
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Campaign.IsUiOpen()
+    return Campaign.uiOpen
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = Campaign.Init,
+    Save = Campaign.Save,
+    ShowUi = Campaign.ShowUi,
+    HideUi = Campaign.HideUi,
+    IsUiOpen = Campaign.IsUiOpen,
+}

@@ -1,34 +1,30 @@
+local Hunt = require("Kdm/Hunt")
+local Campaign = require("Kdm/Campaign")
+local Showdown = require("Kdm/Showdown")
+local Timeline = require("Kdm/Timeline")
 local Ui = require("Kdm/Ui")
-local Setup = nil
-local Hunt = nil
-local Showdown = nil
-local Timeline = nil
-local Population = nil
-
-GlobalUi = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function GlobalUi.Init(modules, saveState, expansions, ui)
-    Setup = modules.Setup
-    Hunt = modules.Hunt
-    Showdown = modules.Showdown
-    Timeline = modules.Timeline
-    Population = modules.Population
+local GlobalUi = {}
+
+---------------------------------------------------------------------------------------------------
+
+function GlobalUi.Init()
+    local ui = Ui.Get2d()
 
     local buttons = {
-        { name = "Setup", module = Setup, image = "SetupButton" },
+        { name = "Campaign", module = Campaign, image = "CampaignButton" },
         { name = "Hunt", module = Hunt, image = "HuntButton" },
         { name = "Showdown", module = Showdown, image = "ShowdownButton" },
         { name = "Timeline", module = Timeline, image = "TimelineButton" },
-        { name = "Population", module = Population, image = "PopulationButton" },
     }
+
     GlobalUi.buttons = {}
     for i, button in ipairs(buttons) do
-        GlobalUi.buttons[button.name] = Ui.ImageButton(ui, { id = button.name, rectAlignment = "UpperLeft", x = 70, y = -10 - (i - 1) * 40, width = 100, height = 30, image = button.image, onClick = function()
+        GlobalUi.buttons[button.name] = ui:Button({ id = button.name, rectAlignment = "UpperLeft", x = 70, y = -10 - (i - 1) * 40, width = 100, height = 30, image = button.image, onClick = function()
             if button.module.IsUiOpen() then
                 button.module.HideUi()
-
             else
                 for _, other in ipairs(buttons) do
                     if other.name != button.name then
@@ -41,7 +37,7 @@ function GlobalUi.Init(modules, saveState, expansions, ui)
     end
 
     GlobalUi.open = true
-    GlobalUi.collapseExpandButton = Ui.ImageButton(ui, { id = "CollapseExpand", rectAlignment = "UpperLeft", x = 180, y = -10, width = 30, height = 30, image = "CollapseButton", onClick = function()
+    GlobalUi.collapseExpandButton = ui:Button({ id = "CollapseExpand", rectAlignment = "UpperLeft", x = 180, y = -10, width = 30, height = 30, image = "CollapseButton", onClick = function()
         if GlobalUi.open then
             GlobalUi.open = false
             GlobalUi.collapseExpandButton:SetImage("ExpandButton")

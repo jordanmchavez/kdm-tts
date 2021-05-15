@@ -31,6 +31,13 @@ Archive.data = {
     { "Monster Resources", "Monster Resources", "Monster Resources Archive" },
     { "Survivor Sheet", "Survivor Sheet", "Survivor Sheets Archive" },
     { "Survivor Box", "Survivor Box", "Survivor Boxes Archive" },
+    { "Dodge Tokens", "Survival Tokens", "Dodge Tokens" },
+    { "Encourage Tokens", "Survival Tokens", "Encourage Tokens" },
+    { "Embolden Tokens", "Survival Tokens", "Embolden Tokens" },
+    { "Dash Tokens", "Survival Tokens", "Dash Tokens" },
+    { "Surge Tokens", "Survival Tokens", "Surge Tokens" },
+    { "Overcharge Tokens", "Survival Tokens", "Overcharge Tokens" },
+    { "Endure Tokens", "Survival Tokens", "Endure Tokens" },
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -52,7 +59,7 @@ function Archive.Init()
     Archive.containerX = -150
     Archive.containerZ = 120
 
-    for _, expansion in pairs(Expansion.AllExpansions()) do
+    for _, expansion in ipairs(Expansion.All()) do
         Archive.RegisterEntries(expansion.archiveEntries)
     end
 end
@@ -113,11 +120,10 @@ function Archive.Take(params)
         position = location:Center()
         position.y = position.y + (height or 2)
     else
-        assert(position, "Either location or position is required")
+        assert(Check.Vec3(position, "Either location or position is required"))
     end
     local rotation = params.rotation or { x = 0, y = 180, z = 0 }
     local spawnFunc = params.spawnFunc
-    local allowMissing = params.allowMissing
     assert(Check.StrOrNil(archive))
     assert(Check.Str(name))
     assert(Check.Str(type))
@@ -128,10 +134,10 @@ function Archive.Take(params)
     if not archive then
         local key = Archive.Key(name, type)
         archive = Archive.index[key]
-        if allowMissing then
+        if not archive then
+            log:Debugf("%s (%s) is not in the archive", name, type)
             return nil
         end
-        assert(Check(archive, "%s (%s) is not in the archive", name, type))
 
         if Archive.direct[key] then
             -- for single item archives no need to pull intermediate container
@@ -164,7 +170,7 @@ function Archive.Take(params)
         })
         container = Container(containerObject)
         if not container then
-            log:Errorf("Couldn't take from archive %s (%s). If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getName(), archiveObject.getGUID())
+            log:Errorf("Couldn't take from archive [%s] %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", archiveObject.getGUID(), archiveObject.getName())
             Util.Highlight(archiveObject)
             return nil
         end
@@ -182,13 +188,10 @@ function Archive.Take(params)
         position = position,
         rotation = rotation,
         spawnFunc = spawnFunc,
-        allowMissing = allowMissing,
     })
     if not object then
-        if not allowMissing then
-            log:Errorf("Couldn't find %s (%s) in archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
-            Util.Highlight(NamedObject.Get(archive))
-        end
+        log:Errorf("Couldn't find %s (%s) in archive %s. If you accidentally reset/cleared it, then you may need to restore an earlier save. If it's one of the deck archives (Disorders, Fighting Arts, etc), you can try reconstructing the deck then dropping it onto the archive box to restore it.", name, type, archive)
+        Util.Highlight(NamedObject.Get(archive))
         return nil
     end
 
@@ -199,7 +202,77 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Archive.CleanUpContainers()
+function Archive.ArchiveSource(name, type)
+    return {
+        source = "Archive",
+        name = name,
+        type = type,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.ContainerSource(container, name, type)
+    return {
+        source = "Container",
+        container = container,
+        name = name,
+        type = type,
+    }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.CreateDeckFromSources(params)
+    local sources, location, rotation = params.sources, Location.Get(params.location), params.rotation or { x = 0, y = 180, z = 0 }
+
+    local objects = {}
+    local missing = {}
+    for i, source in ipairs(sources) do
+        local takeParams = { name = source.name, type = source.type, location = location, height = (i - 1) * 0.5, rotation = rotation }
+        local object = nil
+        if source.source == "Archive" then
+            object = Archive.Take(takeParams)
+            if not object then
+                log:Debugf("Couldn't find '%s' in archive", source.name)
+                table.insert(missing, source)
+            end
+        elseif source.source == "Container" then
+            object = source.container:Take(takeParams)
+            if not object then
+                log:Debugf("Couldn't find '%s' in container [%s] %s", source.name, source.container:Guid(), source.container:Name())
+                table.insert(missing, source)
+            end
+        else
+            assert(Check.Fail("Unrecognized source: %s", source))
+        end
+        if object then
+            table.insert(objects, object)
+        end
+    end
+
+    local deckObject
+    if #objects > 1 then
+        deckObject = group(objects)[1]
+        assert(Check(deckObject))
+    else
+        log:Debugf("CreateDeck only asked for one object [%s] %s, so not grouping", objects[1].getGUID(), objects[1].getName())
+        deckObject = objects[1]
+    end
+
+    deckObject.setName(params.name)
+    deckObject.setGMNotes(params.type)
+    deckObject.setPositionSmooth(location:Center(), false, true)
+    deckObject.setRotation(rotation)
+
+    log:Debugf("Created deck [%s] %s at %s", deckObject.getGUID(), deckObject.getName(), location)
+
+    return Container(deckObject), missing
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Archive.Clean()
     for _, container in pairs(Archive.containers) do
         log:Debugf("Destroying archive container %s", container:Guid())
         container:Destruct()
@@ -238,5 +311,8 @@ return {
     Init = Archive.Init,
     RegisterEntries = Archive.RegisterEntries,
     Take = Archive.Take,
-    CleanUpContainers = Archive.CleanUpContainers,
+    ArchiveSource = Archive.ArchiveSource,
+    ContainerSource = Archive.ContainerSource,
+    CreateDeckFromSources = Archive.CreateDeckFromSources,
+    Clean = Archive.Clean,
 }

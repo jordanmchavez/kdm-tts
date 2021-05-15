@@ -1,3 +1,7 @@
+local Check = require("Kdm/Util/Check")
+
+---------------------------------------------------------------------------------------------------
+
 local Core = require("Kdm/Expansion/Core")
 local CommunityEdition = require("Kdm/Expansion/CommunityEdition")
 local DragonKing = require("Kdm/Expansion/DragonKing")
@@ -18,33 +22,82 @@ local Expansion = {}
 
 ---------------------------------------------------------------------------------------------------
 
-function Expansion.Init()
-    Expansion.expansions = {
-        ["Core"] = Core,
-        ["CommunityEdition"] = CommunityEdition,
-        ["DragonKing"] = DragonKing,
-        ["DungBeetleKnight"] = DungBeetleKnight,
-        ["FlowerKnight"] = FlowerKnight,
-        ["Gorm"] = Gorm,
-        ["LionGod"] = LionGod,
-        ["LionKnight"] = LionKnight,
-        ["LonelyTree"] = LonelyTree,
-        ["Manhunter"] = Manhunter,
-        ["Slenderman"] = Slenderman,
-        ["Spidicules"] = Spidicules,
-        ["Sunstalker"] = Sunstalker,
+function Expansion.Init(saveState)
+    Expansion.allExpansions = {
+        Core,
+        CommunityEdition,
+        DragonKing,
+        DungBeetleKnight,
+        FlowerKnight,
+        Gorm,
+        LionGod,
+        LionKnight,
+        LonelyTree,
+        Manhunter,
+        Slenderman,
+        Spidicules,
+        Sunstalker,
     }
+
+    Expansion.expansionsByName = {}
+    for _, expansion in ipairs(Expansion.allExpansions) do
+        Expansion.expansionsByName[expansion.name] = expansion
+    end
+
+    Expansion.enabledByExpansionName = {}
+    for _, name in ipairs(saveState or {}) do
+        local expansion = Expansion.expansionsByName[name]
+        assert(Check(expansion, "Expansion save state had unknown expansion %s", name))
+        Expansion.enabledByExpansionName[name] = true
+    end
+    Expansion.enabledByExpansionName["Core"] = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Expansion.AllExpansions()
-    return Expansion.expansions
+function Expansion.Save()
+    local enabledExpansions = {}
+    for name, enabled in pairs(Expansion.enabledByExpansionName) do
+        if enabled then
+            table.insert(enabledExpansions, name)
+        end
+    end
+
+    return enabledExpansions
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.All()
+    return Expansion.allExpansions
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.SetEnabled(enabledByExpansionName)
+    Expansion.enabledByExpansionName = {}
+    assert(Check.Table(enabledByExpansionName))
+    for expansionName, enabled in pairs(enabledByExpansionName) do
+        assert(Check.Str(expansionName))
+        assert(Check.BooleanOrNil(enabled))
+        Expansion.enabledByExpansionName[expansionName] = enabled
+    end
+    Expansion.enabledByExpansionName["Core"] = true
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Expansion.IsEnabled(expansionName)
+    assert(Check.Str(expansionName))
+    return Expansion.enabledByExpansionName[expansionName]
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
     Init = Expansion.Init,
-    AllExpansions = Expansion.AllExpansions,
+    Save = Expansion.Save,
+    All = Expansion.All,
+    SetEnabled = Expansion.SetEnabled,
+    IsEnabled = Expansion.IsEnabled,
 }

@@ -295,12 +295,10 @@ function Util.LookAt(params)
     local position = nil
     if params.position then
         position = params.position
-    elseif params.location then
-        position = params.location:Center()
     elseif params.object then
         position = params.object.getPosition()
     else
-        assert(false, "Either position, location, or object is required")
+        assert(false, "Either position or object is required")
     end
 
     for _, player in ipairs(Player.getPlayers()) do
@@ -326,6 +324,44 @@ function Util.DeepCopy(source)
         copy[Util.DeepCopy(key)] = Util.DeepCopy(value)
     end
 
+    return copy
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.IsFaceDown(object)
+    local z = object.getRotation().z
+    return z >= 15 and z <= 345
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.TokenValue(token)
+    local value = Util.IsFaceDown(token) and -1 or 1
+    local qty = token.getQuantity()
+    if qty >= 2 then
+        value = value * qty
+    end
+    return value
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.CopyArray(a)
+    local copy = {}
+    for i, v in ipairs(a) do
+        copy[i] = v
+    end
+    return copy
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Util.CopyMap(m)
+    local copy = {}
+    for k, v in pairs(m) do
+        copy[k] = v
+    end
     return copy
 end
 

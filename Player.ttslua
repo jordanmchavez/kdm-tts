@@ -6,8 +6,7 @@ local EventManager = require("Kdm/Util/EventManager")
 local Location = require("Kdm/Location")
 local log = require("Kdm/Log").ForModule("Player")
 local NamedObject = require("Kdm/NamedObject")
-local SurvivorBox = require("Kdm/SurvivorBox")
-local SurvivorSheet = require("Kdm/SurvivorSheet")
+local Survivor = require("Kdm/Survivor")
 local Ui = require("Kdm/Ui")
 local Util = require("Kdm/Util/Util")
 local Weapon = require("Kdm/Weapon")
@@ -19,14 +18,6 @@ Player.__index = Player
 function Player.Is(x) return getmetatable(x) == Player end
 
 Player.HIT_LOCATIONS = { "head", "arms", "body", "waist", "legs" }
-
-Player.ALLOWED_CARD_TYPES = {
-    ["Secret Fighting Arts"] = true,
-    ["Fighting Arts"] = true,
-    ["Disorders"] = true,
-    ["Abilities"] = true,
-    ["Severe Injuries"] = true,
-}
 
 Player.TOKENS = {
     ["Movement Token"] = true,
@@ -69,7 +60,19 @@ function Player.PostInit()
     EventManager.AddHandler("onObjectCollisionEnter", Player.OnObjectCollisionEnter)
     EventManager.AddHandler("onObjectEnterContainer", Player.OnObjectEnterContainer)
     EventManager.AddHandler("onObjectDestroy", Player.OnObjectDestroy)
-    EventManager.AddHandler("onSurvivorStatChange", Player.OnSurvivorChangeStat)
+    EventManager.AddHandler(EventManager.ON_SURVIVOR_STAT_CHANGED, Player.OnSurvivorChangeStat)
+    EventManager.AddHandler(EventManager.ON_PLAYER_COLOR_CHANGED, Player.OnPlayerColorChanged)
+
+    Wait.time(function()
+        for ordinal, player in ipairs(Player.players) do
+            local playerMarker = NamedObject.Get("Player "..ordinal.." Marker")
+            if playerMarker then
+                local colorTable = playerMarker.getColorTint()
+                local colorStr = "#"..Color(colorTable):toHex()
+                EventManager.FireEvent(EventManager.ON_PLAYER_COLOR_CHANGED, player, colorTable, colorStr)
+            end
+        end
+    end, 2, -1)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -124,8 +127,6 @@ function Player.OnObjectCollisionEnter(object, collisionInfo)
 
     local collisionObject = collisionInfo.collision_object
 
-    log:Debugf("[%s]%s collided with [%s]%s", object.getGUID(), object.getName(), collisionObject.getGUID(), collisionObject.getName())
-
     local player = nil
     for _, p in ipairs(Player.players) do
         if p.boardObject == collisionObject then
@@ -136,6 +137,8 @@ function Player.OnObjectCollisionEnter(object, collisionInfo)
     if not player then
         return
     end
+
+    log:Debugf("[%s]%s collided with [%s]%s", object.getGUID(), object.getName(), collisionObject.getGUID(), collisionObject.getName())
 
     local playerPrefix = "Player "..player.ordinal
     local temporaryTokensLocation = Location.Get(playerPrefix.." Temporary Tokens")
@@ -195,6 +198,14 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Player.OnPlayerColorChanged(player, colorTable, colorStr)
+    if player.figurineObject then
+        player.figurineObject.setColorTint(colorTable)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
 function Player.Create(ordinal, params)
     local playerPrefix = "Player "..ordinal
 
@@ -203,6 +214,7 @@ function Player.Create(ordinal, params)
         ordinal = ordinal,
         boardObject = NamedObject.Get(playerPrefix.." Board"),
         markerObject = NamedObject.Get(playerPrefix.." Marker"),
+        weapons = {},   -- purely a concession to make BattleUi updates easier
     }
     setmetatable(player, Player)
 
@@ -213,7 +225,7 @@ function Player.Create(ordinal, params)
         if survivorSheetObject == nil then  -- compare nil for TTS objects
             log:Errorf("Can't find survivor sheet %s that %d was linked to! Try recreating the it from the Population screen and dropping it back onto the player board.", params.linkedSurvivorSheetGuid, ordinal)
         else
-            player.survivorSheet = SurvivorSheet.ForObject(survivorSheetObject)
+            player.survivorSheet = Survivor.SurvivorSheetForObject(survivorSheetObject)
             if not player.survivorSheet then
                 log:Errorf("Survivor sheet %s on player board %d wasn't linked to any survivor.", survivorSheetObject.getGUID(), ordinal)
             else
@@ -272,15 +284,8 @@ function Player.Create(ordinal, params)
         end
     end)
 
-    -- local checkRegisterCollisions = function(object)
-    --     if object and object.getGMNotes() == "Token" and Player.TOKEN_STATS[object.getName()] then
-    --         log:Debugf("Registering token [%s]%s for collisions", object.getGUID(), object.getName())
-    --         object.registerCollisions()
-    --     end
-    -- end
-
     local checkUnregisterCollisions = function(object)
-        if object and object.getGMNotes() == "Token" and Player.TOKEN_STATS[object.getName()] then
+        if object and object.getGMNotes() == "Tokens" and Player.TOKEN_STATS[object.getName()] then
             log:Debugf("Unregistering token [%s]%s for collisions", object.getGUID(), object.getName())
             object.unregisterCollisions()
         end
@@ -358,19 +363,19 @@ function Player.InitUi(player)
      for i, hitLocation in ipairs({ "arms", "body", "waist", "legs" }) do
          local topLeft = { x = x1 + (i - 1) * dx, y = y1 }
          local bottomRight = { x = topLeft.x + width, y = y2 }
-         player.lightInjuryCheckBoxes[hitLocation] = ui:CheckBox({ id = hitLocation.."LightInjury", topLeft = topLeft, bottomRight = bottomRight, value = player.lightInjuries[hitLocation], onClick = function()
+         player.lightInjuryCheckBoxes[hitLocation] = ui:CheckBox({ id = hitLocation.."LightInjury", topLeft = topLeft, bottomRight = bottomRight, checked = player.lightInjuries[hitLocation], onClick = function()
              local value = not player.lightInjuries[hitLocation]
              player.lightInjuries[hitLocation] = value
-             player.lightInjuryCheckBoxes[hitLocation]:Set(value)
+             player.lightInjuryCheckBoxes[hitLocation]:Check(value)
          end })
      end
 
      local x1 = -0.166245
      player.heavyInjuryCheckBoxes = {}
-     player.heavyInjuryCheckBoxes.head = ui:CheckBox({ id = "headHeavyInjury", topLeft = { x = x1, y = y1 }, bottomRight = { x = x1 + width, y = y2 }, value = player.heavyInjuries.head, onClick = function()
+     player.heavyInjuryCheckBoxes.head = ui:CheckBox({ id = "headHeavyInjury", topLeft = { x = x1, y = y1 }, bottomRight = { x = x1 + width, y = y2 }, checked = player.heavyInjuries.head, onClick = function()
          local value = not player.heavyInjuries.head
          player.heavyInjuries.head = value
-         player.heavyInjuryCheckBoxes.head:Set(value)
+         player.heavyInjuryCheckBoxes.head:Check(value)
      end })
      local x1 = -0.376100
      local xn = -0.918347
@@ -378,10 +383,10 @@ function Player.InitUi(player)
      for i, hitLocation in ipairs({ "arms", "body", "waist", "legs" }) do
          local topLeft = { x = x1 + (i - 1) * dx, y = y1 }
          local bottomRight = { x = topLeft.x + width, y = y2 }
-         player.heavyInjuryCheckBoxes[hitLocation] = ui:CheckBox({ id = hitLocation.."HeavyInjury", topLeft = topLeft, bottomRight = bottomRight, value = player.heavyInjuries[hitLocation], onClick = function()
+         player.heavyInjuryCheckBoxes[hitLocation] = ui:CheckBox({ id = hitLocation.."HeavyInjury", topLeft = topLeft, bottomRight = bottomRight, checked = player.heavyInjuries[hitLocation], onClick = function()
              local value = not player.heavyInjuries[hitLocation]
              player.heavyInjuries[hitLocation] = value
-             player.heavyInjuryCheckBoxes[hitLocation]:Set(value)
+             player.heavyInjuryCheckBoxes[hitLocation]:Check(value)
          end })
      end
 
@@ -393,7 +398,7 @@ function Player.InitUi(player)
          player:BackToSettlement()
      end })
 
-     ui:Apply()
+     ui:ApplyToObject()
 
     return player
 end
@@ -406,14 +411,13 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Player:Ordinal()
-    return self.ordinal
-end
+function Player:Ordinal() return self.ordinal end
+function Player:SurvivorSheet() return self.survivorSheet end
 
 ---------------------------------------------------------------------------------------------------
 
 function Player:UpdateGear()
-    local weapons = {}
+    local weaponsAndModifiers = {}
 
     local armorTotals = {}
     for _, hitLocation in ipairs(Player.HIT_LOCATIONS) do
@@ -434,7 +438,7 @@ function Player:UpdateGear()
         playerPrefix.." Fist & Tooth",
         playerPrefix.." Armor Set",
     }) do
-        local weaponData = {
+        local weaponAndModifiers = {
             weapon = nil,
             modifiers = {},
         }
@@ -453,32 +457,36 @@ function Player:UpdateGear()
                 local weapon = Weapon.Get(objectName)
                 if weapon then
                     log:Debugf("Adding weapon %s at %s", objectName, location)
-                    weaponData.weapon = weapon
+                    weaponAndModifiers.weapon = weapon
                 end
             else
                 local stat = Player.TOKEN_STATS[objectName]
                 if stat then
                     log:Debugf("Adding token %s for weapon at %s", objectName, location)
-                    weaponData.modifiers[stat] = (weaponData.modifiers[stat] or 0) + Player.TokenValue(object)
+                    weaponData.modifiers[stat] = (weaponData.modifiers[stat] or 0) + Util.TokenValue(object)
                     object.registerCollisions()
                 end
             end
         end
 
-        if weaponData.weapon then
-            table.insert(weapons, weaponData)
+        if weaponAndModifiers.weapon then
+            table.insert(weaponsAndModifiers, weaponAndModifiers)
         end
     end
 
     log:Debugf("Final %s weapons: %s", self, Util.TabStr(weapons))
     log:Debugf("Final %s armor: %s", self, Util.TabStr(armorTotals))
 
+    self.weaponsAndModifiers = weaponsAndModifiers    -- purely a concession to make BattleUi updates easier
+
     for _, hitLocation in ipairs(Player.HIT_LOCATIONS) do
-        self.armorCounters[hitLocation]:Set(armorTotals[hitLocation])
+        self.armorCounters[hitLocation]:SetText(armorTotals[hitLocation])
     end
 
-    EventManager.FireEvent(EventManager.ON_PLAYER_WEAPONS_CHANGED, self, weaponData)
+    EventManager.FireEvent(EventManager.ON_PLAYER_WEAPONS_CHANGED, self, weapons)
 end
+
+function Player:WeaponsAndModifiers() return self.weaponsAndModifiers end
 
 ---------------------------------------------------------------------------------------------------
 
@@ -490,23 +498,32 @@ function Player:UpdateCards()
     log:Debugf("Updating %s cards", self)
 
     local cards = {}
+    local positionsByCardNameType = {}
     for _, object in ipairs(Location.Get("Player "..self.ordinal.." Cards"):AllObjects()) do
         if object.tag == "Card" or object.tag == "Deck" then
             local container = Container(object)
             for _, card in ipairs(container:Objects()) do
-                if Player.ALLOWED_CARD_TYPES[card.gm_notes] then
+                if Survivor.ALLOWED_CARD_TYPES[card.gm_notes] then
                     log:Debugf("Found card %s", card.name)
                     table.insert(cards, {
                         name = card.name,
                         type = card.gm_notes,
-                        position = container:Object().getPosition(),
                     })
+
+                    local nameType = (card.name or "")..card.gm_notes
+                    local position = self.boardObject.positionToLocal(container:Object().getPosition())
+                    if positionsByCardNameType[nameType] then
+                        table.insert(positionsByCardNameType[nameType], position)
+                    else
+                        positionsByCardNameType[nameType] = { position }
+                    end
                 end
             end
         end
     end
 
     self.survivorSheet:Survivor():SetCards(cards)
+    self.survivorSheet:Survivor():SetPositionsByCardNameType(positionsByCardNameType)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -518,10 +535,10 @@ function Player:UpdateStats()
 
     local modifiers = {}
     for _, object in ipairs(Location.Get("Player "..self.ordinal.." Temporary Tokens"):AllObjects()) do
-        if object.getGMNotes() == "Token" then
+        if object.getGMNotes() == "Tokens" then
             local stat = Player.TOKEN_STATS[object.getName()]
             if stat then
-                local value = Player.TokenValue(object)
+                local value = Util.TokenValue(object)
                 log:Debugf("Found temporary token %s=%d for player %s", object.getName(), value, self)
                 modifiers[stat] = (modifiers[stat] or 0) + value
                 object.registerCollisions()
@@ -530,10 +547,10 @@ function Player:UpdateStats()
     end
 
     for _, object in ipairs(Location.Get("Player "..self.ordinal.." Permanent Tokens"):AllObjects()) do
-        if object.getGMNotes() == "Token" then
+        if object.getGMNotes() == "Tokens" then
             local stat = Player.TOKEN_STATS[object.getName()]
             if stat then
-                local value = Player.TokenValue(object)
+                local value = Util.TokenValue(object)
                 log:Debugf("Found permanent token %s=%d for player %s", object.getName(), value, self)
                 modifiers[stat] = (modifiers[stat] or 0) + value
                 object.registerCollisions()
@@ -556,16 +573,16 @@ function Player:HealAndReset()
     -- Clear injuries
     for i, hitLocation in ipairs({ "arms", "body", "waist", "legs" }) do
         self.lightInjuries[hitLocation] = nil
-        self.lightInjuryCheckBoxes[hitLocation]:Set(nil)
+        self.lightInjuryCheckBoxes[hitLocation]:Check(nil)
     end
     for i, hitLocation in ipairs(Player.HIT_LOCATIONS) do
         self.heavyInjuries[hitLocation] = nil
-        self.heavyInjuryCheckBoxes[hitLocation]:Set(nil)
+        self.heavyInjuryCheckBoxes[hitLocation]:Check(nil)
     end
 
     -- Clear temporary tokens
-    for _, object in ipairs(Location.Get("Player "..self.ordinal.." Temporary Tokens"):AllObjects("Token")) do
-        if object.getGMNotes() == "Token" and Player.TOKENS[object.getName()] then
+    for _, object in ipairs(Location.Get("Player "..self.ordinal.." Temporary Tokens"):AllObjects("Tokens")) do
+        if object.getGMNotes() == "Tokens" and Player.TOKENS[object.getName()] then
             object.destruct()
         end
     end
@@ -590,7 +607,7 @@ function Player:OnObjectDroppedOnSurvivorSheet(object)
         return log:Broadcastf("Player %d is already linked to a survivor. Click the 'Back to Settlement' button to unlink, then try dropping the survivor box again.", self.ordinal)
     end
 
-    local survivorBox = SurvivorBox.ForObject(object)
+    local survivorBox = Survivor.SurvivorBoxForObject(object)
     if not survivorBox then
         return log:Errorf("Survivor box %s isn't linked to any survivor. This usually means it was created by copying/pasting or importing from another save, which won't work. If this is the case, then you'll need to create the survivor from the 'Survivors' board.", object.getGUID())
     end
@@ -612,22 +629,40 @@ function Player:UnpackSurvivorBox(survivorBox)
         return false
     end
 
-    -- make a copy since we'll modify this
-    local cards = {}
-    for _, card in ipairs(survivorBox:Survivor():Cards()) do
-        table.insert(cards, card)
+    local survivor = survivorBox:Survivor()
+
+    local countsByCardNameType = {}
+    for _, card in ipairs(survivor:Cards()) do
+        local nameType = card.name..card.type
+        countsByCardNameType[nameType] = (countsByCardNameType[nameType] or 0) + 1
     end
 
-    local findAndRemoveCard = function(cardName)
-        for i, card in ipairs(cards) do
-            if card.name == cardName then
-                cards[i] = cards[#cards]
-                cards[#cards] = nil
-                return card
-            end
-        end
-        return nil
+    -- make a copy since we'll modify this
+    local positionsByCardNameType = {}
+    for cardName, positions in pairs(survivor:PositionsByCardNameType()) do
+        positionsByCardNameType[cardName] = Util.CopyArray(positions)
     end
+
+    local availableLocations = {
+        [Location.Get(playerPrefix.." Fighting Art 1")] = true,
+        [Location.Get(playerPrefix.." Fighting Art 2")] = true,
+        [Location.Get(playerPrefix.." Fighting Art 3")] = true,
+        [Location.Get(playerPrefix.." Disorder 1")] = true,
+        [Location.Get(playerPrefix.." Disorder 2")] = true,
+        [Location.Get(playerPrefix.." Disorder 3")] = true,
+        [Location.Get(playerPrefix.." Weapon Proficiency")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 1")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 2")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 3")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 4")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 5")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 6")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 7")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 8")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 9")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 10")] = true,
+        [Location.Get(playerPrefix.." Ability/Impairment 11")] = true,
+    }
 
     local survivorBoxContainer = Container(survivorBox:Object())
     for _, entry in ipairs(survivorBoxContainer:Objects()) do
@@ -640,51 +675,43 @@ function Player:UnpackSurvivorBox(survivorBox)
             self:LinkFigurine(figurineObject)
 
         else
-            local card = findAndRemoveCard(entry.name)
-            if card and card.position then
-                log:Debugf("Unpacking card %s to %s", card.name, card.position)
-                survivorBoxContainer:Take({
-                    guid = entry.guid,
-                    position = card.position,
-                    rotation = { x = 0, y = 180, z = 0 },
-                })
+            local nameType = (entry.name or "")..(entry.gm_notes or "")
+            if (countsByCardNameType[nameType] or 0) > 0 then
+                countsByCardNameType[nameType] = countsByCardNameType[nameType] - 1
+
+                local position = nil
+                local count = #(positionsByCardNameType[nameType] or {})
+                if count > 0 then
+                    position = self.boardObject.positionToWorld(positionsByCardNameType[nameType][count])
+                    table.remove(positionsByCardNameType[nameType])
+
+                    log:Debugf("Unpacking card %s/%s to (%f, %f, %f)", entry.name, entry.gm_notes, position.x, position.y, position.z)
+                    survivorBoxContainer:Take({
+                        guid = entry.guid,
+                        position = position,
+                        rotation = { x = 0, y = 180, z = 0 },
+                    })
+
+                    for _, location in ipairs(Location.LocationsAtPosition(position)) do
+                        log:Debugf("Card %s/%s now occupies %s", entry.name, entry.gm_notes, location)
+                        availableLocations[location] = nil
+                    end
+                else
+                    log:Debugf("Card %s doesn't have position", entry.name)
+                end
             else
-                log:Debugf("Card %s doesn't have position", card.name)
+                log:Debugf("Unrecognized object in %s: %s/%s", survivorBox, entry.name, entry.gm_notes)
             end
         end
     end
 
-    local availableLocations = {}
-    for _, location in ipairs({
-        Location.Get(playerPrefix.." Fighting Art 1"),
-        Location.Get(playerPrefix.." Fighting Art 2"),
-        Location.Get(playerPrefix.." Fighting Art 3"),
-        Location.Get(playerPrefix.." Disorder 1"),
-        Location.Get(playerPrefix.." Disorder 2"),
-        Location.Get(playerPrefix.." Disorder 3"),
-        Location.Get(playerPrefix.." Weapon Proficiency"),
-        Location.Get(playerPrefix.." Ability/Impairment 1"),
-        Location.Get(playerPrefix.." Ability/Impairment 2"),
-        Location.Get(playerPrefix.." Ability/Impairment 3"),
-        Location.Get(playerPrefix.." Ability/Impairment 4"),
-        Location.Get(playerPrefix.." Ability/Impairment 5"),
-        Location.Get(playerPrefix.." Ability/Impairment 6"),
-        Location.Get(playerPrefix.." Ability/Impairment 7"),
-        Location.Get(playerPrefix.." Ability/Impairment 8"),
-        Location.Get(playerPrefix.." Ability/Impairment 9"),
-        Location.Get(playerPrefix.." Ability/Impairment 10"),
-        Location.Get(playerPrefix.." Ability/Impairment 11"),
-    }) do
-        if #(location:AllObjects()) == 0 then
-            availableLocations[location] = true
-        end
-    end
+    log(availableLocations, "----available locations----")
 
     local overflowLocation = Location.Get(playerPrefix.." Ability/Impairment 11")
     local extraObjects = false
     local height = 2 + 0.5
     for _, entry in ipairs(survivorBoxContainer:Objects()) do
-        local location = Player:TakeNextLocation(Prefix, entry.gm_notes, availableLocations)
+        local location = Player:TakeNextLocation(playerPrefix, entry.gm_notes, availableLocations)
         if not location then
             log:Errorf("No more space to place %s separately!", entry.name)
             location = overflowLocation
@@ -705,7 +732,7 @@ function Player:UnpackSurvivorBox(survivorBox)
         overflowLocation:BoxCast({ debug = true })
     end
 
-    local survivorSheet = SurvivorSheet.ForSurvivor(survivorBox:Survivor())
+    local survivorSheet = Survivor.SurvivorSheetForSurvivor(survivorBox:Survivor())
     if survivorSheet then
         log:Debugf("%s already exists, destroying and recreating", survivorSheet)
         survivorSheet:Object().destruct()
@@ -715,7 +742,7 @@ function Player:UnpackSurvivorBox(survivorBox)
         -- We have to wait a single frame when taking from an infinite container or the objects will have the same equality/identity value as any other objects taken that frame
         Wait.frames(function()
             log:Debugf("Created survivor sheet for object %s and %s", survivorSheetObject.getGUID(), survivorBox:Survivor())
-            local survivorSheet = SurvivorSheet.Create(survivorBox:Survivor(), survivorSheetObject)
+            local survivorSheet = Survivor.CreateSurvivorSheet(survivorBox:Survivor(), survivorSheetObject)
             survivorSheetObject.setLock(true)
             survivorBox:Object().destruct()
             self:LinkSurvivorSheet(survivorSheet)
@@ -727,7 +754,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Player:TakeNextLocation(Prefix, gmNotes, availableLocations)
+function Player:TakeNextLocation(playerPrefix, gmNotes, availableLocations)
     if gmNotes == "Disorders" then
         for i = 1, 3 do
             local key = Location.Get(playerPrefix.." Disorder "..i)
@@ -766,7 +793,6 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Player:LinkSurvivorSheet(survivorSheet)
-    assert(SurvivorSheet.Is(survivorSheet))
     assert(Check(self.survivorSheet == nil, "%s is already linked to %s", self, self.survivorSheet))
 
     log:Debugf("Linking %s to %s", survivorSheet, self)
@@ -797,24 +823,7 @@ function Player:UnlinkSurvivorSheet()
     log:Debugf("Unlinking %s from %s", survivorSheet, self)
     survivor:SetModifiers()
     self.survivorSheet = nil
-    EventManager.FireEvent(EventManager.ON_PLAYER_SURVIVOR_UNLINKED, self, survivor)
-end
-
----------------------------------------------------------------------------------------------------
-
-function Player.TokenValue(token)
-    local value = 1
-    rot = token.getRotation()
-    if rot.z >= 15 and rot.z <= 345 then
-        value = -1
-    end
-
-    local qty = token.getQuantity()
-    if qty >= 2 then
-        value = value * qty
-    end
-
-    return value
+    EventManager.FireEvent(EventManager.ON_PLAYER_SURVIVOR_UNLINK, self, survivor)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -837,7 +846,7 @@ function Player:BackToSettlement()
             local container = Container(object)
             local toDelete = {}
             for _, entry in ipairs(container:Objects()) do
-                if Player.ALLOWED_CARD_TYPES[entry.gm_notes] then
+                if Survivor.ALLOWED_CARD_TYPES[entry.gm_notes] then
                     log:Debugf("Deleting %s/%s", entry.name, entry.gm_notes)
                     table.insert(toDelete, entry.name)
                 end
@@ -872,7 +881,11 @@ function Player:LinkFigurine(figurineObject)
     log:Debugf("Linking figurine [%s] %s to %s", figurineObject.getGUID(), figurineObject.getName(), self)
     figurineObject.setColorTint(self.markerObject.getColorTint())
     if self.survivorSheet then
-        figurineObject.setName(self.survivorSheet:Survivor():NameOrUnnamed())
+        local name = self.survivorSheet:Survivor():NameOrUnnamed()
+        figurineObject.setName(name)
+        log:Printf("Linked figurine to player %s (%s)", self.ordinal, name)
+    else
+        log:Printf("Linked figurine to player %s", self.ordinal)
     end
 
     self.figurineObject = figurineObject
@@ -894,6 +907,12 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
+function Player:FigurineObject()
+    return self.figurineObject
+end
+
+---------------------------------------------------------------------------------------------------
+
 return {
     Is = Player.Is,
     Create = Player.Create,
@@ -902,5 +921,6 @@ return {
     Save = Player.Save,
     Export = Player.Export,
     Import = Player.Import,
+    Players = function() return Player.players end,
     ForFigurine = Player.ForFigurine,
 }

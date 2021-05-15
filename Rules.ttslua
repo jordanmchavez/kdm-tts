@@ -1,33 +1,176 @@
+local Archive = require("Kdm/Archive")
 local Check = require("Kdm/Util/Check")
-local log = require("Kdm/Log").ForModule("Rules")
-local Util = require("Kdm/Util/Util")
-local CircularArray = require("Kdm/CircularArray")
-local Trie = require("Kdm/Trie")
-local Ui = require("Kdm/Ui")
+local CircularArray = require("Kdm/Util/CircularArray")
+local Expansion = require("Kdm/Expansion")
 local Location = require("Kdm/Location")
-
-local Archive = nil
-
----------------------------------------------------------------------------------------------------
-
-local Rules_trie = Trie()
-local Rules_history = CircularArray(100)
-local Rules_index = {}
-local Rules_searchResultsPanel = nil
-local Rules_searchInput = nil
-local Rules_searchResultButtons = {}
+local log = require("Kdm/Log").ForModule("Rules")
+local NamedObject = require("Kdm/NamedObject")
+local Trie = require("Kdm/Util/Trie")
+local Ui = require("Kdm/Ui")
+local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_RulebookAndState(name)
-    local data = Rules_index[name]
+local Rules = {}
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.Init()
+    Rules.trie = Trie()
+    Rules.history = CircularArray(100)
+    Rules.index = {}
+    Rules.searchResultButtons = {}
+
+    for _, expansion in ipairs(Expansion.All()) do
+        Rules.RegisterExpansion(expansion)
+    end
+
+    local rules = Rules.GetCurrentRules()
+    if rules != nil then
+        local currentState = rules.getStateId()
+        local rulebookName = nil
+        if currentState == 1 then
+            rulebookName = rules.getName()
+        else
+            for _, state in ipairs(rules.getStates()) do
+                if state.id == 1 then
+                    rulebookName = state.name
+                end
+            end
+        end
+        assert(Check(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID()))
+        Rules.history:Push({ rulebookName, currentState})
+    end
+
+    -----------------------------------------------------------------------------------------------
+
+    local xStart = 70+100+10+30+10
+    local yStart = -10
+    local ui = Ui.Get2d()
+    local colors = "#ffffff|#dddddd|#dddddd|#ffffff"
+    Rules.searchInput = ui:Input({ id = "RulesSearch", x = xStart, y = yStart, width = 240, height = 30, placeholder = "search rules/events...", textColor = "#000000", colors = colors, textOffset = "5 5 0 0", fontSize = 16, onValueChanged = function(value)
+        Rules.SetSearchResults(Rules.Search(value))
+    end })
+    ui:Button({ id = "RulesCancelSearch", x = xStart+240+5, y = yStart, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", textColor = "#000000", colors = colors, fontSize = 20, onClick = function()
+        Rules.SetSearchResults({})
+        Rules.searchInput:SetText(nil)
+    end })
+    Rules.searchResultsPanel = ui:Panel({ id = "RulesSearchResults", x = xStart, y = yStart - 40, width = 300, height = 160, color = "#00000088", active = false })
+
+    Rules.searchResultButtons = {}
+    for i = 1, 5 do
+        Rules.searchResultButtons[i] = Rules.searchResultsPanel:Button({ id = "Result"..i, x = 5, y = -5 + (i - 1) * -30, width = 280, height = 30, fontSize = 16, colors = Ui.INVISIBLE_COLORS, textColor = "#dddddd" })
+    end
+
+    -----------------------------------------------------------------------------------------------
+
+    local ui = Ui.Create3d("RulesNav", NamedObject.Get("Rules Navigation Board"), 0.11)
+
+    local x1 = 7.762758
+    local x1End = 6.705129
+    local width = x1End - x1
+    local x13 = -6.702875
+    local dx = (x13 - x1) / 12
+
+    local y1 = -0.401185
+    local y1End = 0.047924
+    local height = y1End - y1
+    local y2 = 0.392804
+    local dy = y2 - y1
+
+    local createButton = function(name, col, row, onClick)
+        local topLeft = { x =  x1 + ((col - 1) * dx), y = y1 + ((row - 1) * dy) }
+        local bottomRight = { x = topLeft.x + width, y = topLeft.y + height }
+        ui:Button({ id = name, topLeft = topLeft, bottomRight = bottomRight, onClick = onClick })
+    end
+
+    local buttons = {
+        { "Core Rules", 1, 1 },
+        { "Dragon King Rules", 2, 1 },
+        { "Dung Beetle Knight Rules", 3, 1 },
+        { "Flower Knight Rules", 4, 1 },
+        { "Gorm Rules", 5, 1 },
+        { "Lion God Rules", 6, 1 },
+        { "Lion Knight Rules", 7, 1 },
+        { "Lonely Tree Rules", 8, 1 },
+        { "Manhunter Rules", 9, 1 },
+        { "Slenderman Rules", 10, 1 },
+        { "Spidicules Rules", 11, 1 },
+        { "Sunstalker Rules", 12, 1 },
+        { "White Gigalion Rules", 13, 1 },
+    }
+    for _, button in ipairs(buttons) do
+        createButton(button[1], button[2], button[3], function() Rules.SpawnRules(button[1], 1) end)
+    end
+
+    createButton("Back", 6, 2, Rules.Back)
+    createButton("Previous Page", 7, 2, function() Rules.ChangePage(-1) end )
+    createButton("Next Page", 8, 2, function() Rules.ChangePage(1) end)
+
+    ui:ApplyToObject()
+end
+
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.RegisterExpansion(expansion)
+    for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
+        local rulebookName = rulebook.name
+        assert(Check.Str(rulebookName, "rulebook.name"))
+
+        local pages = rulebook.pages
+        assert(Check.Table(rulebook.pages))
+
+        for pageName, pageData in pairs(pages) do
+            assert(Check.Str(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
+            local state = pageData.state
+            assert(Check.Num(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
+
+            assert(Check(Rules.index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules.index[pageName]))
+            Rules.index[pageName] = { rulebook = rulebookName, state = state }
+
+            local keywords = pageData.keywords
+            assert(Check.Table(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
+
+            local entry = {
+                rulebook = rulebookName,
+                name = pageName,
+                state = state,
+                timelineEvent = pageData.timelineEvent,
+                showdown = pageData.showdown,
+            }
+
+            for keywordIndex, keyword in ipairs(keywords) do
+                assert(Check.Str(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
+                Rules.trie:Set(keyword, entry)
+            end
+
+            if pageData.huntEventStart then
+                local huntEventStart = pageData.huntEventStart
+                assert(Check.Num(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
+
+                local huntEventEnd = pageData.huntEventEnd
+                assert(Check.Num(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
+
+                for huntEventNumber = huntEventStart, huntEventEnd do
+                    Rules.trie:Set(tostring(huntEventNumber), entry)
+                end
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.RulebookAndState(name)
+    local data = Rules.index[name]
     assert(Check(data, "Unknown rule: %s", name))
     return data.rulebook, data.state
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_Search(searchTerms)
+function Rules.Search(searchTerms)
     if searchTerms == nil or searchTerms == "" then
         return {}
     end
@@ -36,7 +179,7 @@ local function Rules_Search(searchTerms)
     local matchIndex = {}
     local i = 1
     for term in string.gmatch(searchTerms, "%S+") do
-        local termMatches = Rules_trie:Get(term)
+        local termMatches = Rules.trie:Get(term)
         local termIndex = Util.Index(termMatches, "name")
 
         matchIndex = (i == 1) and termIndex or Util.Intersect(matchIndex, termIndex)
@@ -55,10 +198,43 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_SpawnRules(rules, state, dontRecordHistory)
+function Rules.SetSearchResults(results)
+    if #results == 0 then
+        Rules.searchResultsPanel:Hide()
+        return
+    end
+
+    Rules.searchResultsPanel:Show()
+    local numResults = Util.Min(5, #results)
+    Rules.searchResultsPanel:SetHeight(10 + (numResults * 30))
+
+    for i = 1, numResults do
+        local result = results[i]
+        local button = Rules.searchResultButtons[i]
+        button:Show()
+        button:SetOnClick(function()
+            Rules.searchInput:SetText(nil)
+            Rules.SetSearchResults({})
+            Rules.SpawnRules(result.rulebook, result.state)
+            Location.Get("Rules Board"):LookAt({ pitch = 90 })
+        end)
+        button:SetText(result.name)
+    end
+
+    for i = numResults + 1, 5 do
+        local button = Rules.searchResultButtons[i]
+        button:Hide()
+        button:SetOnClick(nil)
+        button:SetText(nil)
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Rules.SpawnRules(rules, state, dontRecordHistory)
     assert(Check.Str(rules))
     assert(Check.Num(state))
-    assert(Check.BoolOrNil(dontRecordHistory))
+    assert(Check.BooleanOrNil(dontRecordHistory))
 
     log:Debugf("Spawning rules %s[%d]", rules, state)
 
@@ -70,46 +246,55 @@ local function Rules_SpawnRules(rules, state, dontRecordHistory)
         return
     end
 
-    Archive.Take({ name = rules, type = "Rulebook", location = location, spawnFunc = (state > 1) and function(obj) obj.setState(state) end or nil })
-    Archive.CleanUpContainers()
+    Archive.Take({
+        name = rules,
+        type = "Rulebook",
+        location = location,
+        spawnFunc = function(obj)
+            if state > 1 then
+                obj = obj.setState(state)
+            end
+            Wait.frames(function() obj.setLock(true) end, 3)
+        end,
+    })
+    Archive.Clean()
 
     if not dontRecordHistory then
-        Rules_history:Push({ rules, state })
+        Rules.history:Push({ rules, state })
     end
-
-    Util.LookAt({ location = Location.Get("Rules Board"), pitch = 90 })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_GetCurrentRules()
-    return Location.Get("Rules Board"):FirstObject("Rulebook")
+function Rules.GetCurrentRules()
+    return Location.Get("Rules Board"):FirstObject({ types = { "Rulebook" } })
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_Back()
-    local rules = Rules_GetCurrentRules()
+function Rules.Back()
+    local rules = Rules.GetCurrentRules()
     if not rules then
         return
     end
 
-    if Rules_history:Size() <= 1 then
+    if Rules.history:Size() <= 1 then
         log:Debugf("<= 1 history element, can't go back")
         return
     end
 
-    Rules_history:Pop()
-    local last = Rules_history:Top()
+    Rules.history:Pop()
+    local last = Rules.history:Top()
     log:Debugf("Going back to %s[%d]", last[1], last[2])
-    Rules_SpawnRules(last[1], last[2], true)   -- dontRecordHistory
+    Rules.SpawnRules(last[1], last[2], true)   -- dontRecordHistory
 end
 
 ---------------------------------------------------------------------------------------------------
 
-local function Rules_ChangePage(dir)
-    local rules = Rules_GetCurrentRules()
+function Rules.ChangePage(dir)
+    local rules = Rules.GetCurrentRules()
     if not rules then
+        log:Debugf("No rules to change")
         return
     end
 
@@ -136,145 +321,16 @@ local function Rules_ChangePage(dir)
 
     assert(Check(rulebookName, "No rulebook name (page with state 1) in %s (%s)", rules.getName(), rules.getGUID()))
 
-    Rules_history:Push({ rulebookName, nextState })
-    rules.setState(nextState)
-end
-
-local function Rules_PreviousPage() Rules_ChangePage(-1) end
-local function Rules_NextPage() Rules_ChangePage(1) end
-
----------------------------------------------------------------------------------------------------
-
-local function Rules_SetSearchResults(results)
-    if #results == 0 then
-        Rules_searchResultsPanel:Hide()
-        return
-    end
-
-    Rules_searchResultsPanel:Show()
-    Rules_searchResultsPanel:SetHeight(10 + (#results * 30))
-
-    for i = 1, Util.Min(5, #results) do
-        local result = results[i]
-        local button = Rules_searchResultButtons[i]
-        button:Show()
-        button:SetOnClick(function()
-            Rules_searchInput:Set(nil)
-            Rules_SetSearchResults({})
-            Rules_SpawnRules(result.rulebook, result.state)
-        end)
-        button:SetText(result.name)
-    end
-
-    for i = #results + 1, 5 do
-        local button = Rules_searchResultButtons[i]
-        button:Hide()
-        button:SetOnClick(nil)
-        button:SetText(nil)
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Rules_RegisterExpansion(expansion)
-    for rulebookIndex, rulebook in ipairs(expansion.rulebooks or {}) do
-        local rulebookName = rulebook.name
-        assert(Check.Str(rulebookName, "rulebook.name"))
-
-        local pages = rulebook.pages
-        assert(Check.Table(rulebook.pages))
-
-        for pageName, pageData in pairs(pages) do
-            assert(Check.Str(pageName, "rulebooks[%s].pages[pageName]", rulebookName))
-            local state = pageData.state
-            assert(Check.Num(state, "rulebooks[%s].pages[%s].state", rulebookName, pageName))
-
-            assert(Check(Rules_index[pageName] == nil, "Rulebook page %s is already registered to %s", pageName, Rules_index[pageName]))
-            Rules_index[pageName] = { rulebook = rulebookName, state = state }
-
-            local keywords = pageData.keywords
-            assert(Check.Table(keywords, "rulebooks[%s].pages[%s].keywords", rulebookName, pageName))
-
-            local entry = {
-                rulebook = rulebookName,
-                name = pageName,
-                state = state,
-                timelineEvent = pageData.timelineEvent,
-                showdown = pageData.showdown,
-            }
-
-            for keywordIndex, keyword in ipairs(keywords) do
-                assert(Check.Str(keyword, "rulebooks[%s].pages[%s].keywords[%d]", rulebookName, pageName, keywordIndex))
-                Rules_trie:Set(keyword, entry)
-            end
-
-            if pageData.huntEventStart then
-                local huntEventStart = pageData.huntEventStart
-                assert(Check.Num(huntEventStart, "rulebooks[%s].pages[%s].huntEventStart", rulebookName, pageName, keywordIndex))
-
-                local huntEventEnd = pageData.huntEventEnd
-                assert(Check.Num(huntEventEnd, "rulebooks[%s].pages[%s].huntEventEnd", rulebookName, pageName, keywordIndex))
-
-                for huntEventNumber = huntEventStart, huntEventEnd do
-                    Rules_trie:Set(tostring(huntEventNumber), entry)
-                end
-            end
-        end
-    end
-end
-
----------------------------------------------------------------------------------------------------
-
-local function Rules_Init(modules, saveState, expansions, ui)
-    Archive = modules.Archive
-    assert(Archive)
-
-    for _, expansion in ipairs(expansions) do
-        Rules_RegisterExpansion(expansion)
-    end
-
-    local rules = Rules_GetCurrentRules()
-    if rules != nil then
-        local currentState = rules.getStateId()
-        local rulebookName = nil
-        if currentState == 1 then
-            rulebookName = rules.getName()
-        else
-            for _, state in ipairs(rules.getStates()) do
-                if state.id == 1 then
-                    rulebookName = state.name
-                end
-            end
-        end
-        assert(Check(rulebookName, "No rules page with state 1 in %s (%s)", rules.getName(), rules.getGUID()))
-        Rules_history:Push({ rulebookName, currentState})
-    end
-
-    local xStart = 70+100+10+30+10
-    local yStart = -10
-    Rules_searchInput = Ui.Input(ui, { id = "Rules_Search", rectAlignment = "UpperLeft", x = xStart, y = yStart, width = 240, placeholder = "search rules/events...", textColor = "#000000", textOffset = "5 5 0 0", onValueChanged = function(value)
-        Rules_SetSearchResults(Rules_Search(value))
-    end })
-    Ui.Button(ui, { id = "Rules_CancelSearch", rectAlignment = "UpperLeft", x = xStart+240+5, y = yStart, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", textColor = "#000000", fontSize = 20, onClick = function()
-        Rules_SetSearchResults({})
-        Rules_searchInput:Set(nil)
-    end })
-    Rules_searchResultsPanel = Ui.Panel(ui, { id = "Rules_SearchResults", rectAlignment = "UpperLeft", x = xStart, y = yStart - 40, width = 300, height = 160, color = "#00000088", active = false })
-
-    Rules_searchResultButtons = {}
-    for i = 1, 5 do
-        Rules_searchResultButtons[i] = Ui.Button(Rules_searchResultsPanel, { id = "Result"..i, rectAlignment = "UpperLeft", x = 5, y = -5 + (i - 1) * -30, width = 280, height = 30, fontSize = 16, colors = Ui.INVISIBLE_COLORS, textColor = "#dddddd" })
-    end
+    Rules.history:Push({ rulebookName, nextState })
+    local finalObj = rules.setState(nextState)
+    Wait.frames(function() finalObj.setLock(true) end, 3)
 end
 
 ---------------------------------------------------------------------------------------------------
 
 return {
-    Init = Rules_Init,
-    RulebookAndState = Rules_RulebookAndState,
-    Search = Rules_Search,
-    SpawnRules = Rules_SpawnRules,
-    Back = Rules_Back,
-    PreviousPage = Rules_PreviousPage,
-    NextPage = Rules_NextPage,
+    Init = Rules.Init,
+    RulebookAndState = Rules.RulebookAndState,
+    Search = Rules.Search,
+    SpawnRules = Rules.SpawnRules,
 }

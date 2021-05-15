@@ -2,7 +2,7 @@ local Archive = require("Kdm/Archive")
 local Location = require("Kdm/Location")
 local log = require("Kdm/Log").ForModule("Deck")
 local NamedObject = require("Kdm/NamedObject")
-local Ui = require("Kdm/UI")
+local Ui = require("Kdm/Ui")
 local Util = require("Kdm/Util/Util")
 
 ---------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ function Deck.Init()
         end
     end
 
-    ui:Apply()
+    --ui:ApplyToObject()
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ function Deck.ResetDeck(deck)
     if Deck.NEEDS_SHUFFLE[deck] then
         deckObject.shuffle()
     end
-    Archive.CleanUpContainers()
+    Archive.Clean()
 end
 
 ---------------------------------------------------------------------------------------------------

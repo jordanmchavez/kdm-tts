@@ -11,9 +11,20 @@ Log.__call = function(self, ...) log(...) end
 Log.logsByModule = {}
 
 Log.DEBUG_MODULES = {
+    --["BattleUi"] = true,
+    ["Campaign"] = true,
+    --["Expansion"] = true,
+    --["Hunt"] = true,
+    --["Location"] = true,
+    --["Player"] = true,
+    --["Rules"] = true,
+    --["Showdown"] = true,
+    --["Survivor"] = true,
+    --["Timeline"] = true,
 }
 
 Log.POST_INIT_DEBUG_MODULES = {
+    --["Ui"] = true,
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -92,7 +103,10 @@ function Log.Init()
             return Console.Printf("Unknown module '%s'", module)
         end
 
-        log:EnableDebug(args[3] == "on")
+        local enabled = args[3] == "on"
+        log:EnableDebug(enabled)
+
+        Console.Printf("%s debugging for %s", enabled and "Enabled" or "Disabled", log.module)
     end, "Toggles debug logging for specific modules")
 end
 

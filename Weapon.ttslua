@@ -10,7 +10,7 @@ Weapon.__index = Weapon
 
 function Weapon.Init(saveState)
     Weapon.weapons = {}
-    for _, expansion in pairs(Expansion.AllExpansions()) do
+    for _, expansion in ipairs(Expansion.All()) do
         for name, stats in pairs(expansion.weaponStats or {}) do
             if Weapon.weapons[name] then
                 assert(false, string.format("Weapon %s was already registered by expansion %s", name, Weapon.weapons[name].expansion))

@@ -1,20 +1,29 @@
 KDM_VERSION = "1.0"
 
+GLOBAL_OBJECT = self
+
 local Armor = require("Kdm/Armor")
 local Archive = require("Kdm/Archive")
+local BattleUi = require("Kdm/BattleUi")
+local Campaign = require("Kdm/Campaign")
 local Console = require("Kdm/Console")
 local Deck = require("Kdm/Deck")
 local Expansion = require("Kdm/Expansion")
+local GlobalUi = require("Kdm/GlobalUi")
+local Hunt = require("Kdm/Hunt")
 local Location = require("Kdm/Location")
 local Log = require("Kdm/Log")
 local log = Log.ForModule("G")
 local MessageBox = require("Kdm/MessageBox")
+local Monster = require("Kdm/Monster")
 local NamedObject = require("Kdm/NamedObject")
 local Player = require("Kdm/Player")
-local Population = require("Kdm/Population")
+local Rules = require("Kdm/Rules")
+local Settlement = require("Kdm/Settlement")
+local Showdown = require("Kdm/Showdown")
 local Survivor = require("Kdm/Survivor")
-local SurvivorBox = require("Kdm/SurvivorBox")
-local SurvivorSheet = require("Kdm/SurvivorSheet")
+local Terrain = require("Kdm/Terrain")
+local Timeline = require("Kdm/Timeline")
 local Ui = require("Kdm/Ui")
 local Weapon = require("Kdm/Weapon")
 
@@ -22,15 +31,13 @@ local Weapon = require("Kdm/Weapon")
 
 function onSave()
     local saveState = {
-        Survivor = Survivor.Save(),
-        SurvivorBox = SurvivorBox.Save(),
-        SurvivorSheet = SurvivorSheet.Save(),
-        Population = Population.Save(),
+        Campaign = Campaign.Save(),
+        Expansion = Expansion.Save(),
+        Monster = Monster.Save(),
         Player = Player.Save(),
-        -- Timeline = Timeline.Save(),
-        -- Setup = Setup.Save(),
-        -- Showdown = Showdown.Save(),
-        -- BattleUi = BattleUi.Save(),
+        Survivor = Survivor.Save(),
+        Timeline = Timeline.Save(),
+        BattleUi = BattleUi.Save(),
     }
 
     return JSON.encode(saveState)
@@ -40,42 +47,56 @@ end
 
 function onLoad(saveJson)
     local saveState = JSON.decode(saveJson) or {}
-    local expansions = { Core, DragonKing, DungBeetleKnight, FlowerKnight, Gorm, LionGod, LionKnight, LonelyTree, Manhunter, Slenderman, Spidicules, Sunstalker, CommunityEdition }
-
 
     -- Init() = everything before the UI is first rendered (includes UI setup)
     --
     Console.Init()
-    Expansion.Init()
+    Expansion.Init(saveState.Expansion or {})
     --
-    Log.Init()
+    Log.Init(e)
     log:Printf("Misterslack's Kingdom Death: Monster Mod v%s", KDM_VERSION)
     --
-    Armor.Init()
-    NamedObject.Init()
-    Ui.Init()
-    Weapon.Init()
+    Armor.Init(e)
+    NamedObject.Init(e)
+    Terrain.Init(e)
+    Ui.Init(e)
+    Weapon.Init(e)
     --
-    Archive.Init()
-    Location.Init()
-    MessageBox.Init()
-    Survivor.Init(saveState.Survivor or {})
+    Archive.Init(e)
+    Location.Init(e)
     --
     Deck.Init()
-    SurvivorBox.Init(saveState.SurvivorBox or {})
-    SurvivorSheet.Init(saveState.SurvivorSheet or {})
+    Hunt.Init()
+    Monster.Init(saveState.Monster or {})
+    Rules.Init()
+    Settlement.Init()
     --
-    Population.Init(saveState.Population or {})
+    Survivor.Init(saveState.Survivor or {})
     --
     Player.Init(saveState.Player or {})
+    --
+    Showdown.Init()
+    BattleUi.Init()
+    --
+    GlobalUi.Init()
+    Timeline.Init(saveState.Timeline or {})
+    --
+    Campaign.Init(saveState.Campaign or {})
+    --
+    -- mad sketchy that initialization order for MessageBox doesn't match include order, but this must be *after* all 2d UIs since we want this to display *over*
+    -- all other 2d UIs, and 2d UI display order is solely based on the order of the XML elements (last is on top of everything else)
+    MessageBox.Init()
 
-    Ui.Get2d():Apply()
+    Ui.Get2d():ApplyToObject()
 
     -- PostInit() = register event handlers and code that depends on the UI elements actually being instantiated
     Wait.frames(function()
         Log.PostInit()
-        Population.PostInit()
+        Monster.PostInit()
+        Survivor.PostInit()
         Player.PostInit()
+        Timeline.PostInit()
+        BattleUi.PostInit()
     end, 20)
 end
 

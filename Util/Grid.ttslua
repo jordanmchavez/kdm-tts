@@ -5,7 +5,9 @@ local Check = require("Kdm/Util/Check")
 local GridClass = {}
 GridClass.__index = GridClass
 
-local function Grid_Create(params)
+---------------------------------------------------------------------------------------------------
+
+function GridClass.Create(params)
     local object, left, right, top, bottom, cols, rows = params.object, params.left, params.right, params.top, params.bottom, params.cols, params.rows
     assert(Check.Object(object))
     assert(Check.Num(left))
@@ -16,8 +18,6 @@ local function Grid_Create(params)
     assert(Check.Num(rows))
 
     local grid = {
-        tag = "Grid",
-
         object = object,
 
         left = left,
@@ -39,29 +39,29 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function GridClass.Cols(grid) return grid.cols end
-function GridClass.Rows(grid) return grid.rows end
-function GridClass.Object(grid) return grid.object end
+function GridClass:Cols() return self.cols end
+function GridClass:Rows() return self.rows end
+function GridClass:Object() return self.object end
 
 ---------------------------------------------------------------------------------------------------
 
-function GridClass.ColRow(grid, position)
-    local col = (position.x - grid.left) / grid.colSize
-    local row = (position.z - grid.top) / grid.rowSize
+function GridClass:ColRow(position)
+    local col = (position.x - self.left) / self.colSize
+    local row = (position.z - self.top) / self.rowSize
     return col, row
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function GridClass.XZ(grid, col, row)
-    local x = grid.left + (col * grid.colSize)
-    local z = grid.top + (row * grid.rowSize)
+function GridClass:XZ(col, row)
+    local x = self.left + (col * self.colSize)
+    local z = self.top + (row * self.rowSize)
     return x, z
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function GridClass.Snap(grid, object, size)
+function GridClass:Snap(object, size)
     assert(Check.Object(object))
     assert(Check.Vec2(size))
 
@@ -74,8 +74,8 @@ function GridClass.Snap(grid, object, size)
     end
 
     local wpos = object.getPosition()
-    local lpos = grid.object.positionToLocal(wpos)
-    local col, row = grid:ColRow(lpos)
+    local lpos = self.object.positionToLocal(wpos)
+    local col, row = self:ColRow(lpos)
 
     -- even size, snap to grid intersections (0.5, 1.5, 2.5, ...)
     -- odd size, snap to grid cell centers (1.0, 2.0, 3.0, ...)
@@ -87,15 +87,15 @@ function GridClass.Snap(grid, object, size)
     local hradius = height / 2
     if
         (snapCol - wradius) < -0.5 - epsilon or
-        (snapCol + wradius) >= grid.cols + epsilon or
+        (snapCol + wradius) >= self.cols + epsilon or
         (snapRow - hradius) < -0.5 - epsilon or
-        (snapRow + hradius) >= grid.rows + epsilon then
+        (snapRow + hradius) >= self.rows + epsilon then
         return wpos
     end
 
-    local snapX, snapZ = grid:XZ(snapCol, snapRow)
+    local snapX, snapZ = self:XZ(snapCol, snapRow)
 
-    return grid.object.positionToWorld({
+    return self.object.positionToWorld({
         x = snapX,
         y = lpos.y,
         z = snapZ,
@@ -104,4 +104,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-return Grid_Create
+return {
+    Create = GridClass.Create,
+    Is = function(x) return getmetatable(x) == GridClass end,
+}

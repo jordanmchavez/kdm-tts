@@ -4,13 +4,16 @@ local Check = require("Kdm/Util/Check")
 
 local EventManager = {}
 
-EventManager.ON_SURVIVOR_CREATED = "onSurvivorCreated"
 EventManager.ON_SURVIVOR_DESTROYED = "onSurvivorDestroyed"
-EventManager.ON_SURVIVOR_STAT_CHANGE = "onSurvivorStatChange"
-EventManager.ON_SURVIVOR_CARDS_CHANGE = "onSurvivorCardsChange"
+EventManager.ON_SURVIVOR_STAT_CHANGED = "onSurvivorStatChanged"
+EventManager.ON_SURVIVOR_CARDS_CHANGED = "onSurvivorCardsChanged"
 EventManager.ON_PLAYER_SURVIVOR_LINKED = "onPlayerSurvivorLinked"
 EventManager.ON_PLAYER_SURVIVOR_UNLINKED = "onPlayerSurvivorUnlinked"
 EventManager.ON_PLAYER_WEAPONS_CHANGED = "onPlayerWeaponsChanged"
+EventManager.ON_PLAYER_COLOR_CHANGED = "onPlayerColorChanged"
+EventManager.ON_SHOWDOWN_STARTED = "onShowdownStart"
+EventManager.ON_SHOWDOWN_ENDED = "onShowdownEnded"
+EventManager.ON_MONSTER_STAT_CHANGED = "onMonsterStatChanged"
 
 EventManager.handlers = {}
 EventManager.globalHandlers = {}
@@ -53,6 +56,8 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function EventManager.FireEvent(event, ...)
+    assert(Check.Str(event))
+
     local globalHandler = EventManager.globalHandlers[event]
     if globalHandler then
         globalHandler(...)

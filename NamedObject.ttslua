@@ -30,11 +30,18 @@ NamedObject.data = {
     ["2551b1"] = { name = "Terrain Tiles Archive" },
     ["916de5"] = { name = "Settlement Events Archive" },
     ["7a04ec"] = { name = "Rare Gear Archive" },
-    ["166a4f"] = { name = "All Gear Archive" },
+    ["166a4f"] = { name = "Gear Archive" },
     ["26dc61"] = { name = "Monster Resources Archive" },
     ["5d72f3"] = { name = "Hunt Events Archive" },
     ["fdb47b"] = { name = "Survivor Sheets Archive" },
     ["174926"] = { name = "Survivor Boxes Archive" },
+    ["54abe6"] = { name = "Dodge Tokens" },
+    ["046b7f"] = { name = "Encourage Tokens" },
+    ["692b54"] = { name = "Embolden Tokens" },
+    ["417446"] = { name = "Dash Tokens" },
+    ["64a148"] = { name = "Surge Tokens" },
+    ["740242"] = { name = "Overcharge Tokens" },
+    ["97f88b"] = { name = "Endure Tokens" },
 
     ["437cd7"] = { name = "Showdown Board", noninteractible = true },
     ["51a21e"] = { name = "Hunt Board", noninteractible = true },
@@ -51,7 +58,7 @@ NamedObject.data = {
     ["951600"] = { name = "Survivor Board Cell 5", noninteractible = true },
     ["1d1ccc"] = { name = "Survivor Board Cell 6", noninteractible = true },
     ["bea4c0"] = { name = "Survivor Board Cell 7", noninteractible = true },
-    ["142a23"] = { name = "Survivor Board Cell 8"  },
+    ["142a23"] = { name = "Survivor Board Cell 8", noninteractible = true },
     ["8a4bfd"] = { name = "Survivor Board Cell 9", noninteractible = true },
     ["484be9"] = { name = "Survivor Board Cell 10", noninteractible = true },
     ["bf278c"] = { name = "Survivor Board Cell 11", noninteractible = true },
@@ -70,10 +77,10 @@ NamedObject.data = {
     ["4f139d"] = { name = "Player 3 Board", noninteractible = true },
     ["276ea7"] = { name = "Player 4 Board", noninteractible = true },
 
-    ["27334a"] = { name = "Player 1 Marker", noninteractible = true },
-    ["c6d863"] = { name = "Player 2 Marker", noninteractible = true },
-    ["a8d948"] = { name = "Player 3 Marker", noninteractible = true },
-    ["e00244"] = { name = "Player 4 Marker", noninteractible = true },
+    ["9380cb"] = { name = "Player 1 Marker" },
+    ["ed7b20"] = { name = "Player 2 Marker" },
+    ["7f1cde"] = { name = "Player 3 Marker" },
+    ["9a6e00"] = { name = "Player 4 Marker" },
 
     ["b07b40"] = { name = "Overlay", noninteractible = true },
 }
@@ -88,7 +95,7 @@ function NamedObject.Init()
         NamedObject.Set(data.name, guid)
     end
 
-    for _, expansion in pairs(Expansion.AllExpansions()) do
+    for _, expansion in ipairs(Expansion.All()) do
         for guid, name in pairs(expansion.guidNames or {}) do
             NamedObject.Set(name, guid)
         end

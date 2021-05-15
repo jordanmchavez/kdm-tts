@@ -9,11 +9,11 @@ MessageBox.func = nil
 
 ---------------------------------------------------------------------------------------------------
 
-function MessageBox.Init(params)
+function MessageBox.Init()
     local ui = Ui.Get2d()
     MessageBox.ui = ui
 
-    local panel = ui:Panel({ id = "Main", rectAlignment = "MiddleCenter", x = 0, y = 0, width = 300, height = 150, active = false })
+    local panel = ui:Panel({ id = "Main", rectAlignment = "MiddleCenter", x = 0, y = 0, z = -10, width = 300, height = 150, active = false })
     MessageBox.panel = panel
 
     panel:Image({ id = "Main", x = 0, y = 0, width = 300, height = 150, image = "MessageBox" })

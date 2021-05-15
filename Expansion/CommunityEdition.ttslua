@@ -6,7 +6,7 @@ return {
         oldArchive = "Core Archive",
         entries = {
             { "Core Rules", "Rulebook" },
-            { "Intimacy Reference", "Reference"},
+            { "Intimacy Reference", "References"},
 
             { "Core Abilities", "Abilities" },
             { "Core Secret Fighting Arts", "Secret Fighting Arts" },

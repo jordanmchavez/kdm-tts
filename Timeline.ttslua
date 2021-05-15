@@ -1,119 +1,174 @@
+local Archive = require("Kdm/Archive")
 local Check = require("Kdm/Util/Check")
-local Util = require("Kdm/Util/Util")
-local log = require("Kdm/Log").ForModule("Timeline")
-local Trie = require("Kdm/Trie")
-local Ui = require("Kdm/Ui")
-local EventManager = require("Kdm/Util/EventManager")
 local Container = require("Kdm/Util/Container")
+local Expansion = require("Kdm/Expansion")
+local Hunt = require("Kdm/Hunt")
 local Location = require("Kdm/Location")
+local log = require("Kdm/Log").ForModule("Timeline")
+local MessageBox = require("Kdm/MessageBox")
+local Rules = require("Kdm/Rules")
+local Showdown = require("Kdm/Showdown")
+local Trie = require("Kdm/Util/Trie")
+local Ui = require("Kdm/Ui")
+local Util = require("Kdm/Util/Util")
 
-local Archive = nil
-local Rules = nil
-local Setup = nil
-local Showdown = nil
-local Hunt = nil
 
 -------------------------------------------------------------------------------------------------
 
-local Timeline = {
-    MAX_YEARS = 30,
-    MAX_YEAR_EVENTS = 6,
-    MAX_SURVIVAL_ACTIONS = 6,
-    MAX_MILESTONES = 4,
-    MAX_QUARRIES = 10,
-    MAX_NOTES = 6,
-    MAX_TIMELINE_EVENT_POPUP_RESULTS = 5,
+local Timeline = {}
 
-    RIGHT_MOUSE_BUTTON = "-2",
-    EVENT_TYPE_ICONS = {
-        ["RulebookEvent"] =  "RulebookEventIcon",
-        ["HuntEvent"] = "HuntEventIcon",
-        ["ShowdownEvent"] = "ShowdownEventIcon",
-        ["SettlementEvent"] = "SettlementEventIcon",
-    },
-    EVENT_TYPE_IMAGES = {
-        ["RulebookEvent"] = "RulebookEventButton",
-        ["HuntEvent"] = "HuntEventButton",
-        ["ShowdownEvent"] = "ShowdownEventButton",
-        ["SettlementEvent"] = "SettlementEventButton",
-    },
+Timeline.MAX_YEARS = 30
+Timeline.MAX_YEAR_EVENTS = 6
+Timeline.MAX_SURVIVAL_ACTIONS = 6
+Timeline.MAX_MILESTONES = 4
+Timeline.MAX_QUARRIES = 10
+Timeline.MAX_NOTES = 6
+Timeline.MAX_TIMELINE_EVENT_POPUP_RESULTS = 5
 
-    trie = Trie(),
+Timeline.RIGHT_MOUSE_BUTTON = "-2"
+
+Timeline.EVENT_TYPE_ICONS = {
+    ["RulebookEvent"] =  "RulebookEventIcon",
+    ["HuntEvent"] = "HuntEventIcon",
+    ["ShowdownEvent"] = "ShowdownEventIcon",
+    ["SettlementEvent"] = "SettlementEventIcon",
 }
 
-Timeline.defaultEvents = {
-    {
-        keywords = { "Unspecified", "Nemesis"},
-        event = {
-            type = "ShowdownEvent",
-            name = "Unspecified Nemesis",
-            nemesis = true,
-        },
-    },
+Timeline.EVENT_TYPE_IMAGES = {
+    ["RulebookEvent"] = "RulebookEventButton",
+    ["HuntEvent"] = "HuntEventButton",
+    ["ShowdownEvent"] = "ShowdownEventButton",
+    ["SettlementEvent"] = "SettlementEventButton",
 }
-for level = 1, 3 do
-    table.insert(Timeline.defaultEvents, {
-        keywords = { "Unspecified", "Nemesis", "Level", tostring(level) },
-        event = {
-            type = "ShowdownEvent",
-            name = "Unspecified Nemesis - Level "..level,
-            nemesis = true,
-        },
-    })
-end
-for _, event in ipairs(Timeline.defaultEvents) do
-    for _, keyword in ipairs(EventManager.keywords) do
-        Timeline.trie:Set(keyword, EventManager.event)
-    end
-end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.Init(modules, saveState, expansions, ui)
-    Timeline.InitModules(modules)
+function Timeline.Init(saveState)
+    Timeline.InitDefaultEvents()
+
+    Timeline.survivalActions = {}
+    for i = 1, Timeline.MAX_SURVIVAL_ACTIONS do
+        Timeline.survivalActions[i] = {}
+    end
+    Timeline.milestones = {}
+    for i = 1, Timeline.MAX_MILESTONES do
+        Timeline.milestones[i] = {}
+    end
+    Timeline.quarries = {}
+    for i = 1, Timeline.MAX_QUARRIES do
+        Timeline.quarries[i] = {}
+    end
+    Timeline.notes = {}
+    for i = 1, Timeline.MAX_NOTES do
+        Timeline.notes[i] = {}
+    end
+    Timeline.years = {}
+    for i = 1, Timeline.MAX_YEARS do
+        Timeline.years[i] = {
+            events = {}
+        }
+        for j = 1, Timeline.MAX_YEAR_EVENTS do
+            Timeline.years[i].events[j] = {}
+        end
+    end
+
     Timeline.InitState(saveState)
-    Timeline.InitExpansions(expansions)
+    Timeline.InitExpansions()
     Timeline.InitUi(ui)
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.InitModules(modules)
-    Archive = modules.Archive
-    Rules = modules.Rules
-    Showdown = modules.Showdown
-    Hunt = modules.Hunt
-    Setup = modules.Setup
-end
-
----------------------------------------------------------------------------------------------------
-
-function Timeline.InitState(saveState)
-    saveState = saveState or {}
-    Timeline.state = {}
-    Timeline.state.name = saveState.name
-    Timeline.state.survivalLimit = saveState.survivalLimit or 1
-    Timeline.state.departingBonuses = saveState.departingBonuses
-    Timeline.state.arrivalBonuses = saveState.arrivalBonuses
-    Timeline.state.survivalActions = saveState.survivalActions or {}
-    Timeline.state.milestones = saveState.milestones or {}
-    Timeline.state.quarries = saveState.quarries or {}
-    Timeline.state.notes = saveState.notes or {}
-    Timeline.state.timeline = {}
-    local saveStateTimeline = saveState.timeline or {}
-    for year = 1, Timeline.MAX_YEARS do
-        local saveStateTimelineYear = saveStateTimeline[year] or {}
-        Timeline.state.timeline[year] = {
-            checked = saveStateTimelineYear.checked,
-            events = saveStateTimelineYear.events or {},
-        }
+function Timeline.InitDefaultEvents()
+    Timeline.trie = Trie()
+    Timeline.defaultEvents = {
+        {
+            keywords = { "Unspecified", "Nemesis"},
+            event = {
+                type = "ShowdownEvent",
+                name = "Unspecified Nemesis",
+                nemesis = true,
+            },
+        },
+    }
+    for level = 1, 3 do
+        table.insert(Timeline.defaultEvents, {
+            keywords = { "Unspecified", "Nemesis", "Level", tostring(level) },
+            event = {
+                type = "ShowdownEvent",
+                name = "Unspecified Nemesis - Level "..level,
+                nemesis = true,
+            },
+        })
+    end
+    for _, event in ipairs(Timeline.defaultEvents) do
+        for _, keyword in ipairs(event.keywords) do
+            Timeline.trie:Set(keyword, event.event)
+        end
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.InitExpansions(expansions)
-    for _, expansion in ipairs(expansions) do
+function Timeline.InitState(saveState)
+    Timeline.settlementName = saveState.name
+    Timeline.survivalLimit = saveState.survivalLimit or 1
+    Timeline.departingBonuses = saveState.departingBonuses
+    Timeline.arrivalBonuses = saveState.arrivalBonuses
+
+    local survivalActions = saveState.survivalActions or {}
+    for i = 1, Timeline.MAX_SURVIVAL_ACTIONS do
+        if survivalActions[i] then
+            Timeline.survivalActions[i].name = survivalActions[i].name
+            Timeline.survivalActions[i].checked = survivalActions[i].checked
+        else
+            Timeline.survivalActions[i].name = nil
+            Timeline.survivalActions[i].checked = nil
+        end
+    end
+
+    local milestones = saveState.milestones or {}
+    for i = 1, Timeline.MAX_MILESTONES do
+        if milestones[i] then
+            Timeline.milestones[i].name = milestones[i].name
+            Timeline.milestones[i].event = milestones[i].event
+            Timeline.milestones[i].checked = milestones[i].checked
+        else
+            Timeline.milestones[i].name = nil
+            Timeline.milestones[i].event = nil
+            Timeline.milestones[i].checked = nil
+        end
+    end
+
+    local quarries = saveState.quarries or {}
+    for i = 1, Timeline.MAX_QUARRIES do
+        Timeline.quarries[i].quarry = quarries[i]
+    end
+
+    local notes = saveState.notes or {}
+    for i = 1, Timeline.MAX_NOTES do
+        Timeline.notes[i].note = notes[i]
+    end
+
+    local years = saveState.years or {}
+    for i = 1, Timeline.MAX_YEARS do
+        local year = years[i] or {}
+        Timeline.years[i].checked = year.checked
+        local events = year.events or {}
+        for j = 1, Timeline.MAX_YEAR_EVENTS do
+            if events[j] then
+                Timeline.years[i].events[j].event = events[j]
+            else
+                Timeline.years[i].events[j].event = nil
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Timeline.InitExpansions()
+    for _, expansion in ipairs(Expansion.All()) do
         for _, rulebook in ipairs(expansion.rulebooks or {}) do
             for name, page in pairs(rulebook.pages) do
                 if page.timelineEvent then
@@ -122,7 +177,7 @@ function Timeline.InitExpansions(expansions)
                         type = "RulebookEvent",
                         rulebook = rulebook.name,
                         state = page.state,
-                        expansion = expansion,
+                        expansion = expansion.name,
                     }
                     for _, keyword in ipairs(page.keywords) do
                         Timeline.trie:Set(keyword, event)
@@ -138,7 +193,7 @@ function Timeline.InitExpansions(expansions)
                     type = monster.nemesis and "ShowdownEvent" or "HuntEvent",
                     name = Timeline.ShowdownEventTimelineName(monster.name, nil, monster.nemesis),
                     monster = monster.name,
-                    expansion = expansion,
+                    expansion = expansion.name,
                 }
                 for _, keyword in ipairs(monsterKeywords) do
                     Timeline.trie:Set(keyword, event)
@@ -151,7 +206,7 @@ function Timeline.InitExpansions(expansions)
                         name = Timeline.ShowdownEventTimelineName(monster.name, level.name, monster.nemesis),
                         monster = monster.name,
                         level = level.name,
-                        expansion = expansion,
+                        expansion = expansion.name,
                     }
                     for _, keyword in ipairs(Util.ConcatArrays(monsterKeywords, levelKeywords)) do
                         Timeline.trie:Set(keyword, event)
@@ -165,7 +220,7 @@ function Timeline.InitExpansions(expansions)
                 Timeline.trie:Set(keyword, {
                     name = settlementEvent,
                     type = "SettlementEvent",
-                    expansion = expansion,
+                    expansion = expansion.name,
                 })
             end
         end
@@ -175,121 +230,113 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.InitUi(ui)
-    Timeline.ui = { open = false }
-    local panel = Ui.Panel(ui, { id = "Timeline", width = 1600, height = 935, x = 30, y = -20, active = false })
-    Timeline.ui.panel = panel
-    Ui.Image(panel, { id = "Timeline", rectAlignment = "MiddleCenter", image = "Settlement", width = 1600, height = 935 })
+    Timeline.uiOpen = false
 
-    Ui.InvisibleButton(panel, { id = "Close", x = 1570, y = 905,  width = 30, height = 30, onClick = function ()
+    local ui = Ui.Get2d()
+    local panel = ui:Panel({ id = "Timeline", rectAlignment = "MiddleCenter", x = 0, y = 0, width = 1600, height = 935, active = Timeline.uiOpen })
+    Timeline.panel = panel
+    panel:Image({ id = "Timeline", image = "Settlement", x = 0, y = 0, width = 1600, height = 935 })
+    panel:Button({ id = "Close", x = 1570, y = 0,  width = 30, height = 30, onClick = function ()
         Timeline.HideUi()
     end })
-
-    Timeline.ui.nameInput = Ui.DarkInput(panel, { id = "Name", x = 198, y = 851, width = 482, height = 40, fontSize = 24, onValueChanged = function(value)
+    Timeline.settlementNameInput = panel:Input({ id = "SettlementName", x = 198, y = -45, width = 482, height = 40, fontSize = 24, onValueChanged = function(value)
         log:Debugf("Setting settlement name to %s", value)
-        Timeline.state.name = value
+        Timeline.settlementName = value
     end })
-
-    Timeline.ui.survivalLimitCounter = Ui.Counter(panel, { id = "SurvivalLimit", x = 793, y = 830, width = 50, height = 50, fontSize = 36, onValueChanged = function(delta)
-        local value = Timeline.state.survivalLimit + delta
-        Timeline.state.survivalLimit = value
+    Timeline.survivalLimitCounter = panel:Counter({ id = "SurvivalLimit", x = 793, y = -55, width = 50, height = 50, fontSize = 36, color = Ui.DARK_BROWN, onValueChanged = function(delta)
+        local value = Timeline.survivalLimit + delta
+        Timeline.survivalLimit = value
         log:Debugf("Setting survival limit to %d", value)
-        Timeline.ui.survivalLimitCounter:Set(value)
+        Timeline.survivalLimitCounter:SetText(value)
     end })
 
-    Timeline.ui.departingBonusesInput = Ui.DarkInput(panel, { id = "DepartingBonus", x = 980, y = 865, width = 288, height = 25, onValueChanged = function(value)
+    Timeline.departingBonusesInput = panel:Input({ id = "DepartingBonus", x = 980, y = -45, width = 288, height = 25, onValueChanged = function(value)
         log:Debugf("Setting departing bonuses to %s", value)
-        Timeline.state.departingBonuses = value
-        Timeline.ui.departingBonusesInput:Set(value)
+        Timeline.departingBonuses = value
+        Timeline.departingBonusesInput:SetText(value)
     end })
-    Timeline.ui.arrivalBonusesInput = Ui.DarkInput(panel, { id = "ArrivalBonus", x = 980, y = 830, width = 288, height = 25, onValueChanged = function(value)
+    Timeline.arrivalBonusesInput = panel:Input({ id = "ArrivalBonus", x = 980, y = -79, width = 288, height = 25, onValueChanged = function(value)
         log:Debugf("Setting arrival bonuses to %s", value)
-        Timeline.state.arrivalBonuses = value
-        Timeline.ui.arrivalBonusesInput:Set(value)
+        Timeline.arrivalBonuses = value
+        Timeline.arrivalBonusesInput:SetText(value)
     end })
 
-    Timeline.ui.survivalActionCheckBoxes = {}
-    Timeline.ui.survivalActionTexts = {}
     local coords = {
-        { x = 1301, y = 803 },
-        { x = 1301, y = 773 },
-        { x = 1301, y = 743 },
-        { x = 1435, y = 803 },
-        { x = 1435, y = 773 },
-        { x = 1435, y = 743 },
+        { x = 1301, y = -112 },
+        { x = 1301, y = -142 },
+        { x = 1301, y = -173 },
+        { x = 1435, y = -112 },
+        { x = 1435, y = -142 },
+        { x = 1435, y = -172 },
     }
-    for i = 1, Timeline.MAX_SURVIVAL_ACTIONS do
+    for i, survivalAction in ipairs(Timeline.survivalActions) do
         local x, y = coords[i].x, coords[i].y
-        Timeline.ui.survivalActionCheckBoxes[i] = Ui.CheckBox(panel, { id = "SurvivalAction"..i, x = x, y = y, width = 20, height = 20, active = false, onClick = function()
-            local survivalAction = Timeline.state.survivalActions[i]
-            if survivalAction then
-                local value = not survivalAction.checked
-                log:Debugf("%s survival action %s", value and "Checking" or "Unchecking", survivalAction.name)
-                survivalAction.checked = value
-                Timeline.ui.survivalActionCheckBoxes[i]:Set(value)
+        survivalAction.checkBox = panel:CheckBox({ id = "SurvivalAction"..i, x = x, y = y, width = 20, height = 20, uncheckedImage = "CheckBoxEmpty", active = false, onClick = function()
+            local name = Timeline.survivalActions[i].name
+            if name then
+                local checked = not Timeline.survivalActions[i].checked
+                log:Debugf("%s survival action %s", checked and "Checking" or "Unchecking", name)
+                Timeline.survivalActions[i].checked = checked
+                Timeline.survivalActions[i].checkBox:Check(checked)
             end
         end })
-        Timeline.ui.survivalActionTexts[i] = Ui.DarkText(panel, { id = "SurvivalAction"..i, x = x+26, y = y-5, width = 100, height = 30, fontSize = 12, fontStyle = "Bold", active = false })
+        survivalAction.text = panel:Text({ id = "SurvivalAction"..i, x = x+26, y = y + 5, width = 100, height = 30, fontSize = 12, fontStyle = "Bold", text = "Embolden", active = false })
     end
 
-    Timeline.ui.milestones = {}
-    local checkBoxY = 638
-    local textY = checkBoxY - 5
-    local buttonY = 633
-    local dy = 40
-    for i = 1, Timeline.MAX_MILESTONES do
-        local milestoneUi = {}
-        Timeline.ui.milestones[i] = milestoneUi
-
-        milestoneUi.checkBox = Ui.CheckBox(panel, { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, active = false, onClick = function()
-            local milestone = Timeline.state.milestones[i]
+    local checkBoxY = -277
+    local textY = checkBoxY + 2
+    local buttonY = -272
+    local dy = -40
+    for i, milestone in ipairs(Timeline.milestones) do
+        milestone.checkBox = panel:CheckBox( { id = "Milestone"..i, x = 1301, y = checkBoxY, width = 20, height = 20, uncheckedImage = "CheckBoxEmpty", active = false, onClick = function()
+            local milestone = Timeline.milestones[i]
             assert(milestone)
             local value = not milestone.checked
             log:Debugf("%s milestone %s", value and "Checking" or "Unchecking", milestone.name)
             milestone.checked = value
-            Timeline.ui.milestones[i].checkBox:Set(value)
+            Timeline.milestones[i].checkBox:Check(value)
         end })
-        milestoneUi.text = Ui.DarkText(panel, { id = "Milestone"..i, x = 1326, y = textY, width = 86, fontSize = 12, fontStyle = "Bold", active = false })
-        milestoneUi.eventButton = Ui.ImageButton(panel, { id = "MilestoneEvent"..i, x = 1417, y = buttonY, width = 145, height = 30, image = "MilestoneButton", active = false, onClick = function()
-            local milestone = Timeline.state.milestones[i]
+        milestone.text = panel:Text({ id = "Milestone"..i, x = 1326, y = textY, width = 86, height = 25, fontSize = 12, fontStyle = "Bold", active = false })
+        milestone.eventButton = panel:Button({ id = "MilestoneEvent"..i, x = 1417, y = buttonY, width = 145, height = 30, image = "MilestoneButton", active = false, onClick = function()
+            local milestone = Timeline.milestones[i]
             assert(milestone)
             Timeline.HideUi()
             local rulebook, state = Rules.RulebookAndState(milestone.event)
             Rules.SpawnRules(rulebook, state)
+            Location.Get("Rules Board"):LookAt({ pitch = 90 })
         end })
-        milestoneUi.eventText = Ui.LightText(panel, { id = "MilestoneEvent"..i, x = 1447, y = buttonY, width = 108, height = 30, fontSize = 12, active = false })
+        milestone.eventText = panel:Text({ id = "MilestoneEvent"..i, x = 1447, y = buttonY, width = 108, height = 30, fontSize = 12, color = Ui.LIGHT_BROWN, active = false })
 
-        checkBoxY = checkBoxY- dy
-        textY = textY - dy
-        buttonY = buttonY - dy
+        checkBoxY = checkBoxY + dy
+        textY = textY + dy
+        buttonY = buttonY + dy
     end
 
     local dy = 27
-    Timeline.ui.quarryInputs = {}
-    for i = 1, Timeline.MAX_QUARRIES do
+    for i, quarry in ipairs(Timeline.quarries) do
         local x = (i <= 5) and 1301 or 1437
         local row = (i - 1) % 5
-        Timeline.ui.quarryInputs[i] = Ui.DarkInput(panel, { id = "Quarries"..i, x = x, y = 412.000 - (row * dy), width = 125, height = 25, fontSize = 12, fontStyle = "Bold", onValueChanged = function(value)
+        quarry.input = panel:Input({ id = "Quarries"..i, x = x, y = -499 - (row * dy), width = 125, height = 25, fontSize = 12, fontStyle = "Bold", onValueChanged = function(value)
             log:Debugf("Setting quarries[%d] to %s", i, value)
-            Timeline.state.quarries[i] = value
-            Timeline.ui.quarryInputs[i]:Set(value)
+            Timeline.quarries[i].quarry = value
+            Timeline.quarries[i].input:SetText(value)
         end })
     end
 
-    Timeline.ui.notesInputs = {}
     local dy = 27
-    for i = 1, Timeline.MAX_NOTES do
-        Timeline.ui.notesInputs[i] = Ui.DarkInput(panel, { id = "Notes"..i, x = 1301, y = 192 - (i - 1) * dy, width = 261, height = 25, onValueChanged = function(value)
+    for i, note in ipairs(Timeline.notes) do
+        note.input = panel:Input({ id = "Notes"..i, x = 1301, y = -719 - (i - 1) * dy, width = 261, height = 25, onValueChanged = function(value)
             log:Debugf("Setting settlement notes %d to %s", i, value)
-            Timeline.state.notes[i] = value
-            Timeline.ui.notesInputs[i]:Set(value)
+            Timeline.notes[i].note = value
+            Timeline.notes[i].input:SetText(value)
         end })
     end
 
     -----------------------------------------------------------------------------------------------
 
-    local scroll = Ui.VerticalScroll(panel, { x = 23, y = 23, width = 1242, height = 760 - 6 })
-    local timelinePanel = Ui.Panel(scroll, { id = "Timeline", width = 1242, height = 1563 })
-    Ui.Image(timelinePanel, { id = "Timeline", rectAlignment = "MiddleCenter", image = "Timeline30", width = 1242, height = 1563 })
+    local scroll = panel:VerticalScroll({ id = "V", x = 23, y = -158, width = 1242, height = 760 - 6 })
+    local timelinePanel = scroll:Panel({ id = "Timeline", x = 0, y = 0, width = 1242, height = 1563 })
+    timelinePanel:Image({ id = "Timeline", image = "Timeline30", x = 0, y = 0, width = 1242, height = 1563 })
 
     local x1 = 78
     local width = 172
@@ -297,96 +344,75 @@ function Timeline.InitUi(ui)
     local dy = -52
     local offset = 30
 
-    Timeline.ui.timeline = {}
-    for year = 1, Timeline.MAX_YEARS do
-        local yearData = Timeline.state.timeline[year]
-
-        local yearUi = {}
-        Timeline.ui.timeline[year] = yearUi
-
-        local y = 1528 + ((year - 1) * dy)
-        yearUi.checkBox = Ui.CheckBox(timelinePanel, { id = "Year"..year, x = 10, y = y, width = 20, height = 20, onClick = function()
-            local value = not Timeline.state.timeline[year].checked
-            log:Debugf("%s year %d", value and "Checking" or "Unchecking", year)
-            Timeline.state.timeline[year].checked = value
-            yearUi.checkBox:Set(value)
+    for i, year in ipairs(Timeline.years) do
+        local y = -15 + ((i - 1) * dy)
+        year.checkBox = timelinePanel:CheckBox({ id = "Year"..i, x = 10, y = y, width = 20, height = 20, uncheckedImage = "CheckBoxEmpty", onClick = function()
+            local checked = not Timeline.years[i].checked
+            log:Debugf("%s year %d", checked and "Checking" or "Unchecking", i)
+            Timeline.years[i].checked = checked
+            Timeline.years[i].checkBox:Check(checked)
         end })
 
-        yearUi.events = {}
-        local y = 1523 + ((year - 1) * dy)
-        for event = 1, Timeline.MAX_YEAR_EVENTS do
-            local eventUi = {}
-            yearUi.events[event] = eventUi
-
-            local id = "Year"..year.."Event"..event
-            local x = x1 + ((event - 1) * dx)
-            eventUi.button = Ui.InvisibleButton(timelinePanel, { id = id, x = x, y = y, width = width, height = 30, onClick = function(mouseButton)
-                Timeline.ShowTimelineEventPopup(year, event)
+        local y = -10 + ((i - 1) * dy)
+        for j, event in ipairs(year.events) do
+            local id = "Year"..i.."Event"..j
+            local x = x1 + ((j - 1) * dx)
+            year.events[j].button = timelinePanel:Button({ id = id, x = x, y = y, width = width, height = 30, onClick = function(mouseButton)
+                Timeline.ShowTimelineEventPopup(i, j)
             end })
-            eventUi.text = Ui.LightText(timelinePanel, { id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, active = false })
+            year.events[j].text = timelinePanel:Text({ id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, color = Ui.LIGHT_BROWN })
         end
     end
 
     -----------------------------------------------------------------------------------------------
 
-    local popupUi = { open = false }
-    Timeline.ui.timelineEventPopup = popupUi
+    Timeline.popupOpen = false
 
-    local addTimelineEventPanel = Ui.Panel(panel, { id = "AddTimelineEvent", width = 376, height = 493, active = false })
-    popupUi.panel = addTimelineEventPanel
-
-    Ui.Image(addTimelineEventPanel, { id = "AddTimelineEvent", rectAlignment = "MiddleCenter", image = "AddTimelineEvent", width = 376, height = 493 })
-
-    Ui.InvisibleButton(addTimelineEventPanel, { id = "Close", x = 336, y = 453, width = 30, height = 30, onClick = function()
+    local popupPanel = ui:Panel({ id = "AddTimelineEvent", rectAlignment = "MiddleCenter", x = 0, y = 0, width = 376, height = 493, active = false })
+    Timeline.popupPanel = popupPanel
+    popupPanel:Image({ id = "AddTimelineEvent", image = "AddTimelineEvent", x = 0, y = 0, width = 376, height = 493 })
+    popupPanel:Button({ id = "Close", x = 336, y = -10, width = 30, height = 30, onClick = function()
         Timeline.HideTimelineEventPopup()
     end })
-
-    popupUi.searchInput = Ui.LightInput(addTimelineEventPanel, { id = "Search", x = 13+3, y = 411, width = 350-6, height = 30, placeholder = "search events...", onValueChanged = Timeline.SearchEvents })
-
-    popupUi.results = {}
-    popupUi.resultButtons = {}
-    popupUi.resultIcons = {}
-    popupUi.resultTexts = {}
+    Timeline.popupSearchInput = popupPanel:Input({ id = "Search", x = 13+5, y = -52, width = 350-6, height = 30, fontSize = 14, textColor = Ui.LIGHT_BROWN, placeholder = "search events...", onValueChanged = Timeline.SearchEvents })
+    Timeline.popupResults = {}
+    Timeline.popupResultButtons = {}
+    Timeline.popupResultIcons = {}
+    Timeline.popupResultTexts = {}
     for i = 1, Timeline.MAX_TIMELINE_EVENT_POPUP_RESULTS do
-        local y = (246 + 150) - (i * 30)
+        local y = -67 - (i * 30)
         local x = 13+3
-        popupUi.resultButtons[i] = Ui.InvisibleButton(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6, height = 30, active = false, onClick = function()
-            local data = popupUi
-            Timeline.AddTimelineEvent(data.year, data.event, data.results[i])
+        Timeline.popupResultButtons[i] = popupPanel:Button({ id = "SearchResult"..i, x = x, y = y, width = 350-6, height = 30, active = false, onClick = function()
+            Timeline.AddTimelineEvent(Timeline.popupYear, Timeline.popupEvent, Timeline.popupResults[i])
             Timeline.HideTimelineEventPopup()
         end })
         x = x + 2   -- 2 padding
-        popupUi.resultIcons[i] = Ui.Image(addTimelineEventPanel, { id = "SearchResult"..i, rectAlignment = "LowerLeft", x = x, y = y+5, width = 24, height = 20, active = false })
+        Timeline.popupResultIcons[i] = popupPanel:Image({ id = "SearchResult"..i, x = x, y = y-5, width = 24, height = 20, active = false })
         x = x + 24 + 3  -- 3 padding
-        popupUi.resultTexts[i] = Ui.LightText(addTimelineEventPanel, { id = "SearchResult"..i, x = x, y = y, width = 350-6-24-6, height = 30, fontSize = 14, active = false })
+        Timeline.popupResultTexts[i] = popupPanel:Text({ id = "SearchResult"..i, x = x, y = y, width = 350-6-24-6, height = 30, fontSize = 14, color = Ui.LIGHT_BROWN, active = false })
     end
-
-    popupUi.customNameInput = Ui.LightInput(addTimelineEventPanel, { id = "CustomName", x = 13+3, y = 108, width = 350-6, height = 30, placeholder = "enter event name...", onValueChanged = function(value)
+    Timeline.popupCustomNameInput = popupPanel:Input({ id = "CustomName", x = 13+3, y = -355, width = 350-6, height = 30, fontSize = 14, textColor = Ui.LIGHT_BROWN, placeholder = "enter event name...", onValueChanged = function(value)
         log:Debugf("Setting custom name to %s", value)
-        popupUi.customName = value
+        Timeline.popupCustomName = value
     end })
-
-    popupUi.type = "RulebookEvent"
-    popupUi.typeOptions = Ui.OptionBoxGroup(addTimelineEventPanel, { id = "Type", onClick = function(option)
-        local type = option:Value()
-        log:Debugf("Selecting custom event type %s", type)
-        popupUi.type = type
-        popupUi.typeOptions:Set(option)
+    Timeline.popupType = "RulebookEvent"
+    Timeline.popupTypeOptionCheckBoxGroup = popupPanel:OptionCheckBoxGroup({ id = "Event", uncheckedImage = "CheckBoxEmpty", uncheckedColors = Ui.IMAGE_COLORS, onClick = function(option)
+        log:Debugf("Selected event type %s", option:OptionValue())
+        Timeline.popupType = option:OptionValue()
+        option:Select()
     end })
-    popupUi.rulebookEventOption = Ui.OptionBox(popupUi.typeOptions, { x = 58, y = 68, width = 20, height = 20, value = true, value = "RulebookEvent" })
-    popupUi.showdownEventOption = Ui.OptionBox(popupUi.typeOptions, { x = 166, y = 68, width = 20, height = 20, value = "ShowdownEvent" })
-    popupUi.settlementEventOption = Ui.OptionBox(popupUi.typeOptions, { x = 270, y = 68, width = 20, height = 20, value = "SettlementEvent" })
-
-    Ui.InvisibleButton(addTimelineEventPanel, { id = "Add", x = 65, y = 13, width = 100, height = 30, onClick = function()
-        local data = popupUi
-        if data.customName == nil or data.customName == "" then
+    Timeline.popupRulebookEventCheckBox = Timeline.popupTypeOptionCheckBoxGroup:OptionCheckBox({ x = 58, y = -405, width = 20, height = 20, checked = true, optionValue = "RulebookEvent" })
+    Timeline.popupShowdownEventCheckBox = Timeline.popupTypeOptionCheckBoxGroup:OptionCheckBox({ x = 166, y = -405, width = 20, height = 20, optionValue = "ShowdownEvent" })
+    Timeline.popupSettlementEventCheckBox = Timeline.popupTypeOptionCheckBoxGroup:OptionCheckBox({ x = 270, y = -405, width = 20, height = 20, optionValue = "SettlementEvent" })
+    popupPanel:Button({ id = "Add", x = 65, y = -450, width = 100, height = 30, onClick = function()
+        if Timeline.popupCustomName == nil or Timeline.popupCustomName == "" then
             return log:Broadcastf("Please enter the event's name.")
         end
 
-        Timeline.AddTimelineEvent(data.year, data.event,  { name = data.customName, type = data.type, custom = true })
+        Timeline.AddTimelineEvent(Timeline.popupYear, Timeline.popupEvent,  { name = Timeline.popupCustomName, type = Timeline.popupType, custom = true })
         Timeline.HideTimelineEventPopup()
     end })
-    Ui.InvisibleButton(addTimelineEventPanel, { id = "Cancel", x = 211, y = 13, width = 100, height = 30, onClick = Timeline.HideTimelineEventPopup })
+    popupPanel:Button({ id = "Cancel", x = 211, y = -450, width = 100, height = 30, onClick = Timeline.HideTimelineEventPopup })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -398,58 +424,55 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.SetUiFromState()
-    Timeline.ui.nameInput:Set(Timeline.state.name)
-    Timeline.ui.survivalLimitCounter:Set(Timeline.state.survivalLimit)
-    Timeline.ui.departingBonusesInput:Set(Timeline.state.departingBonuses)
-    Timeline.ui.arrivalBonusesInput:Set(Timeline.state.arrivalBonuses)
+    Timeline.settlementNameInput:SetText(Timeline.settlementName)
+    Timeline.survivalLimitCounter:SetText(Timeline.survivalLimit)
+    Timeline.departingBonusesInput:SetText(Timeline.departingBonuses)
+    Timeline.arrivalBonusesInput:SetText(Timeline.arrivalBonuses)
 
-    for i, survivalAction in ipairs(Timeline.state.survivalActions) do
-        Timeline.ui.survivalActionCheckBoxes[i]:Show()
-        Timeline.ui.survivalActionCheckBoxes[i]:Set(survivalAction.checked)
-        Timeline.ui.survivalActionTexts[i]:Show()
-        Timeline.ui.survivalActionTexts[i]:SetText(survivalAction.name)
-    end
-    for i = #Timeline.state.survivalActions + 1, Timeline.MAX_SURVIVAL_ACTIONS do
-        Timeline.ui.survivalActionCheckBoxes[i]:Hide()
-        Timeline.ui.survivalActionTexts[i]:Hide()
-    end
-
-    for i, milestone in ipairs(Timeline.state.milestones) do
-        local milestoneUi = Timeline.ui.milestones[i]
-        milestoneUi.checkBox:Show()
-        milestoneUi.checkBox:Set(milestone.checked)
-        milestoneUi.text:Show()
-        milestoneUi.text:SetText(milestone.name)
-        milestoneUi.eventButton:Show()
-        milestoneUi.eventText:Show()
-        milestoneUi.eventText:SetText(milestone.event)
-    end
-    for i = #Timeline.state.milestones + 1, Timeline.MAX_MILESTONES do
-        local milestoneUi = Timeline.ui.milestones[i]
-        milestoneUi.checkBox:Hide()
-        milestoneUi.text:Hide()
-        milestoneUi.eventButton:Hide()
-        milestoneUi.eventText:Hide()
+    for _, survivalAction in ipairs(Timeline.survivalActions) do
+        if survivalAction.name then
+            survivalAction.checkBox:Show()
+            survivalAction.checkBox:Check(survivalAction.checked)
+            survivalAction.text:Show()
+            survivalAction.text:SetText(survivalAction.name)
+        else
+            survivalAction.checkBox:Hide()
+            survivalAction.text:Hide()
+        end
     end
 
-    for i = 1, Timeline.MAX_QUARRIES do
-        Timeline.ui.quarryInputs[i]:Set(Timeline.state.quarries[i])
+    for _, milestone in ipairs(Timeline.milestones) do
+        if milestone.name then
+            milestone.checkBox:Show()
+            milestone.checkBox:Check(milestone.checked)
+            milestone.text:Show()
+            milestone.text:SetText(milestone.name)
+            milestone.eventButton:Show()
+            milestone.eventText:Show()
+            milestone.eventText:SetText(milestone.event)
+        else
+            milestone.checkBox:Hide()
+            milestone.text:Hide()
+            milestone.eventButton:Hide()
+            milestone.eventText:Hide()
+        end
     end
 
-    for i = 1, Timeline.MAX_NOTES do
-        Timeline.ui.notesInputs[i]:Set(Timeline.state.notes[i])
+    for _, quarry in ipairs(Timeline.quarries) do
+        quarry.input:SetText(quarry.quarry)
     end
 
-    for year = 1, Timeline.MAX_YEARS do
-        local yearData = Timeline.state.timeline[year]
-        local yearUi = Timeline.ui.timeline[year]
-        yearUi.checkBox:Set(yearData.checked)
-        for event = 1, Timeline.MAX_YEAR_EVENTS do
-            local eventData = yearData.events[event]
-            if eventData then
-                Timeline.AddTimelineEvent(year, event, eventData)
+    for _, note in ipairs(Timeline.notes) do
+        note.input:SetText(note.note)
+    end
+
+    for i, year in ipairs(Timeline.years) do
+        year.checkBox:Check(year.checked)
+        for j, event in ipairs(year.events) do
+            if event.event then
+                Timeline.AddTimelineEvent(i, j, event.event)
             else
-                Timeline.RemoveTimelineEvent(year, event)
+                Timeline.RemoveTimelineEvent(i, j)
             end
         end
     end
@@ -458,29 +481,50 @@ end
 -----------------------------------------------------------------------------------------------
 
 function Timeline.Save()
-    local saveData = {
-        name = Timeline.state.name,
-        survivalLimit = Timeline.state.survivalLimit,
-        departingBonuses = Timeline.state.departingBonuses,
-        arrivalBonuses = Timeline.state.arrivalBonuses,
-        survivalActions = Timeline.state.survivalActions,
-        milestones = Timeline.state.milestones,
-        quarries = Timeline.state.quarries,
-        notes = Timeline.state.notes,
-    }
-
-    saveData.timeline = {}
-    for year, yearData in pairs(Timeline.state.timeline) do
-        saveData.timeline[year] = {
-            checked = yearData.checked,
-            events = {},
-        }
-        for event, eventData in pairs(yearData.events) do
-            saveData.timeline[year].events[event] = eventData
+    local survivalActions = {}
+    for i, survivalAction in pairs(Timeline.survivalActions) do
+        if survivalAction and survivalAction.name then
+            survivalActions[i] = { name = survivalAction.name, checked = survivalAction.checked }
         end
     end
 
-    return saveData
+    local milestones = {}
+    for i, milestone in ipairs(Timeline.milestones) do
+        if milestone.name then
+            milestones[i] = { name = milestone.name, checked = milestone.checked, event = milestone.event }
+        end
+    end
+
+    local quarries = {}
+    for i, quarry in ipairs(Timeline.quarries) do
+        quarries[i] = quarry.quarry
+    end
+
+    local notes = {}
+    for i, note in ipairs(Timeline.notes) do
+        notes[i] = note.note
+    end
+
+    local years = {}
+    for i, year in ipairs(Timeline.years) do
+        local events = {}
+        for j, event in ipairs(year.events) do
+            events[j] = event.event
+        end
+        years[i] = { checked = year.checked, events = events }
+    end
+
+    return {
+        name = Timeline.settlementName,
+        survivalLimit = Timeline.survivalLimit,
+        departingBonuses = Timeline.departingBonuses,
+        arrivalBonuses = Timeline.arrivalBonuses,
+        survivalActions = survivalActions,
+        milestones = milestones,
+        quarries = quarries,
+        notes = notes,
+        years = years,
+    }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -493,45 +537,45 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.Export()
-    return Timeline.Save()
+    return Timeline.Save()  -- no difference for us
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.ShowUi()
     log:Debugf("Showing settlement ui")
-    Timeline.ui.panel:Show()
-    Timeline.ui.open = true
+    Timeline.panel:Show()
+    Timeline.uiOpen = true
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.HideUi()
     log:Debugf("Hiding settlement ui")
-    Timeline.ui.panel:Hide()
-    Timeline.ui.open = false
+    Timeline.panel:Hide()
+    Timeline.uiOpen = false
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.IsUiOpen()
-    return Timeline.ui.open
+    return Timeline.uiOpen
 end
 
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.ShowTimelineEventPopup(year, event)
-    if Timeline.ui.timelineEventPopup.open then
+    if Timeline.popupOpen then
         log:Debugf("Timeline event panel already open")
         return
     end
 
     log:Debugf("Showing timeline event panel for year %d, event %d", year, event)
 
-    Timeline.ui.timelineEventPopup.panel:Show()
-    Timeline.ui.timelineEventPopup.open = true
-    Timeline.ui.timelineEventPopup.year = year
-    Timeline.ui.timelineEventPopup.event = event
+    Timeline.popupPanel:Show()
+    Timeline.popupOpen = true
+    Timeline.popupYear = year
+    Timeline.popupEvent = event
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -539,19 +583,19 @@ end
 function Timeline.HideTimelineEventPopup()
     log:Debugf("Hiding Timeline event popup")
 
-    Timeline.ui.timelineEventPopup.panel:Hide()
-    Timeline.ui.timelineEventPopup.open = nil
-    Timeline.ui.timelineEventPopup.year = nil
-    Timeline.ui.timelineEventPopup.event = nil
+    Timeline.popupPanel:Hide()
+    Timeline.popupOpen = nil
+    Timeline.popupYear = nil
+    Timeline.popupEvent = nil
 
-    Timeline.ui.timelineEventPopup.searchInput:Set(nil)
+    Timeline.popupSearchInput:SetText(nil)
     Timeline.SetEventSearchResults({})
 
-    Timeline.ui.timelineEventPopup.customName = nil
-    Timeline.ui.timelineEventPopup.customNameInput:Set(nil)
+    Timeline.popupCustomName = nil
+    Timeline.popupCustomNameInput:SetText(nil)
 
-    Timeline.ui.timelineEventPopup.type = "RulebookEvent"
-    Timeline.ui.timelineEventPopup.typeOptions:Set(Timeline.ui.timelineEventPopup.rulebookEventOption)
+    Timeline.popupType = Timeline.popupRulebookEventCheckBox:OptionValue()
+    Timeline.popupRulebookEventCheckBox:Select()
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -572,12 +616,9 @@ function Timeline.SearchEvents(searchTerms)
     end
 
     -- sort matches
-    local enabledExpansions = Setup.EnabledExpansions()
     local sortedMatches = {}
     for _, m in pairs(matchIndex) do
-        if not m.expansion or enabledExpansions[m.expansion] then
-            table.insert(sortedMatches, m)
-        end
+        table.insert(sortedMatches, m)
     end
     table.sort(sortedMatches, function(x, y) return x.name < y.name end)
 
@@ -588,32 +629,32 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Timeline.SetEventSearchResults(results)
-    Timeline.ui.timelineEventPopup.results = results
+    Timeline.popupResults = results
     for i = 1, Util.Min(Timeline.MAX_TIMELINE_EVENT_POPUP_RESULTS, #results) do
         local result = results[i]
         log:Debugf("Setting result %d to %s", i, result.name)
 
-        local button = Timeline.ui.timelineEventPopup.resultButtons[i]
+        local button = Timeline.popupResultButtons[i]
         button:Show()
 
-        local icon = Timeline.ui.timelineEventPopup.resultIcons[i]
+        local icon = Timeline.popupResultIcons[i]
         icon:Show()
         icon:SetImage(Timeline.EVENT_TYPE_ICONS[result.type])
 
-        local text = Timeline.ui.timelineEventPopup.resultTexts[i]
+        local text = Timeline.popupResultTexts[i]
         text:Show()
         text:SetText(result.name)
     end
 
     for i = #results + 1, 5 do
-        local button = Timeline.ui.timelineEventPopup.resultButtons[i]
+        local button = Timeline.popupResultButtons[i]
         button:Hide()
 
-        local icon = Timeline.ui.timelineEventPopup.resultIcons[i]
+        local icon = Timeline.popupResultIcons[i]
         icon:Hide()
         icon:SetImage(nil)
 
-        local text = Timeline.ui.timelineEventPopup.resultTexts[i]
+        local text = Timeline.popupResultTexts[i]
         text:Hide()
         text:SetText(nil)
     end
@@ -621,9 +662,9 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.AddTimelineEvent(year, event, params)
-    assert(Check.Num(year))
-    assert(Check.Num(event))
+function Timeline.AddTimelineEvent(yearIndex, eventIndex, params)
+    assert(Check.Num(yearIndex))
+    assert(Check.Num(eventIndex))
 
     local name, type = params.name, params.type
     if type == "ShowdownEvent" or type == "HuntEvent" then
@@ -631,15 +672,16 @@ function Timeline.AddTimelineEvent(year, event, params)
     end
     assert(Check.Str(name))
 
-    log:Debugf("Adding event %s to year %d, event %d", name, year, event)
+    log:Debugf("Adding %s event %s to year %d, event %d", type, name, yearIndex, eventIndex)
 
-    local eventData = Timeline.ui.timeline[year].events[event]
-    eventData.button:SetImage(Timeline.EVENT_TYPE_IMAGES[type])
-    eventData.button:SetOnClick(function(mouseButton) Timeline.DoEvent(year, event, mouseButton) end)
-    eventData.text:Show()
-    eventData.text:SetText(name)
+    local event = Timeline.years[yearIndex].events[eventIndex]
+    event.button:SetImage(Timeline.EVENT_TYPE_IMAGES[type])
+    event.button:SetColors(Ui.IMAGE_COLORS)
+    event.button:SetOnClick(function(mouseButton) Timeline.DoEvent(yearIndex, eventIndex, mouseButton) end)
+    event.text:Show()
+    event.text:SetText(name)
 
-    Timeline.state.timeline[year].events[event] = {
+    Timeline.years[yearIndex].events[eventIndex].event = {
         name = name,
         type = type,
         custom = params.custom,
@@ -647,6 +689,22 @@ function Timeline.AddTimelineEvent(year, event, params)
         nemesis = params.nemesis,
         level = params.level,
     }
+end
+
+---------------------------------------------------------------------------------------------------
+
+function Timeline.RemoveTimelineEvent(yearIndex, eventIndex)
+    assert(Check.Num(yearIndex))
+    assert(Check.Num(eventIndex))
+
+    local event = Timeline.years[yearIndex].events[eventIndex]
+    event.button:SetImage(nil)
+    event.button:SetColors(Ui.INVISIBLE_COLORS)
+    event.button:SetOnClick(function() Timeline.ShowTimelineEventPopup(yearIndex, eventIndex) end)
+    event.text:Hide()
+    event.text:SetText(nil)
+
+    Timeline.years[yearIndex].events[eventIndex].event = nil
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -660,7 +718,7 @@ Timeline.levelAbbr ={
 
 function Timeline.ShowdownEventTimelineName(monster, level, nemesis)
     level = Timeline.levelAbbr[level] or level
-    monster = (monster and monster:len() > 0)  and monster or nil
+    local name = (monster and monster:len() > 0) and monster or nil
     if monster and level then
         if nemesis then
             return "Nemesis - "..monster.." "..level
@@ -674,92 +732,84 @@ function Timeline.ShowdownEventTimelineName(monster, level, nemesis)
             return monster
         end
     elseif level then
-        --assert(nemesis)
         return "Nemesis - "..level
     else
-        --assert(nemesis)
         return "Nemesis"
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.DoEvent(year, event, mouseButton)
-    local eventData = Timeline.state.timeline[year].events[event]
-    assert(Check(eventData, "No event data for year %d, event %d", year, event))
+function Timeline.DoEvent(yearIndex, eventIndex, mouseButton)
+    local event = Timeline.years[yearIndex].events[eventIndex].event
+    assert(Check(event, "No event data for year %d, event %d", yearIndex, eventIndex))
 
-    log:Debugf("Processing year %d, event %d: %s", year, event, eventData)
+    log:Debugf("Processing year %d, event %d: %s", yearIndex, eventIndex, event)
 
     if mouseButton == Timeline.RIGHT_MOUSE_BUTTON then
-        log:Debugf("RMB clicked, removing year %d, event %d", year, event)
-        Timeline.RemoveTimelineEvent(year, event)
+        log:Debugf("RMB clicked, removing year %d, event %d", yearIndex, eventIndex)
+        Timeline.RemoveTimelineEvent(yearIndex, eventIndex)
 
     else
-        local handler = Timeline.eventHandlersByType[eventData.type]
-        assert(Check(handler, "Unrecognized event type: %s", eventData))
-        handler(eventData)
+        local handler = Timeline.eventHandlersByType[event.type]
+        assert(Check(handler, "Unrecognized event type: %s", event.type))
+        handler(event)
     end
 end
 
 ---------------------------------------------------------------------------------------------------
 
-function Timeline.RemoveTimelineEvent(year, event)
-    assert(Check.Num(year))
-    assert(Check.Num(event))
-
-    local eventData = Timeline.ui.timeline[year].events[event]
-    eventData.button:SetImage(nil)
-    eventData.button:SetOnClick(function() Timeline.ShowTimelineEventPopup(year, event) end)
-    eventData.text:Hide()
-    eventData.text:SetText(nil)
-
-    Timeline.state.timeline[year].events[event] = nil
-end
-
----------------------------------------------------------------------------------------------------
-
 Timeline.eventHandlersByType = {
-    ["RulebookEvent"] = function(eventData)
-        if eventData.custom then
+    ["RulebookEvent"] = function(event)
+        if event.custom then
             return log:Debugf("Custom timeline event button, no effect")
         end
 
         Timeline.HideUi()
-        rulebook, state = Rules.RulebookAndState(eventData.name)
+        rulebook, state = Rules.RulebookAndState(event.name)
         Rules.SpawnRules(rulebook, state)
+        Location.Get("Rules Board"):LookAt({ pitch = 90 })
     end,
 
-    ["ShowdownEvent"] = function(eventData)
-        Timeline.HideUi()
-        Showdown.ShowUi()
-        -- TTS has no way to scroll the scroll view, so if we select a monster out of the current view, it will be selected but the button won't be visible
-        -- this is a bad user experience and worse than just not selecting anything
-        -- if eventData.monster then
-        --     Showdown.SelectMonster(eventData.monster)
-        --     if eventData.level then
-        --         Showdown.SelectLevel(eventData.level)
-        --     end
-        -- end
+    ["ShowdownEvent"] = function(event)
+        if event.custom then
+            Timeline.HideUi()
+            Showdown.ShowUi()
+            return
+        end
+
+        MessageBox.Show(string.format("Ready to start showdown for %s %s?", event.monster, event.level), function()
+            Timeline.HideUi()
+            Showdown.Setup(event.monster, event.level)
+        end)
     end,
 
-    ["HuntEvent"] = function(eventData)
-        Timeline.HideUi()
-        Hunt.ShowUi()
+    ["HuntEvent"] = function(event)
+        if event.custom then
+            Timeline.HideUi()
+            Hunt.ShowUi()
+            return
+        end
+
+        MessageBox.Show(string.format("Ready to start hunt for %s %s?", event.monster, event.level), function()
+            Timeline.HideUi()
+            Hunt.Setup(event.monster, event.level)
+        end)
     end,
 
-    ["SettlementEvent"] = function(eventData)
+    ["SettlementEvent"] = function(event)
         Timeline.HideUi()
 
         local settlementEventsLocation = Location.Get("Settlement Events")
-        local deck = settlementEventsLocation:FirstObject("Settlement Events")
+        local deck = settlementEventsLocation:FirstObject({ types = { "Settlement Events" } })
         if deck == nil then
             log:Broadcastf("Couldn't find Settlement Event deck in the highlighted location, so created a new one.")
             deck = Archive.Take({ name = "Settlement Events", type = "Settlement Events", location = settlementEventsLocation, rotation = { x = 0, y = 180, z = 180 } })
             Util.Highlight(deck)
         end
-        local card = Container(deck):Take({ name = eventData.name, type = "Settlement Events", location = Location.Get("Drawn Settlement Events"), allowMissing = true })
+        local card = Container(deck):Take({ name = event.name, type = "Settlement Events", location = Location.Get("Drawn Settlement Events") })
         if not card then
-            log:Broadcastf("Couldn't find the '%s' card in the Settlement Events Deck", eventData.name)
+            log:Broadcastf("Couldn't find the '%s' card in the Settlement Events Deck", event.name)
             Util.Highlight(deck)
             return
         end
@@ -773,16 +823,12 @@ Timeline.eventHandlersByType = {
 return {
     Init = Timeline.Init,
     PostInit = Timeline.PostInit,
-
     Save = Timeline.Save,
-
     Import = Timeline.Import,
     Export = Timeline.Export,
-
     ShowUi = Timeline.ShowUi,
     HideUi = Timeline.HideUi,
     IsUiOpen = Timeline.IsUiOpen,
-
     MAX_YEARS = Timeline.MAX_YEARS,
     MAX_YEAR_EVENTS = Timeline.MAX_YEAR_EVENTS,
 }

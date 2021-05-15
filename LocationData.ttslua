@@ -595,30 +595,30 @@ local locationData = {
         size = { x = 6, y = 5, z = 6 },
     },
 
-    ["Age Reference"] = {
+    ["Reference 1"] = {
         center = { x = 75.894806, y = 1.730176, z = -65.893570 },
         size = REFERENCE_SIZE,
     },
-    ["Intimacy Reference"] = {
+    ["Reference 2"] = {
         center = { x = 96.894814, y = 1.730182, z = -65.893570 },
         size = REFERENCE_SIZE,
     },
-    ["Bold Reference"] = {
+    ["Reference 3"] = {
         center = { x = 75.894806, y = 1.730211, z = -82.679756 },
         size = REFERENCE_SIZE,
     },
-    ["Insight Reference"] = {
+    ["Reference 4"] = {
         center = { x = 96.894806, y = 1.730218, z = -82.679756 },
         size = REFERENCE_SIZE,
     },
-    ["Misc Reference"] = {
+    ["Reference 5"] = {
         center = { x = 117.894814, y = 1.730189, z = -65.893570 },
         size = REFERENCE_SIZE,
     },
 
     -----------------------------------------------------------------------------
 
-    ["Export/Import"] = {
+    ["Campaign Orb"] = {
         p1 = { x =  0.339170, y = 0.15, z = -0.166400 },
         p2 = { x = -0.342977, y = 0.15, z =  0.515850 },
         board = "Export/Import Board",
@@ -636,28 +636,26 @@ local locationData = {
         size = SETTLEMENT_EVENT_SIZE,
         board = "Showdown Board",
     },
-    ["Settlement Location Deck"] = {
+    ["Settlement Locations"] = {
         center = { x = -10.137783, y = -0.039099, z = 4.920703 },
         size = SETTLEMENT_LOCATION_SIZE,
         board = "Settlement Board",
     }
 }
 
-local locationMaxes = {}
-
 -----------------------------------------------------------------------------------------------
 -- Showdown board grid locations
 
-locationMaxes.MAX_SHOWDOWN_GRID_COLS = 22
-locationMaxes.MAX_SHOWDOWN_GRID_ROWS = 16
+local MAX_SHOWDOWN_GRID_COLS = 22
+local MAX_SHOWDOWN_GRID_ROWS = 16
 
 local gridLeft   = 6.0804635
 local gridRight  = -5.735014
 local gridTop    = -2.8629885
 local gridBottom =  5.5242755
 local y = 10.741001
-local cellWidth  = (gridRight - gridLeft) / (locationMaxes.MAX_SHOWDOWN_GRID_COLS - 1)
-local cellHeight = (gridBottom - gridTop) / (locationMaxes.MAX_SHOWDOWN_GRID_ROWS - 1)
+local cellWidth  = (gridRight - gridLeft) / (MAX_SHOWDOWN_GRID_COLS - 1)
+local cellHeight = (gridBottom - gridTop) / (MAX_SHOWDOWN_GRID_ROWS - 1)
 local size = { x = cellWidth, y = cellWidth, z = cellHeight }
 for col = 1, 22 do
     for row = 1, 16 do
@@ -693,42 +691,36 @@ end
 local locationGrids = {
     {
         name = "Innovation",
-        NAME = "INNOVATION",
         cols = 18, rows = 2,
         topLeft     = { x = 7.414137, y = 0.602996, z = -6.384946 },
         bottomRight = { x = -7.412908, y = 0.602996, z = -5.344013 },
     },
     {
         name = "Weapon Mastery",
-        NAME = "WEAPON_MASTERY",
         cols = 12, rows = 1,
         topLeft     = { x = 4.794536, y = 0.602996, z = -4.306177 },
         bottomRight = { x = -4.799514, y = 0.602996, z = -4.306177 },
     },
     {
         name = "Settlement Gear",
-        NAME = "SETTLEMENT_GEAR",
         cols = 18, rows = 2,
         topLeft     = { x = 7.414486, y = 0.602996, z = -2.825781 },
         bottomRight = { x = -7.415930, y = 0.602996, z = -2.123120 },
     },
     {
         name = "Settlement Resource",
-        NAME = "SETTLEMENT_RESOURCE",
         cols = 18, rows = 3,
         topLeft     = { x = 7.410852, y = 0.602996, z = -1.253595 },
         bottomRight = { x = -7.411582, y = 0.602996, z = 0.829436 },
     },
     {
         name = "Settlement Location",
-        NAME = "SETTLEMENT_LOCATION",
         cols = 10, rows = 2,
         topLeft     = { x = 6.054009, y = 0.595169, z = 3.801595 },
         bottomRight = { x = -7.115391, y = 0.595169, z = 6.102203 },
     },
     {
         name = "Settlement Location Gear",
-        NAME = "SETTLEMENT_LOCATION_GEAR",
         cols = 10, rows = 2,
         topLeft     = { x = 6.150475, y = 0.595169, z = 2.302748 },
         bottomRight = { x = -7.021307, y = 0.595168, z = 7.602671 },
@@ -738,8 +730,6 @@ local locationGrids = {
 for _, locationGrid in ipairs(locationGrids) do
     local cols, rows = locationGrid.cols, locationGrid.rows
     local tl, br = locationGrid.topLeft, locationGrid.bottomRight
-
-    locationMaxes["MAX_"..locationGrid.NAME.."_LOCATIONS"] = cols * rows
 
     local dx = (cols > 1) and ((br.x - tl.x) / (cols - 1)) or 0
     local dz = (rows > 1) and ((br.z - tl.z) / (rows - 1)) or 0
@@ -775,8 +765,8 @@ for playerNumber = 1, 4 do
     }
 
     locationData[prefix.." Survival Tokens"] = {
-        p1 = { x = -0.194693, y = 0.048755, z = -1.416569 },
-        p2 = { x = -0.825567, y = 0.123307, z = -1.021933 },
+        p1 = { x = 0.933703, y = 0.048755, z = -0.973658 },
+        p2 = { x = 0.682291, y = 0.123307, z = -0.451157 },
         board = playerBoard,
     }
 
@@ -852,7 +842,6 @@ for playerNumber = 1, 4 do
         { "Disorder 1",     "Disorder 2",     "Disorder 3",     "Ability/Impairment 6", "Ability/Impairment 7", "Ability/Impairment 8", "Ability/Impairment 9", "Ability/Impairment 10", "Ability/Impairment 11" },
     }
 
-
     local left1 = 0.965569
     local top1 = -0.034588
     local right1 = 0.763898
@@ -896,13 +885,4 @@ for playerNumber = 1, 4 do
     }
 end
 
-locationMaxes.MAX_TERRAIN = 10
-locationMaxes.MAX_MISC = 10
-locationMaxes.MAX_TRAITS_MOODS = 14
-locationMaxes.MAX_MONSTER_TOKENS = 8
-locationMaxes.MAX_PLAYER_GEAR_GRID_LOCATIONS = 9
-
-return {
-    maxes = locationMaxes,
-    data = locationData,
-}
+return locationData
