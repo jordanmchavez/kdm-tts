@@ -48,6 +48,7 @@ NamedObject.data = {
     ["226d8a"] = { name = "Settlement Board", noninteractible = true },
     ["456dc5"] = { name = "Rules Board", noninteractible = true },
     ["58f2b5"] = { name = "Rules Navigation Board", noninteractible = true },
+    ["4ff505"] = { name = "Milestone Board", noninteractible = true },
     ["05e4ab"] = { name = "Export/Import Board", noninteractible = true },
 
     ["d2a564"] = { name = "Survivor Board", noninteractible = true },

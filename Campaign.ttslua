@@ -366,6 +366,7 @@ function Campaign.ImportFromCampaign()
             }
         },
         timeline = Campaign.BuildImportTimeline(expansions, campaign),
+        spawnInitialSurvivorSheets = true,
     })
 end
 
@@ -508,6 +509,22 @@ function Campaign.Import(data)
 
     Survivor.Import(data.survivor)
     Timeline.Import(data.timeline)
+
+    if data.spawnInitialSurvivorSheets then
+        for i = 1, 4 do
+            local survivor = Survivor.Survivors()[i]
+            local player = Player.Players()[i]
+            Archive.Take({ name = "Survivor Sheet", type = "Survivor Sheet", location = "Player "..i.." Survivor Sheet", height = 0, spawnFunc = function(survivorSheetObject)
+                -- We have to wait a single frame when taking from an infinite container or the objects will have the same equality/identity value as any other objects taken that frame
+                Wait.frames(function()
+                    log:Debugf("Created survivor sheet for object %s and %s", survivorSheetObject.getGUID(), survivor)
+                    local survivorSheet = Survivor.CreateSurvivorSheet(survivor, survivorSheetObject)
+                    survivorSheetObject.setLock(true)
+                    player:LinkSurvivorSheet(survivorSheet)
+                end, 1)
+            end })
+        end
+    end
 
     Campaign.campaign = data.campaign
 
@@ -765,6 +782,7 @@ function Campaign.SetupSurvivalTokens(survivalActions)
     for ordinal, player in ipairs(Player.Players()) do
         for i, survivalAction in ipairs(survivalActions or {}) do
             if survivalAction.checked then
+                log:Debugf("Adding survival token '%s' for player %d", survivalAction, i)
                 local survivalToken = Archive.Take({ archive = survivalAction.name.." Tokens", name = survivalAction.name, type = "Survival Tokens", location = "Player "..ordinal.." Survival Token "..i })
                 if not survivalToken then
                     log:Errorf("Couldn't find survival token '%s'", survivalAction)
@@ -787,6 +805,8 @@ function Campaign.SetupReferences(references)
             spawnedObject.setLock(true)
         end }) then
             log:Errorf("Couldn't find '%s'", name)
+        else
+            log:Debugf("Added reference '%s'", name)
         end
     end
 end
@@ -797,6 +817,8 @@ function Campaign.SetupMisc(misc)
     for _, m in ipairs(misc or {}) do
         if not Archive.Take(m) then
             log:Errorf("Couldn't find '%s' (%s)", m.name, m.type)
+        else
+            log:Debugf("Added misc item '%s' (%s)", m.name, m.type)
         end
     end
 end
@@ -831,4 +853,5 @@ return {
     ShowUi = Campaign.ShowUi,
     HideUi = Campaign.HideUi,
     IsUiOpen = Campaign.IsUiOpen,
+    Campaign = function() return Campaign.campaign end,
 }

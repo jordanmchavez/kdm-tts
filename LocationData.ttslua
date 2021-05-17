@@ -567,31 +567,84 @@ local locationData = {
 
     -----------------------------------------------------------------------------
 
-    ["Survivor Status 1"] = {
-        center = { x = 10.557465, y = 10.765527, z = 6.741133 },
-        size = CARD_SIZE,
-        board = "Showdown Board",
+    ["Survivor Box Spawn 1"] = {
+        center = { x = -44.900000, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
     },
-    ["Survivor Status 2"] = {
-        center = { x = 4.559926, y = 10.765449, z = 6.741133 },
-        size = CARD_SIZE,
-        board = "Showdown Board",
+    ["Survivor Box Spawn 2"] = {
+        center = { x = -34.922222, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
     },
-    ["Survivor Status 3"] = {
-        center = { x = -1.442106, y = 10.765368, z = 6.741133 },
-        size = CARD_SIZE,
-        board = "Showdown Board",
+    ["Survivor Box Spawn 3"] = {
+        center = { x = -24.944444, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
     },
-    ["Survivor Status 4"] = {
-        center = { x = -7.440800, y = 10.765286, z = 6.741133 },
-        size = CARD_SIZE,
-        board = "Showdown Board",
+    ["Survivor Box Spawn 4"] = {
+        center = { x = -14.966667, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
     },
-
-    -----------------------------------------------------------------------------
-
-    ["Survivor Box Spawn"] = {
-        center = { x = 0, y = 1.7, z = -65.893570 },
+    ["Survivor Box Spawn 5"] = {
+        center = { x = -4.9888889, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 6"] = {
+        center = { x = 4.9888889, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 7"] = {
+        center = { x = 14.966667, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 8"] = {
+        center = { x = 24.944444, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 9"] = {
+        center = { x = 34.922222, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 10"] = {
+        center = { x = 44.900000, y = 1.7, z = -61.12 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 11"] = {
+        center = { x = -44.900000, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 12"] = {
+        center = { x = -34.922222, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 13"] = {
+        center = { x = -24.944444, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 14"] = {
+        center = { x = -14.966667, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 15"] = {
+        center = { x = -4.9888889, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 16"] = {
+        center = { x = 4.9888889, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 17"] = {
+        center = { x = 14.966667, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 18"] = {
+        center = { x = 24.944444, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 19"] = {
+        center = { x = 34.922222, y = 1.7, z = -67.3 },
+        size = { x = 6, y = 5, z = 6 },
+    },
+    ["Survivor Box Spawn 20"] = {
+        center = { x = 44.900000, y = 1.7, z = -67.3 },
         size = { x = 6, y = 5, z = 6 },
     },
 
@@ -881,6 +934,24 @@ for playerNumber = 1, 4 do
     locationData[prefix.." Survivor Sheet"] = {
         p1 = { x = 0.621183, y = 0.15, z = -0.996270 },
         p2 = { x = -0.107580, y = 0.15, z = -0.050389 },
+        board = playerBoard,
+    }
+
+    locationData[prefix.." Status"] = {
+        center = { x = 0, y = 0.5, z = -1.220065 },
+        size = CARD_SIZE,
+        board = playerBoard,
+    }
+
+    locationData[prefix.." Monster Controller"] = {
+        center = { x = 0.805916, y = 0.5, z = -1.220065 },
+        size = CARD_SIZE,
+        board = playerBoard,
+    }
+
+    locationData[prefix.." Upper"] = {
+        p1 = { x = -1, y = 0.5, z = -1 },
+        p2 = { x = 1, y = 0.5, z = -1.45 },
         board = playerBoard,
     }
 end

@@ -15,6 +15,7 @@ local Location = require("Kdm/Location")
 local Log = require("Kdm/Log")
 local log = Log.ForModule("G")
 local MessageBox = require("Kdm/MessageBox")
+local MilestoneBoard = require("Kdm/MilestoneBoard")
 local Monster = require("Kdm/Monster")
 local NamedObject = require("Kdm/NamedObject")
 local Player = require("Kdm/Player")
@@ -83,6 +84,7 @@ function onLoad(saveJson)
     --
     Campaign.Init(saveState.Campaign or {})
     --
+    MilestoneBoard.Init()
     -- mad sketchy that initialization order for MessageBox doesn't match include order, but this must be *after* all 2d UIs since we want this to display *over*
     -- all other 2d UIs, and 2d UI display order is solely based on the order of the XML elements (last is on top of everything else)
     MessageBox.Init()

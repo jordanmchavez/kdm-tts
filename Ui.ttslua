@@ -141,7 +141,14 @@ end
 
 function Ui:Input(params)
     local input = self:CreateElem("InputField", params)
-    input.attributes.colors = params.colors or Ui.INVISIBLE_COLORS
+    -- If you specify *any* value for attributes.colors, then the input will bug out and disappear when you click into it then
+    -- release the mouse button. This is only noticable when there's no background image (ie our floating search box)
+    -- This bug occurs even if you specify the literal nil, or the default colors value from
+    -- https://api.tabletopsimulator.com/ui/inputelements/#inputfield: "#FFFFFF|#FFFFFF|#C8C8C8|rgba(0.78,0.78,0.78,0.5)"
+    -- This workaround is to avoid even setting nil for the colors attribute to avoid this bug.
+    if not params.workaroundNilColors then
+        input.attributes.colors = params.colors or Ui.INVISIBLE_COLORS
+    end
     input.attributes.text = params.text
     input.attributes.placeholder = params.placeholder or " "
     input.attributes.textColor = params.textColor or Ui.DARK_BROWN

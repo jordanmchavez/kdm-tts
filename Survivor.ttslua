@@ -242,21 +242,23 @@ function Survivor.InitUi()
         Survivor.SetPageAndRefresh(Survivor.page + 1)
     end })
 
-    local hideButtons = {
-        Living = { topLeft = { x = 6.963151, y = 7.208137 }, bottomRight = { x = 6.771221, y = 7.645597 } },
-        Dead = { topLeft = { x = 5.844892, y = 7.202434 }, bottomRight = { x = 5.652242, y = 7.643736 } },
-        SkipNextHunt = { topLeft = { x = 4.765475, y = 7.211676 }, bottomRight = { x = 4.574671, y = 7.644533 } },
-        Retired = { topLeft = { x = 2.946023, y = 7.215670 }, bottomRight = { x = 2.755053, y = 7.645678 } },
-        YellowStar = { topLeft = { x = 1.748184, y = 7.208223 }, bottomRight = { x = 1.556422, y = 7.639410 } },
-        GreenTriangle = { topLeft = { x = 0.734323, y = 7.214246 }, bottomRight = { x = 0.539239, y = 7.645326 } },
-        BlueSquare = { topLeft = { x = -0.292644, y = 7.217496 }, bottomRight = { x = -0.487164, y = 7.649194 } },
-        RedCircle = { topLeft = { x = -1.291453, y = 7.216863 }, bottomRight = { x = -1.484272, y = 7.650930 } },
-        PurpleDiamond = { topLeft = { x = -2.282465, y = 7.207262 }, bottomRight = { x = -2.476591, y = 7.642169 } },
-    }
-    for suffix, data in pairs(hideButtons) do
+    local width = 7.051640 - 7.260710
+    local top = 7.231073
+    local height = 7.696268 - top
+    for suffix, left in pairs({
+        Living = 7.260710,
+        Dead = 6.436522,
+        SkipNextHunt = 5.644810,
+        Retired = 4.296477,
+        YellowStar = 3.390988,
+        GreenTriangle = 2.677092,
+        BlueSquare = 1.925451,
+        RedCircle = 1.205827,
+        PurpleDiamond = 0.489192,
+    }) do
         local attr = "hide"..suffix
         local cb = attr.."CheckBox"
-        Survivor[cb] = ui:CheckBox({ id = attr, topLeft = data.topLeft, bottomRight = data.bottomRight, checked = Survivor[attr], onClick = function()
+        Survivor[cb] = ui:CheckBox({ id = attr, topLeft = { x = left, y = top }, bottomRight = { x = left + width, y = top + height }, checked = Survivor[attr], onClick = function()
             Survivor[attr] = not Survivor[attr]
             Survivor[cb]:Check(Survivor[attr])
             Survivor.SetPageAndRefresh(1)
@@ -470,7 +472,7 @@ function Survivor.InitSurvivorCellUi(cell)
     end })
 
     cell.spawnButton = ui:Button({ id = "spawn", topLeft = { x = 0.246005, y = 0.862302 }, bottomRight = { x = 0.011954, y = 0.962470 }, onClick = function()
-        Survivor.SpawnSurvivorBox(cell.survivor, "Survivor Box Spawn")
+        Survivor.SpawnSurvivorBox(cell.survivor, "Survivor Box Spawn "..cell.ordinal)
     end })
 
     cell.deleteButton = ui:Button({ id = "delete", topLeft = { x = -0.013713, y = 0.860059 }, bottomRight = { x = -0.252386, y = 0.958966 }, onClick = function()
@@ -1723,11 +1725,13 @@ return {
     Import = Survivor.Import,
     Export = Survivor.Export,
 
-    SurvivorForId            = function(id)       return Survivor.survivorsById[id] end,
-    SurvivorBoxForSurvivor   = function(survivor) return Survivor.survivorBoxesBySurvivor[survivor] end,
-    SurvivorBoxForObject     = function(object)   return Survivor.survivorBoxesByObject[object] end,
+    Survivors = function() return Survivor.survivors end,
+
+    SurvivorForId = function(id) return Survivor.survivorsById[id] end,
+    SurvivorBoxForSurvivor = function(survivor) return Survivor.survivorBoxesBySurvivor[survivor] end,
+    SurvivorBoxForObject = function(object) return Survivor.survivorBoxesByObject[object] end,
     SurvivorSheetForSurvivor = function(survivor) return Survivor.survivorSheetsBySurvivor[survivor] end,
-    SurvivorSheetForObject   = function(object)   return Survivor.survivorSheetsByObject[object] end,
+    SurvivorSheetForObject = function(object) return Survivor.survivorSheetsByObject[object] end,
 
     CreateSurvivorSheet = function(survivor, object)
         local survivorSheet = SurvivorSheetClass.Create(survivor, object)

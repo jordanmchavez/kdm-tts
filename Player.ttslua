@@ -100,16 +100,6 @@ end
 
 ---------------------------------------------------------------------------------------------------
 
-function Player.Export()
-end
-
----------------------------------------------------------------------------------------------------
-
-function Player.Import()
-end
-
----------------------------------------------------------------------------------------------------
-
 function Player.ForFigurine(figurineObject)
     for _, player in ipairs(Player.players) do
         if player.figurineObject == figurineObject then
@@ -705,8 +695,6 @@ function Player:UnpackSurvivorBox(survivorBox)
         end
     end
 
-    log(availableLocations, "----available locations----")
-
     local overflowLocation = Location.Get(playerPrefix.." Ability/Impairment 11")
     local extraObjects = false
     local height = 2 + 0.5
@@ -823,7 +811,7 @@ function Player:UnlinkSurvivorSheet()
     log:Debugf("Unlinking %s from %s", survivorSheet, self)
     survivor:SetModifiers()
     self.survivorSheet = nil
-    EventManager.FireEvent(EventManager.ON_PLAYER_SURVIVOR_UNLINK, self, survivor)
+    EventManager.FireEvent(EventManager.ON_PLAYER_SURVIVOR_UNLINKED, self, survivor)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -919,8 +907,6 @@ return {
     Init = Player.Init,
     PostInit = Player.PostInit,
     Save = Player.Save,
-    Export = Player.Export,
-    Import = Player.Import,
     Players = function() return Player.players end,
     ForFigurine = Player.ForFigurine,
 }

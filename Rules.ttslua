@@ -48,7 +48,7 @@ function Rules.Init()
     local yStart = -10
     local ui = Ui.Get2d()
     local colors = "#ffffff|#dddddd|#dddddd|#ffffff"
-    Rules.searchInput = ui:Input({ id = "RulesSearch", x = xStart, y = yStart, width = 240, height = 30, placeholder = "search rules/events...", textColor = "#000000", colors = colors, textOffset = "5 5 0 0", fontSize = 16, onValueChanged = function(value)
+    Rules.searchInput = ui:Input({ id = "RulesSearch", x = xStart, y = yStart, width = 240, height = 30, placeholder = "search rules/events...", workaroundNilColors = true, textColor = "#000000", colors = colors, textOffset = "5 5 0 0", fontSize = 16, onValueChanged = function(value)
         Rules.SetSearchResults(Rules.Search(value))
     end })
     ui:Button({ id = "RulesCancelSearch", x = xStart+240+5, y = yStart, width = 30, height = 30, text = "X", textAlignment = "MiddleCenter", textColor = "#000000", colors = colors, fontSize = 20, onClick = function()
@@ -246,7 +246,7 @@ function Rules.SpawnRules(rules, state, dontRecordHistory)
         return
     end
 
-    Archive.Take({
+    if not Archive.Take({
         name = rules,
         type = "Rulebook",
         location = location,
@@ -256,7 +256,9 @@ function Rules.SpawnRules(rules, state, dontRecordHistory)
             end
             Wait.frames(function() obj.setLock(true) end, 3)
         end,
-    })
+    }) then
+        log:Errorf("Unrecognized rules: %s[%d]", rules, state)
+    end
     Archive.Clean()
 
     if not dontRecordHistory then

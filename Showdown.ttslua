@@ -353,7 +353,7 @@ function Showdown.Setup(monsterOrName, levelOrName)
     if showdownSetup.survivorStatus then
         for i = 1, 4 do
             log:Debugf("Spawning survivor %d status %s", i, showdownSetup.survivorStatus[i])
-            specialAiDeck:Take({ name = showdownSetup.survivorStatus[i], type = "AI", location = "Survivor Status "..i })
+            specialAiDeck:Take({ name = showdownSetup.survivorStatus[i], type = "AI", location = "Player "..i.." Status" })
         end
     end
 

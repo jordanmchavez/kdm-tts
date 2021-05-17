@@ -15,6 +15,10 @@ local BattleUi = {}
 
 BattleUi.MAX_WEAPONS = 3
 BattleUi.PLAYER_SPACING = 0
+BattleUi.TEXT_COLOR = "#ffffffdc"
+BattleUi.DISABLED_TEXT_COLOR = "#ffffff60"
+BattleUi.DARK_COLORS = "#00000000|#ffffff10|#ffffff20|#ffffffff"
+BattleUi.DARK_SELECTED_COLORS = "#ffffff20|#ffffff30|#ffffff40|#ffffffff"
 
 ---------------------------------------------------------------------------------------------------
 
@@ -34,17 +38,11 @@ function BattleUi.Init(saveState)
 end
 
 function BattleUi.InitUi(ui)
-    local TEXT_COLOR = "#ffffffdc"
-    local DISABLED_TEXT_COLOR = "#ffffff60"
-
-    local DARK_COLORS = "#00000000|#ffffff10|#ffffff20|#ffffffff"
-    local DARK_SELECTED_COLORS = "#ffffff20|#ffffff30|#ffffff40|#ffffffff"
-
     local ui = Ui.Get2d()
     BattleUi.ui = ui
 
     ui:Image({ id = "BattleUi", rectAlignment = "MiddleLeft", x = 10, y = -20, width = 50, height = 50, image = "BattleUi" })
-    ui:Button({ id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
+    ui:Button({ id = "BattleUi", rectAlignment = "MiddleLeft", x = 10-1, y = -20+1, width = 50+2, height = 50+2, colors = BattleUi.DARK_COLORS, onClick = function()
         if BattleUi.uiOpen then
             BattleUi.Hide()
         else
@@ -53,30 +51,7 @@ function BattleUi.InitUi(ui)
     end })
 
     ui:Image({ id = "NextTurn", rectAlignment = "MiddleLeft", x = 10, y = -80, width = 50, height = 50, image = "NextTurn" })
-    ui:Button({ id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = DARK_COLORS, onClick = function()
-        log:Printf("Resetting player turns")
-        for i, _ in ipairs(Player.Players()) do
-            local survivalTokens = Location.Get("Player "..i.." Survival Tokens"):AllObjects("Survival Tokens")
-            for _, token in ipairs(survivalTokens) do
-                rot = token.getRotation()
-                if rot.z >= 15 and rot.z <= 345    then
-                    token.flip()
-                end
-            end
-        end
-
-        for i, _ in ipairs(Player.Players()) do
-            local playerUi = BattleUi.playerUis[i]
-            playerUi.turnEnded = false
-            playerUi.playerCircleImage:SetImage("WhiteCircle")
-            playerUi.playerCircleImage:SetColor(NamedObject.Get("Player "..i.." Marker").getColorTint())
-            playerUi.nameText:SetColor(TEXT_COLOR)
-            playerUi.nameText:SetFontStyle("Normal")
-            playerUi.endTurnButton:SetColors(DARK_COLORS)
-        end
-
-        -- move monster controller
-    end })
+    ui:Button({ id = "NextTurn", rectAlignment = "MiddleLeft", x = 10-1, y = -80+1, width = 50+2, height = 50+2, colors = BattleUi.DARK_COLORS, onClick = BattleUi.NextTurn })
 
     BattleUi.uiOpen = false
     BattleUi.panel = ui:Panel({ id = "BattleUi", x = 70, y = -210, width = 436, height = 608, color = "#00000000", active = BattleUi.uiOpen })
@@ -93,29 +68,29 @@ function BattleUi.InitUi(ui)
         local panel = BattleUi.panel:Panel({ id = "Player"..ordinal, x = 0, y = -(playerUi.height + BattleUi.PLAYER_SPACING) * (ordinal - 1), width = 436, height = playerUi.height, color = "#121212ff" })
         playerUi.panel = panel
         playerUi.playerCircleImage = panel:Image({ id = "PlayerCircle", x = 8, y = -8, width = 25, height = 25, image = "WhiteCircle" })
-        playerUi.nameText = panel:Text({ id = "Name", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = TEXT_COLOR, text = "Survivor with a very long name" })
+        playerUi.nameText = panel:Text({ id = "Name", x = 38, y = -8, width = 280, height = 25, fontSize = 16, color = BattleUi.TEXT_COLOR, text = "Survivor with a very long name" })
 
         playerUi.turnEnded = false
         panel:Image({ id = "EndTurn", x = 324, y = -8, width = 48, height = 25, image = "BR_Sleep" })
-        playerUi.endTurnButton = panel:Button({ id = "EndTurn", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+        playerUi.endTurnButton = panel:Button({ id = "EndTurn", x = 324-1, y = -8+1, width = 48+2, height = 25+2, colors = BattleUi.DARK_COLORS, onClick = function()
             playerUi.turnEnded = not playerUi.turnEnded
             if playerUi.turnEnded then
                 log:Printf("Player %d: %s turn ended", ordinal, player:SurvivorSheet():Survivor():NameOrUnnamed())
                 playerUi.playerCircleImage:SetImage("GreyCircle")
-                playerUi.nameText:SetColor(DISABLED_TEXT_COLOR)
+                playerUi.nameText:SetColor(BattleUi.DISABLED_TEXT_COLOR)
                 playerUi.nameText:SetFontStyle("Italic")
-                playerUi.endTurnButton:SetColors(DARK_SELECTED_COLORS)
+                playerUi.endTurnButton:SetColors(BattleUi.DARK_SELECTED_COLORS)
             else
                 log:Printf("Player %d: %s next turn", ordinal, player:SurvivorSheet():Survivor():NameOrUnnamed())
                 playerUi.playerCircleImage:SetImage("WhiteCircle")
-                playerUi.nameText:SetColor(TEXT_COLOR)
+                playerUi.nameText:SetColor(BattleUi.TEXT_COLOR)
                 playerUi.nameText:SetFontStyle("Normal")
-                playerUi.endTurnButton:SetColors(DARK_COLORS)
+                playerUi.endTurnButton:SetColors(BattleUi.DARK_COLORS)
             end
         end})
 
         playerUi.showWeaponsImage = panel:Image({ id = "ShowWeapons", x = 380, y = -8, width = 48, height = 25, image = "BR_Show" })
-        playerUi.showWeaponsButton = panel:Button({ id = "ShowWeapons", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+        playerUi.showWeaponsButton = panel:Button({ id = "ShowWeapons", x = 380-1, y = -8+1, width = 48+2, height = 25+2, colors = BattleUi.DARK_COLORS, onClick = function()
             local survivor = player:SurvivorSheet():Survivor()
             log:Printf("Showing all weapons for %s", survivor:NameOrUnnamed())
             BattleUi.hiddenWeaponsBySurvivor[survivor] = nil
@@ -123,7 +98,7 @@ function BattleUi.InitUi(ui)
         end})
 
         playerUi.weaponImages = {}
-        playerUi.weaponShowWeaponsButtons = {}
+        playerUi.weaponHideWeaponsButtons = {}
         playerUi.weaponNameTexts = {}
         playerUi.weaponSpeedTexts = {}
         playerUi.weaponHitTexts = {}
@@ -132,7 +107,7 @@ function BattleUi.InitUi(ui)
         local y = -41
         for i = 1, BattleUi.MAX_WEAPONS do
             playerUi.weaponImages[i] = panel:Image({ id = "Weapon"..i, x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
-            playerUi.weaponShowWeaponsButtons[i] = panel:Button({ id = "WeaponName"..i, x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = DARK_COLORS, onClick = function()
+            playerUi.weaponHideWeaponsButtons[i] = panel:Button({ id = "WeaponName"..i, x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = BattleUi.DARK_COLORS, onClick = function()
                 local weaponName = playerUi.weaponNameTexts[i]:Text()
                 local survivor = panel:SurvivorSheet():Survivor()
                 log:Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
@@ -142,11 +117,11 @@ function BattleUi.InitUi(ui)
                 BattleUi.hiddenWeaponsBySurvivor[survivor][weaponName] = true
                 BattleUi.UpdatePlayer(player)
             end })
-            playerUi.weaponNameTexts[i]  = panel:Text({ id = "WeaponName"..i,  x =  43, y = y, width = 172, height = 25, color = TEXT_COLOR, fontSize = 14, text = "Calcified Juggernaut Blade" })
-            playerUi.weaponSpeedTexts[i] = panel:Text({ id = "WeaponSpeed"..i, x = 243, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
-            playerUi.weaponHitTexts[i]   = panel:Text({ id = "WeaponHit"..i,   x = 288, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
-            playerUi.weaponWoundTexts[i] = panel:Text({ id = "WeaponWound"..i, x = 334, y = y, width = 55, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
-            playerUi.weaponCritTexts[i]  = panel:Text({ id = "WeaponCrit"..i,  x = 407, y = y, width = 20, height = 25, color = TEXT_COLOR, fontSize = 16, text = "44" })
+            playerUi.weaponNameTexts[i]  = panel:Text({ id = "WeaponName"..i,  x =  43, y = y, width = 172, height = 25, color = BattleUi.TEXT_COLOR, fontSize = 14, text = "Calcified Juggernaut Blade" })
+            playerUi.weaponSpeedTexts[i] = panel:Text({ id = "WeaponSpeed"..i, x = 243, y = y, width = 20, height = 25, color = BattleUi.TEXT_COLOR, fontSize = 16, text = "44" })
+            playerUi.weaponHitTexts[i]   = panel:Text({ id = "WeaponHit"..i,   x = 288, y = y, width = 20, height = 25, color = BattleUi.TEXT_COLOR, fontSize = 16, text = "44" })
+            playerUi.weaponWoundTexts[i] = panel:Text({ id = "WeaponWound"..i, x = 334, y = y, width = 55, height = 25, color = BattleUi.TEXT_COLOR, fontSize = 16, text = "44 (+44)" })
+            playerUi.weaponCritTexts[i]  = panel:Text({ id = "WeaponCrit"..i,  x = 407, y = y, width = 20, height = 25, color = BattleUi.TEXT_COLOR, fontSize = 16, text = "44" })
             y = y - 33
         end
     end
@@ -256,9 +231,9 @@ function BattleUi.CalcWeapons(player, survivor)
             end
         end
 
-        hit = Util.Clamp(accuracy + monsterEvasion, 2, 10)
-        wound = Util.Max(monsterToughness - strength, 2)    -- sharp weapons means we need to show the target roll if it's past 10
-        crit = Util.Clamp(10 - luck + monsterLuck, 2, 10)
+        local hit = Util.Clamp(accuracy + monsterEvasion, 2, 10)
+        local wound = Util.Max(monsterToughness - strength, 2)    -- sharp weapons means we need to show the target roll if it's past 10
+        local crit = Util.Clamp(10 - luck + monsterLuck, 2, 10)
 
         if weapon.paired and weaponCounts[weapon.name] > 1 then
             speed = speed + weapon.speed
@@ -321,21 +296,21 @@ function BattleUi.UpdatePlayerInternal(player)
     for i = 1, numShownWeapons do
         local weapon = weapons[i]
         playerUi.weaponImages[i]:Show()
-        playerUi.weaponShowWeaponsButtons[i]:Show()
+        playerUi.weaponHideWeaponsButtons[i]:Show()
         playerUi.weaponNameTexts[i]:Show()
         playerUi.weaponNameTexts[i]:SetText(weapon.name)
         playerUi.weaponSpeedTexts[i]:Show()
         playerUi.weaponSpeedTexts[i]:SetText(weapon.speed)
         playerUi.weaponHitTexts[i]:Show()
-        playerUi.weaponHitTexts[i]:SetText(weapon.speed)
+        playerUi.weaponHitTexts[i]:SetText(weapon.hit)
         playerUi.weaponWoundTexts[i]:Show()
         playerUi.weaponWoundTexts[i]:SetText(string.format("%d (%s%d)", weapon.wound, weapon.strength > 0 and "+" or "", weapon.strength))
         playerUi.weaponCritTexts[i]:Show()
-        playerUi.weaponCritTexts[i]:SetText(weapon.speed)
+        playerUi.weaponCritTexts[i]:SetText(weapon.crit)
     end
     for i = numShownWeapons + 1, BattleUi.MAX_WEAPONS do
         playerUi.weaponImages[i]:Hide()
-        playerUi.weaponShowWeaponsButtons[i]:Hide()
+        playerUi.weaponHideWeaponsButtons[i]:Hide()
         playerUi.weaponNameTexts[i]:Hide()
         playerUi.weaponSpeedTexts[i]:Hide()
         playerUi.weaponHitTexts[i]:Hide()
@@ -360,6 +335,67 @@ function BattleUi.Update()
         BattleUi.UpdatePlayerInternal(player)
     end
     BattleUi.UpdatePositions()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function BattleUi.NextTurn()
+    log:Printf("Starting next turn")
+
+    local monsterControllerObject = nil
+    local monsterControllerPlayer = nil
+
+    local players = Player.Players()
+    for i, _ in ipairs(players) do
+        local playerPrefix = "Player "..i
+        local survivalTokens = Location.Get(playerPrefix.." Survival Tokens"):AllObjects("Survival Tokens")
+        for _, token in ipairs(survivalTokens) do
+            rot = token.getRotation()
+            if rot.z >= 15 and rot.z <= 345    then
+                token.flip()
+            end
+        end
+
+        local playerUi = BattleUi.playerUis[i]
+        playerUi.turnEnded = false
+        playerUi.playerCircleImage:SetImage("WhiteCircle")
+        local color = NamedObject.Get(playerPrefix.." Marker").getColorTint()
+        playerUi.playerCircleImage:SetColor("#"..Color(color):toHex())
+        playerUi.nameText:SetColor(BattleUi.TEXT_COLOR)
+        playerUi.nameText:SetFontStyle("Normal")
+        playerUi.endTurnButton:SetColors(BattleUi.DARK_COLORS)
+
+        if not monsterControllerObject then
+            for _, hit in ipairs(Location.Get(playerPrefix.." Upper"):BoxCast()) do
+                local object = hit.hit_object
+                if object.getGMNotes() == "Monster Controller" then
+                    log:Debugf("Found monster controller %s at player %d", object.getGUID(), i)
+                    monsterControllerObject = object
+                    monsterControllerPlayer = i
+                    break
+                end
+            end
+        end
+    end
+
+    if monsterControllerObject then
+        for i = 1, #players do
+            local player = monsterControllerPlayer + i
+            if player > #players then
+                player = player - #players
+            end
+            local survivorSheet = players[player]:SurvivorSheet()
+            if survivorSheet and not survivorSheet:Survivor():Dead() then
+                log:Printf("%s is now the monster controller.", survivorSheet:Survivor():NameOrUnnamed())
+                local newPosition = Location.Get("Player "..player.." Monster Controller"):Center()
+                monsterControllerObject.setPositionSmooth(newPosition, false, false)
+                monsterControllerPlayer = player
+                break
+            end
+        end
+    else
+        log:Debugf("No monster controller found")
+    end
 end
 
 ---------------------------------------------------------------------------------------------------

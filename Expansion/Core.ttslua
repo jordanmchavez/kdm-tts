@@ -114,6 +114,27 @@ return {
                 { name = "Bold Reference", location = "Reference 3" },
                 { name = "Insight Reference", location = "Reference 4" },
             },
+            milestoneEvents = {
+                ["huntXp"] = {
+                    { rules = "Core Rules", state = 53 },  -- Age
+                    { rules = "Core Rules", state = 53 },  -- Age
+                    { rules = "Core Rules", state = 53 },  -- Age
+                    { rules = "Core Rules", state = 53 },  -- Age
+                    { rules = "Core Rules", state = 21 },  -- Retired
+                },
+                ["courage"] = {
+                    { rules = "Core Rules", state = 56 },  -- Bold
+                    { rules = "Core Rules", state = 83 },  -- See the Truth
+                },
+                ["understanding"] = {
+                    { rules = "Core Rules", state = 65 },  -- Insight
+                    { rules = "Core Rules", state = 90 },  -- White Secret
+                },
+                ["weaponProficiency"] = {
+                    { rules = "Core Rules", state = 21 },  -- Specialist
+                    { rules = "Core Rules", state = 21 },  -- Master
+                },
+            },
         },
     },
 

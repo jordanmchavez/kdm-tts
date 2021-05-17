@@ -12,7 +12,7 @@ Log.logsByModule = {}
 
 Log.DEBUG_MODULES = {
     --["BattleUi"] = true,
-    ["Campaign"] = true,
+    --["Campaign"] = true,
     --["Expansion"] = true,
     --["Hunt"] = true,
     --["Location"] = true,

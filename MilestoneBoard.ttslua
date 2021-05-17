@@ -1,0 +1,66 @@
+local Campaign = require("Kdm/Campaign")
+local Location = require("Kdm/Location")
+local NamedObject = require("Kdm/NamedObject")
+local Rules = require("Kdm/Rules")
+local Ui = require("Kdm/Ui")
+local Util = require("Kdm/Util/Util")
+
+---------------------------------------------------------------------------------------------------
+
+local MilestoneBoard = {}
+
+---------------------------------------------------------------------------------------------------
+
+function MilestoneBoard.Init()
+    local ui = Ui.Create3d("Milestone", NamedObject.Get("Milestone Board"), 0.15)
+    local left1 = 2.039594
+    local top1 = -0.208177
+    local right1 = 1.055075
+    local bottom1 = 0.021354
+    local left5 = -2.188159
+    local top4 = 0.703237
+    local width = right1 - left1
+    local height = bottom1 - top1
+    local dx = (left5 - left1) / 4
+    local dy = (top4 - top1) / 3
+
+    for _, button in ipairs({
+        { row = 1, col = 1, stat = "huntXp", milestone = 1 },
+        { row = 1, col = 2, stat = "huntXp", milestone = 2 },
+        { row = 1, col = 3, stat = "huntXp", milestone = 3 },
+        { row = 1, col = 4, stat = "huntXp", milestone = 4 },
+        { row = 1, col = 5, stat = "huntXp", milestone = 5 },
+        { row = 2, col = 1, stat = "courage", milestone = 1 },
+        { row = 2, col = 2, stat = "courage", milestone = 2 },
+        { row = 3, col = 1, stat = "understanding", milestone = 1 },
+        { row = 3, col = 2, stat = "understanding", milestone = 2 },
+        { row = 4, col = 1, stat = "weaponProficiency", milestone = 1 },
+        { row = 4, col = 2, stat = "weaponProficiency", milestone = 2 },
+    }) do
+        local tl = { x = left1 + ((button.col - 1) * dx), y = top1 + ((button.row - 1) * dy) }
+        local br = { x = tl.x + width, y = tl.y + height}
+        ui:Button({ id = button.row.."_"..button.col, topLeft = tl, bottomRight = br, onClick = function()
+            MilestoneBoard.Event(button.stat, button.milestone)
+        end })
+    end
+
+    ui:ApplyToObject()
+end
+
+---------------------------------------------------------------------------------------------------
+
+function MilestoneBoard.Event(stat, milestone)
+    local campaign = Campaign.Campaign()
+    local milestoneEvents = campaign.milestoneEvents[stat]
+    assert(milestoneEvents, Util.SafeFormat("Unrecognized milestone stat %s for campaign %s", stat, campaign.name))
+    local event = milestoneEvents[milestone]
+    assert(event, Util.SafeFormat("Unrecognized %s milestone # %d for campaign %s", stat, milestone, campaign.name))
+    Rules.SpawnRules(event.rules, event.state)
+    Location.Get("Rules Board"):LookAt({ pitch = 90 })
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = MilestoneBoard.Init
+}
