@@ -108,8 +108,9 @@ function BattleUi.InitUi(ui)
         for i = 1, BattleUi.MAX_WEAPONS do
             playerUi.weaponImages[i] = panel:Image({ id = "Weapon"..i, x = 8, y = y, width = 420, height = 25, image = "BR_Weapon" })
             playerUi.weaponHideWeaponsButtons[i] = panel:Button({ id = "WeaponName"..i, x = 8-1, y = y+1, width = 8+19+8+2, height = 25+2, colors = BattleUi.DARK_COLORS, onClick = function()
-                local weaponName = playerUi.weaponNameTexts[i]:Text()
-                local survivor = panel:SurvivorSheet():Survivor()
+                local text = playerUi.weaponNameTexts[i]
+                local weaponName = text.object.UI.getAttribute(text.attributes.id, "text")
+                local survivor = player:SurvivorSheet():Survivor()
                 log:Printf("Hiding %s for %s", weaponName, survivor:NameOrUnnamed())
                 if not BattleUi.hiddenWeaponsBySurvivor[survivor] then
                     BattleUi.hiddenWeaponsBySurvivor[survivor] = {}
@@ -212,24 +213,11 @@ function BattleUi.CalcWeapons(player, survivor)
     for _, weaponAndModifiers in ipairs(weaponsAndModifiers) do
         local weapon = weaponAndModifiers.weapon
 
-        local speed = weapon.speed + survivorSpeed
+        local speed = weapon.speed + survivorSpeed + (weaponAndModifiers.modifiers["speed"] or 0)
         -- accuracy goes the opposite way
-        local accuracy = weapon.accuracy - survivorAccuracy
-        local strength = weapon.strength + survivorStrength
-        local luck = (weapon.deadly or 0) + survivorLuck
-
-        for _, modifier in pairs(weaponAndModifiers.modifiers) do
-            if modifier.stat == "speed" then
-                speed = speed + modifier.value
-            elseif modifier.stat == "accuracy" then
-                -- accuracy goes the opposite way
-                accuracy = accuracy - modifier.value
-            elseif modifier.stat == "strength" then
-                strength = strength + modifier.value
-            elseif modifier.stat == "luck" then
-                luck = luck + modifier.value
-            end
-        end
+        local accuracy = weapon.accuracy - survivorAccuracy - (weaponAndModifiers.modifiers["accuracy"] or 0)  -- accuracy goes the opposite way
+        local strength = weapon.strength + survivorStrength + (weaponAndModifiers.modifiers["strength"] or 0)
+        local luck = (weapon.deadly or 0) + survivorLuck + (weaponAndModifiers.modifiers["luck"] or 0)
 
         local hit = Util.Clamp(accuracy + monsterEvasion, 2, 10)
         local wound = Util.Max(monsterToughness - strength, 2)    -- sharp weapons means we need to show the target roll if it's past 10

@@ -453,7 +453,7 @@ function Player:UpdateGear()
                 local stat = Player.TOKEN_STATS[objectName]
                 if stat then
                     log:Debugf("Adding token %s for weapon at %s", objectName, location)
-                    weaponData.modifiers[stat] = (weaponData.modifiers[stat] or 0) + Util.TokenValue(object)
+                    weaponAndModifiers.modifiers[stat] = (weaponAndModifiers.modifiers[stat] or 0) + Util.TokenValue(object)
                     object.registerCollisions()
                 end
             end
