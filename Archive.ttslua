@@ -38,6 +38,10 @@ Archive.data = {
     { "Surge Tokens", "Survival Tokens", "Surge Tokens" },
     { "Overcharge Tokens", "Survival Tokens", "Overcharge Tokens" },
     { "Endure Tokens", "Survival Tokens", "Endure Tokens" },
+    { "Allister", "Player Figurine", "Allister Archive" },
+    { "Ezra", "Player Figurine", "Ezra Archive" },
+    { "Lucy", "Player Figurine", "Lucy Archive" },
+    { "Zachary", "Player Figurine", "Zachary Archive" },
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -135,7 +139,7 @@ function Archive.Take(params)
         local key = Archive.Key(name, type)
         archive = Archive.index[key]
         if not archive then
-            log:Debugf("%s (%s) is not in the archive", name, type)
+            log:Errorf("%s (%s) is not in the archive", name, type)
             return nil
         end
 

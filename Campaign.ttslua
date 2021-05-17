@@ -485,7 +485,8 @@ function Campaign.Import(data)
     Campaign.SetupDeckFromExpansionComponents("Strange Resources", data)
     Campaign.SetupDeckFromExpansionComponents("Basic Resources", data, { shuffle = true })
     Campaign.SetupDeckFromExpansionComponents("Terrain", data, { shuffle = true })
-    Campaign.SetupDeckFromExpansionComponents("Settlement Events", data, { shuffle = true })
+    local settlementEventsDeck = Campaign.SetupDeckFromExpansionComponents("Settlement Events", data, { shuffle = true })
+    settlementEventsDeck:Take({ name = "First Day", type = "Settlement Events", location = "Drawn Settlement Events" })
     Campaign.SetupDeckFromExpansionComponents("Rare Gear", data, { type = "Gear" })
     Campaign.SetupDeckFromExpansionComponents("Hunt Events", data)
     local context = {
@@ -504,6 +505,11 @@ function Campaign.Import(data)
     Campaign.SetupSurvivalTokens(data.timeline.survivalActions)
     Campaign.SetupReferences(data.campaign.references)
     Campaign.SetupMisc(data.campaign.misc)
+
+    Archive.Take({ name = "Allister", type = "Player Figurine", location = "Player 1 Marker" })
+    Archive.Take({ name = "Ezra", type = "Player Figurine", location = "Player 2 Marker" })
+    Archive.Take({ name = "Lucy", type = "Player Figurine", location = "Player 3 Marker" })
+    Archive.Take({ name = "Zachary", type = "Player Figurine", location = "Player 4 Marker" })
 
     Archive.Clean()
 
@@ -617,11 +623,13 @@ end
 
 function Campaign.Clean()
     for i = 1, 4 do
-        Location.Get("Player "..i.." Board"):BoxClean({ tags = { "Card", "Deck" }, types = { "Tokens", "Survival Tokens", "Figurine" }})
+        Location.Get("Player "..i.." Board"):BoxClean({ tags = { "Card", "Deck" }, types = { "Tokens", "Survival Tokens", "Player Figurine" }})
     end
+    Location.Get("Showdown Board"):BoxClean({ types = { "Player Figurine" } })
     Location.Get("Deck Board"):BoxClean({ tags = { "Card", "Deck" }, ignoreTypes = { "Monster Resources" }, })
     Location.Get("Terrain"):BoxClean({ tags = { "Card", "Deck" } })
     Location.Get("Settlement Events"):BoxClean({ tags = { "Card", "Deck" } })
+    Location.Get("Drawn Settlement Events"):BoxClean({ tags = { "Card", "Deck" } })
     Location.Get("Settlement Board"):BoxClean({ tags = { "Card", "Deck" } })
     Location.Get("Settlement Locations"):BoxClean({ tags = { "Card", "Deck" } })
     for i = 1, 5 do

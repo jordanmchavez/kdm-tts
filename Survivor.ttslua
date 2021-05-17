@@ -84,43 +84,43 @@ Survivor.CUSTOM_ASSETS = {
     },
     {
         name = Survivor.MARKER_EMPTY,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Empty.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515064/9835893D92CE5B6B4C12FB4345E11184756578EE/",
     },
     {
         name = Survivor.MARKER_YELLOW_STAR,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Yellow Star.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515118/ADEC771A4BE98497CA7D73E8DAC54579ACF931C1/",
     },
     {
         name = Survivor.MARKER_GREEN_TRIANGLE,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Green Triangle.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515167/28CAFE231AB570185C9258E070DE650707EA6B79/",
     },
     {
         name = Survivor.MARKER_BLUE_SQUARE,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Blue Square.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515209/10679F6E9244587F251864B6EED84FC9802FF93D/",
     },
     {
         name = Survivor.MARKER_RED_CIRCLE,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Red Circle.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515252/2812E4FA09333A5D4DE768301D8F71291F0AD9FC/",
     },
     {
         name = Survivor.MARKER_PURPLE_DIAMOND,
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Marker Purple Diamond.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515296/0EC80660E45B8AAFB6B66F7CFD189DE0A39EC8D1/",
     },
     {
         name = "IconFightingArt",
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Fighting Art Icon.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515347/18624B79B3DEB547755AE3EECFC219A4713F53B4/",
     },
     {
         name = "IconDisorder",
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Disorder Icon.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515397/427B848EBAC81BC10C1610E90DC02F9654EEE994/",
     },
     {
         name = "IconAbility",
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Ability Icon.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515440/7E68C46CB68D455D29347172389E8F3BB0085BC0/",
     },
     {
         name = "IconSevereInjury",
-        url = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Boards/Severe Injury Icon.png",
+        url = "http://cloud-3.steamusercontent.com/ugc/1790722535857515501/5DDEF532D75FEB02FC1DF5D924313E7A13ECE90A/",
     },
 }
 
@@ -1059,7 +1059,10 @@ function Survivor.UpdateInputStat(thing, stat, value)
 end
 
 function Survivor.UpdateCheckBoxStat(thing, stat, value)
-    thing[stat.."CheckBox"]:Check(value)
+    local checkBox = thing[stat.."CheckBox"]
+    if checkBox then
+        checkBox:Check(value)
+    end
 end
 
 function Survivor.UpdateCounterStat(thing, stat, value)

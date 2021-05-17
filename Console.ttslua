@@ -91,7 +91,10 @@ function Console.Tokenize(message)
             while i <= #bytes and bytes[i] ~= quote do
                 i = i + 1
             end
-            assert(bytes[i] == quote, "String missing "..string.char(quote).." quote ")
+            if bytes[i] != quote then
+                log:Errorf("String missing "..string.char(quote).." quote ")
+                return
+            end
         else
             while i <= #bytes and bytes[i] > 32 do
                 i = i + 1

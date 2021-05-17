@@ -1,6 +1,22 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
+# Version 1.0a (EXPERIMENTAL)
+If you're experiencing search/preview issues, try clearing out your mod data directory and see if it continues.
+* Fixed marker icons showing blank white spaces.
+* Fixed fighting art/ability/disorders/injury icons showing blank white spaces.
+* Fixed constellations not being respawned in survivor box.
+* Fixed not being able to reduce armor lower than gear levels.
+* Fixed Lonely Tree showdown positioning.
+* Fixed Gorm showdown positioning.
+* Starting a new campaign now spawns Allister/Ezra/Lucy/Zachary figurines on player 1/2/3/4 markers.
+* Fixed "Retired" milestone button to open the correct rules page.
+* Fixed "Heal and Reset" error.
+* Fixed "Brain Injury" checkbox error.
+* "First Day" settlement event card now spawns face up next to the settlement events deck when starting a new campaign.
+* Fixed terrain bag giving errors when you pickup/drop it.
+* Fixed player figurine names not reflecting changes to survivor name.
+
 # Version 1.0
 * Replaced Population UI with Survivor Board
     * 3d board instead of 2d UI. This allows the board to be as large as needed since we're not constrained by screen size.
@@ -54,6 +70,7 @@ Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamco
 * Moved survival tokens to player boards.
 * Export now supports card stacks: no more having to separate one card per slot
 * Import now automatically creates survival tokens.
+* Improved console commands overall
 
 # Roadmap
 * Documentation / video tutorial.
@@ -109,3 +126,11 @@ Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamco
 * Slots for survival token stacks on token board.
 * White Lion prologue "known" cards face up
 * 5/6th player. Will be very difficult and time consuming to make this work cleanly.
+
+# Console Commands
+You can access console commands by entrying a chat message starting with '>' (no quotes).
+It must be in game chat, not the TTS system console.
+To see a list of commands and their descriptions, type:
+```
+>help
+```

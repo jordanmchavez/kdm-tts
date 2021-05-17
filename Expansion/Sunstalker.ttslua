@@ -91,7 +91,7 @@ return {
                     { rules = "Core Rules", state = 53 },  -- Age
                     { rules = "Core Rules", state = 53 },  -- Age
                     { rules = "Core Rules", state = 53 },  -- Age
-                    { rules = "Core Rules", state = 21 },  -- Retired
+                    { rules = "Core Rules", state = 22 },  -- Retired
                 },
                 ["courage"] = {
                     { rules = "Core Rules", state = 56 },  -- Bold

@@ -176,7 +176,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Player.OnSurvivorChangeStat(survivor, stat, value)
-    if stat == "Name" then
+    if stat == "name" then
         for _, player in ipairs(Player.players) do
             if player.survivorSheet and player.survivorSheet:Survivor() == survivor and player.figurineObject then
                 log:Debugf("Updating figurine [%s] name for %s to %s", player.figurineObject.getGUID(), player, value)
@@ -337,7 +337,7 @@ function Player.InitUi(player)
         local topLeft = { x = x1 + (i - 1) * dx, y = y1 }
         local bottomRight = { x = topLeft.x + width, y = y2 }
         player.armorCounters[hitLocation] = ui:Counter({ id = hitLocation.."Armor", topLeft = topLeft, bottomRight = bottomRight, fontSize = 95, onValueChanged = function(delta)
-            player.temporaryArmor[hitLocation] = Util.Max(0, player.temporaryArmor[hitLocation] + delta)
+            player.temporaryArmor[hitLocation] = player.temporaryArmor[hitLocation] + delta
             player:UpdateGear()
         end })
     end
@@ -494,18 +494,19 @@ function Player:UpdateCards()
             local container = Container(object)
             for _, card in ipairs(container:Objects()) do
                 if Survivor.ALLOWED_CARD_TYPES[card.gm_notes] then
-                    log:Debugf("Found card %s", card.name)
                     table.insert(cards, {
                         name = card.name,
                         type = card.gm_notes,
                     })
 
                     local nameType = (card.name or "")..card.gm_notes
-                    local position = self.boardObject.positionToLocal(container:Object().getPosition())
+                    local worldPosition = container:Object().getPosition()
+                    local localPosition = self.boardObject.positionToLocal(worldPosition)
+                    log:Debugf("Found card %s at world (%f, %f %f), local (%f, %f, %f)", card.name, worldPosition.x, worldPosition.y, worldPosition.z, localPosition.x, localPosition.y, localPosition.z)
                     if positionsByCardNameType[nameType] then
-                        table.insert(positionsByCardNameType[nameType], position)
+                        table.insert(positionsByCardNameType[nameType], localPosition)
                     else
-                        positionsByCardNameType[nameType] = { position }
+                        positionsByCardNameType[nameType] = { localPosition }
                     end
                 end
             end

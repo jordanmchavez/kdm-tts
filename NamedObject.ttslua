@@ -84,6 +84,11 @@ NamedObject.data = {
     ["9a6e00"] = { name = "Player 4 Marker" },
 
     ["b07b40"] = { name = "Overlay", noninteractible = true },
+
+    ["18a13f"] = { name = "Allister Archive" },
+    ["590a94"] = { name = "Ezra Archive" },
+    ["962317"] = { name = "Lucy Archive" },
+    ["0a73fe"] = { name = "Zachary Archive" },
 }
 
 ---------------------------------------------------------------------------------------------------

@@ -593,6 +593,7 @@ function Showdown.CleanInternal()
         "Monster Figurine",
         "Minion Figurine",
         "Tokens",
+        "Archive Bag",
     }
     local debug = false
 

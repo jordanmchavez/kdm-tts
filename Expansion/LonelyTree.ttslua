@@ -83,7 +83,7 @@ return {
             rules = { "Lonely Tree Rules", 6 },
             resourcesDeck = false,
             position = "(11, 8)",
-            playerPositions = { "(10, 13)", "(11, 14)", "(12, 14)", "(13, 14)" },
+            playerPositions = { "(9, 13)", "(10, 14)", "(11, 14)", "(12, 14)" },
             playerRotations = {{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 },{ x = 0, y = 0, z = 0 } },
             fixedTerrain = {
                 {
