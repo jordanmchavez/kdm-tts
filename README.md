@@ -1,6 +1,9 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
+# Version 1.0d (EXPERIMENTAL)
+* Fixed Skyreef Sanctuary gear images.
+
 # Version 1.0c (EXPERIMENTAL)
 * Fixed timelines not importing from earlier versions.
 * Battle UI speed now cannot go below 1.
