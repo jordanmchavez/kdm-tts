@@ -1,9 +1,13 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
+# Version 1.0c (EXPERIMENTAL)
+* Fixed timelines not importing from earlier versions.
+* Battle UI speed now cannot go below 1.
+
 # Version 1.0b (EXPERIMENTAL)
-* Fixed Battle UI "hide weapon" button causing an error
-* Fixed dropping a token on a weapon causing an error
+* Fixed Battle UI "hide weapon" button causing an error.
+* Fixed dropping a token on a weapon causing an error.
 
 # Version 1.0a (EXPERIMENTAL)
 If you're experiencing search/preview issues, try clearing out your mod data directory and see if it continues.
@@ -131,6 +135,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * White Lion prologue "known" cards face up
 * 5/6th player. Will be very difficult and time consuming to make this work cleanly.
 * Add ability card for Gigaslayer (from Gigalion).
+* Export/import should record permanent tokens.
 
 # Console Commands
 You can access console commands by entrying a chat message starting with '>' (no quotes).

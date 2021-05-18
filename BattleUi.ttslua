@@ -213,7 +213,7 @@ function BattleUi.CalcWeapons(player, survivor)
     for _, weaponAndModifiers in ipairs(weaponsAndModifiers) do
         local weapon = weaponAndModifiers.weapon
 
-        local speed = weapon.speed + survivorSpeed + (weaponAndModifiers.modifiers["speed"] or 0)
+        local speed = Util.Max(1, weapon.speed + survivorSpeed + (weaponAndModifiers.modifiers["speed"] or 0))
         -- accuracy goes the opposite way
         local accuracy = weapon.accuracy - survivorAccuracy - (weaponAndModifiers.modifiers["accuracy"] or 0)  -- accuracy goes the opposite way
         local strength = weapon.strength + survivorStrength + (weaponAndModifiers.modifiers["strength"] or 0)

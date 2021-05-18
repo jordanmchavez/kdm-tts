@@ -599,7 +599,6 @@ function Campaign.ConvertToLatestVersion(data)
         end
 
         data.survivor = data.population
-        data.population = nil
         for _, survivor in ipairs(data.survivor.survivors) do
             local newCards = {}
             for type, cards in pairs(survivor.cards or {}) do
@@ -609,6 +608,8 @@ function Campaign.ConvertToLatestVersion(data)
             end
             survivor.cards = newCards
         end
+
+        data.timeline.years = data.timeline.timeline
 
         data.version = Campaign.EXPORT_VERSION
 
