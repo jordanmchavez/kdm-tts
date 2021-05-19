@@ -78,7 +78,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
     * Hunter Whip: added missing up-blue affinity
 * Fixed "Vespertine Foil" not showing up in Battle UI
 * Minor fixes to token stacking bugs.
-* Moved survival tokens to player boards.
+* Moved survival tokens and player marker/circle to player boards. This frees up more space above the player board for resource cards, status cards, etc.
 * Export now supports card stacks: no more having to separate one card per slot
 * Import now automatically creates survival tokens.
 * Improved console commands overall
