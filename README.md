@@ -56,6 +56,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Hunt/Showdown buttons in the timeline now goes directly to showdown/hunt (with a confirmation popup), instead of taking you to the hunt/showdown setup screen.
 * Fixed blank space when searching for a term with more than 5 results.
 * Spiderlings, lonely fruit, and sunstalker shades now snap to terrain.
+* * Spiderlings, lonely fruit, and sunstalker shades now show movement overlays.
 * Ability to change player colors: right click your player marker and "set color tint" to the color of your choice. Your Battle UI marker and player figurine will automatically be updated with the same color after a few seconds.
 * Removed blank space between Battle UI player sections, so it takes up a bit less space.
 * The Flower Knight "A Warm Virus" event can now be added to timeline.
