@@ -60,8 +60,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Ability to change player colors: right click your player marker and "set color tint" to the color of your choice. Your Battle UI marker and player figurine will automatically be updated with the same color after a few seconds.
 * Removed blank space between Battle UI player sections, so it takes up a bit less space.
 * The Flower Knight "A Warm Virus" event can now be added to timeline.
-* "Next Turn" button nowMonster controller card location and moving with "Next Turn"
-* Milestone reference
+* "Next Turn" button now automatically moves Monster Controller card to next player with a living survivor.
 * Fixed lots of broken gear (thanks Mei for the fixed images!):
     * Vespertine Bow: 4 -> 6 strength
     * Lantern Glaive: added missing "Reach 2"
