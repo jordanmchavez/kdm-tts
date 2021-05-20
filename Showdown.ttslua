@@ -636,7 +636,8 @@ function Showdown.OnObjectPickUp(_, object)
         end
         local color = object.getColorTint()
         color[4] = 0.7
-        Showdown.overlay:Show(object.getPosition(), 1, player:SurvivorSheet():Survivor():Movement(), color)
+        Showdown.overlay:Show(object.getPosition(), 1, player:SurvivorSheet():Survivor():ModifiedMovement(), color)
+        log(player:SurvivorSheet():Survivor():ModifiedMovement())
 
     elseif type == "Minion Figurine" then
         log:Debugf("Minion figurine [%s] %s picked up", object.getGUID(), object.getName())

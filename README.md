@@ -1,6 +1,11 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
+# Version: 1.1
+* Fixed "Throwing Knife" not showing up in battle UI.
+* Fixed movement tokens not affecting the movement overlay when you pick up a survivor.
+* Fixed "King's Plackart" hit location icon: legs -> body
+
 # Version 1.0
 If you're experiencing search/preview issues, try clearing out your mod data directory and see if it continues.
 * Replaced Population UI with Survivor Board

@@ -1,4 +1,4 @@
-KDM_VERSION = "1.0e"
+KDM_VERSION = "1.1"
 
 GLOBAL_OBJECT = self
 
