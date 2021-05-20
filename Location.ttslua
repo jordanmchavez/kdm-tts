@@ -434,6 +434,7 @@ function Location:RayClean(params) return self:Clean(params, Location.RayCast) e
 ---------------------------------------------------------------------------------------------------
 
 function Location:LookAt(params)
+    params = params or {}
     Util.LookAt({ position = self:Center(), pitch = params.pitch, distance = params.distance })
 end
 

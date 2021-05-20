@@ -139,6 +139,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * 5/6th player. Will be very difficult and time consuming to make this work cleanly.
 * Add ability card for Gigaslayer (from Gigalion).
 * Export/import should record permanent tokens.
+* Packing/unpacking a survivor should include cursed gear.
 
 # Console Commands
 You can access console commands by entrying a chat message starting with '>' (no quotes).
