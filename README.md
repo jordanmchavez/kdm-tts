@@ -1,34 +1,8 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
-# Version 1.0d (EXPERIMENTAL)
-* Fixed Skyreef Sanctuary gear images.
-
-# Version 1.0c (EXPERIMENTAL)
-* Fixed timelines not importing from earlier versions.
-* Battle UI speed now cannot go below 1.
-
-# Version 1.0b (EXPERIMENTAL)
-* Fixed Battle UI "hide weapon" button causing an error.
-* Fixed dropping a token on a weapon causing an error.
-
-# Version 1.0a (EXPERIMENTAL)
-If you're experiencing search/preview issues, try clearing out your mod data directory and see if it continues.
-* Fixed marker icons showing blank white spaces.
-* Fixed fighting art/ability/disorders/injury icons showing blank white spaces.
-* Fixed constellations not being respawned in survivor box.
-* Fixed not being able to reduce armor lower than gear levels.
-* Fixed Lonely Tree showdown positioning.
-* Fixed Gorm showdown positioning.
-* Starting a new campaign now spawns Allister/Ezra/Lucy/Zachary figurines on player 1/2/3/4 markers.
-* Fixed "Retired" milestone button to open the correct rules page.
-* Fixed "Heal and Reset" error.
-* Fixed "Brain Injury" checkbox error.
-* "First Day" settlement event card now spawns face up next to the settlement events deck when starting a new campaign.
-* Fixed terrain bag giving errors when you pickup/drop it.
-* Fixed player figurine names not reflecting changes to survivor name.
-
 # Version 1.0
+If you're experiencing search/preview issues, try clearing out your mod data directory and see if it continues.
 * Replaced Population UI with Survivor Board
     * 3d board instead of 2d UI. This allows the board to be as large as needed since we're not constrained by screen size.
     * Shows 20 survivors per page instead of 5.
@@ -58,9 +32,15 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Spiderlings, lonely fruit, and sunstalker shades now snap to terrain.
 * Spiderlings, lonely fruit, and sunstalker shades now show movement overlays.
 * Ability to change player colors: right click your player marker and "set color tint" to the color of your choice. Your Battle UI marker and player figurine will automatically be updated with the same color after a few seconds.
+* Starting a new campaign now spawns Allister/Ezra/Lucy/Zachary figurines on player 1/2/3/4 markers.
+* "First Day" settlement event card now spawns face up next to the settlement events deck when starting a new campaign.
 * Removed blank space between Battle UI player sections, so it takes up a bit less space.
 * The Flower Knight "A Warm Virus" event can now be added to timeline.
 * "Next Turn" button now automatically moves Monster Controller card to next player with a living survivor.
+* Moved survival tokens and player marker/circle to player boards. This frees up more space above the player board for resource cards, status cards, etc.
+* Export now supports card stacks: no more having to separate one card per slot
+* Import now automatically creates survival tokens.
+* Improved console commands overall
 * Fixed lots of broken gear (thanks Mei for the fixed images!):
     * Vespertine Bow: 4 -> 6 strength
     * Lantern Glaive: added missing "Reach 2"
@@ -77,11 +57,11 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
     * Whistling Mace: added missing "Whip" keyword
     * Hunter Whip: added missing up-blue affinity
 * Fixed "Vespertine Foil" not showing up in Battle UI
+* Fixed constellations not being respawned in survivor box.
+* Fixed Lonely Tree showdown positioning.
+* Fixed Gorm showdown positioning.
+* Fixed terrain bag giving errors when you pickup/drop it.
 * Minor fixes to token stacking bugs.
-* Moved survival tokens and player marker/circle to player boards. This frees up more space above the player board for resource cards, status cards, etc.
-* Export now supports card stacks: no more having to separate one card per slot
-* Import now automatically creates survival tokens.
-* Improved console commands overall
 
 # Roadmap
 * Documentation / video tutorial.
