@@ -56,11 +56,11 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Hunt/Showdown buttons in the timeline now goes directly to showdown/hunt (with a confirmation popup), instead of taking you to the hunt/showdown setup screen.
 * Fixed blank space when searching for a term with more than 5 results.
 * Spiderlings, lonely fruit, and sunstalker shades now snap to terrain.
+* Spiderlings, lonely fruit, and sunstalker shades now show movement overlays.
 * Ability to change player colors: right click your player marker and "set color tint" to the color of your choice. Your Battle UI marker and player figurine will automatically be updated with the same color after a few seconds.
 * Removed blank space between Battle UI player sections, so it takes up a bit less space.
 * The Flower Knight "A Warm Virus" event can now be added to timeline.
-* "Next Turn" button nowMonster controller card location and moving with "Next Turn"
-* Milestone reference
+* "Next Turn" button now automatically moves Monster Controller card to next player with a living survivor.
 * Fixed lots of broken gear (thanks Mei for the fixed images!):
     * Vespertine Bow: 4 -> 6 strength
     * Lantern Glaive: added missing "Reach 2"
@@ -78,7 +78,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
     * Hunter Whip: added missing up-blue affinity
 * Fixed "Vespertine Foil" not showing up in Battle UI
 * Minor fixes to token stacking bugs.
-* Moved survival tokens to player boards.
+* Moved survival tokens and player marker/circle to player boards. This frees up more space above the player board for resource cards, status cards, etc.
 * Export now supports card stacks: no more having to separate one card per slot
 * Import now automatically creates survival tokens.
 * Improved console commands overall
