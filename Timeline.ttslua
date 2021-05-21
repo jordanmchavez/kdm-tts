@@ -360,7 +360,7 @@ function Timeline.InitUi(ui)
             year.events[j].button = timelinePanel:Button({ id = id, x = x, y = y, width = width, height = 30, onClick = function(mouseButton)
                 Timeline.ShowTimelineEventPopup(i, j)
             end })
-            year.events[j].text = timelinePanel:Text({ id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, color = Ui.LIGHT_BROWN })
+            year.events[j].text = timelinePanel:Text({ id = id, x = x + offset, y = y, width = width - offset, height = 30, fontSize = 12, horizontalOverflow = "Wrap", color = Ui.LIGHT_BROWN })
         end
     end
 
@@ -778,7 +778,13 @@ Timeline.eventHandlersByType = {
             return
         end
 
-        MessageBox.Show(string.format("Ready to start showdown for %s %s?", event.monster, event.level), function()
+
+        local msg = string.format("Ready to start showdown for %s", event.monster)
+        if event.level then
+            msg = msg.." ("..event.level..")"
+        end
+        msg = msg.."?"
+        MessageBox.Show(msg, function()
             Timeline.HideUi()
             Showdown.Setup(event.monster, event.level)
         end)
@@ -791,7 +797,13 @@ Timeline.eventHandlersByType = {
             return
         end
 
-        MessageBox.Show(string.format("Ready to start hunt for %s %s?", event.monster, event.level), function()
+
+        local msg = string.format("Ready to start hunt for %s", event.monster)
+        if event.level then
+            msg = msg.." ("..event.level..")"
+        end
+        msg = msg.."?"
+        MessageBox.Show(msg, function()
             Timeline.HideUi()
             Hunt.Setup(event.monster, event.level)
         end)

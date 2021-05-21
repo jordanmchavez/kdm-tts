@@ -140,7 +140,7 @@ return {
         ["Ink Blood Bow"]   = { speed = 2, accuracy = 7, strength = 8, deadly = 1 },
         ["Ink Sword"]       = { speed = 4, accuracy = 4, strength = 4, deadly = 3 },
         ["Skleaver"]        = { speed = 1, accuracy = 5, strength = 10 },
-        ["Sky Harpoon"]     = { speed = 1, accuracy = 5, strength = 5, savage = true},
+        ["Sky Harpoon"]     = { speed = 2, accuracy = 5, strength = 5, savage = true},
         ["Sunshark Arrows"] = { speed = 1, accuracy = 4, strength = 6, sharp = true },
         ["Sunshark Bow"]    = { speed = 3, accuracy = 6, strength = 0, sharp = true },
         ["Sunspot Dart"]    = { speed = 4, accuracy = 7, strength = 3, deadly = 1 },

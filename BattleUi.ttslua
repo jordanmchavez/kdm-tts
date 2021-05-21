@@ -367,20 +367,18 @@ function BattleUi.NextTurn()
     end
 
     if monsterControllerObject then
-        for i = 1, #players do
-            local player = monsterControllerPlayer + i
-            if player > #players then
-                player = player - #players
-            end
-            local survivorSheet = players[player]:SurvivorSheet()
-            if survivorSheet and not survivorSheet:Survivor():Dead() then
-                log:Printf("%s is now the monster controller.", survivorSheet:Survivor():NameOrUnnamed())
-                local newPosition = Location.Get("Player "..player.." Monster Controller"):Center()
-                monsterControllerObject.setPositionSmooth(newPosition, false, false)
-                monsterControllerPlayer = player
-                break
-            end
+        monsterControllerPlayer = monsterControllerPlayer + 1
+        if monsterControllerPlayer > #players then
+            monsterControllerPlayer = 1
         end
+        local survivorSheet = players[monsterControllerPlayer]:SurvivorSheet()
+        if survivorSheet then
+            log:Printf("%s is now the monster controller.", survivorSheet:Survivor():NameOrUnnamed())
+        else
+            log:Printf("Player %d is now the monster controller.", monsterControllerPlayer)
+        end
+        local newPosition = Location.Get("Player "..monsterControllerPlayer.." Monster Controller"):Center()
+        monsterControllerObject.setPositionSmooth(newPosition, false, false)
     else
         log:Debugf("No monster controller found")
     end

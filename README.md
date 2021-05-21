@@ -1,6 +1,11 @@
 # kdm-tts
 Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
 
+# Version 1.2
+* Fixed Gloom-Coated Arrow not showing up in Battle UI
+* Fixed Sky Harpoon stats: 1 -> 2 speed
+* "Next Turn" button now always moves the monster controller to the next player, regardless of whether there's a living survivor present.
+
 # Version: 1.1
 * Fixed "Throwing Knife" not showing up in battle UI.
 * Fixed movement tokens not affecting the movement overlay when you pick up a survivor.
@@ -75,6 +80,7 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Strains. Need UI to incorporate which strain FAs at the start of a new campaign. Need to think how to best do this.
 * Get rid of unused terrain reset button.
 * Battle UI button tooltips
+* Save state should remember whether Battle UI was open.
 * Hunt event buttons: random hunt event (show roll), forest gate, overwhelming darkness, sky fishing, herb gathering, mineral gathering.
 * Monster-specific quotes.
 * Lock terrain after setting up showdown.
