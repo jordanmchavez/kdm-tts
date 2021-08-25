@@ -584,6 +584,9 @@ function Player:HealAndReset()
         survivor:SetModifiers()
         survivor:SetBrainInjury(nil)
     end
+	
+	-- Recalculate stats to take permanent tokens into account
+    self:UpdateStats()
 end
 
 
