@@ -1,5 +1,53 @@
 # kdm-tts
-Source for my Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
+Source for Misterslack's Kingdom Death: Monster mod for Tabletop Simulator (https://steamcommunity.com/sharedfiles/filedetails/?id=2112101994)
+
+# Upcoming
+* Save state should remember whether Battle UI was open.
+* Hunt event buttons: random hunt event (show roll), forest gate, overwhelming darkness, sky fishing, herb gathering, mineral gathering.
+* A way to pack figurines
+* Packing cursed gear
+* Add "Insanity" note to Brain
+* "Brain" -> "Insanity"
+* Add "Settlement Event" button to the timeline UI
+* Add light injury and heavy injury to the reference card
+* Add "Insane: 3+" text to survivor sheet
+* "X" button on battle ui
+* Gigalion basic action is wrong
+* Custom severe injury board with buttons to spawn cards/tokens for each table entry.
+* Dedicated board for new survivor bonuses instead of the free-form text, so it's automatically applied.
+* Move "hunt" note card out of the way
+* Move player names back to below player boards?
+* Notecard for how to navigate the rules
+* Notecard for how to end the showdown
+* Monster resources label?
+* Add a d4 and infinite
+* A note on how to add survivors
+* Note card to "reset decks"
+* Note card: no need for settlement sheet
+* Note Card: death count is automatic on survivor board
+* Note Card: search for consequences by name
+* Note card explaining the infinite archives
+* Snap point for monster controller
+* Vagabond armor
+* Rules Bookmarks (Infant Adrift)
+* White Box / Promo UI
+
+# Version 1.3
+* Added 1.6 updates
+Belt of Gender Swap
+Blue Lantern
+Death Mehndi
+Hideous Disguise
+Husk of Destiny
+Regal Faulds
+Regal Gauntlet
+Regal Greaves
+Regal Helm
+Regal Plackart
+Sleeping Virus Flower
+Twilight Revolver
+Twilight Sword
+
 
 # Version 1.2
 * Fixed Gloom-Coated Arrow not showing up in Battle UI
@@ -80,8 +128,6 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Strains. Need UI to incorporate which strain FAs at the start of a new campaign. Need to think how to best do this.
 * Get rid of unused terrain reset button.
 * Battle UI button tooltips
-* Save state should remember whether Battle UI was open.
-* Hunt event buttons: random hunt event (show roll), forest gate, overwhelming darkness, sky fishing, herb gathering, mineral gathering.
 * Monster-specific quotes.
 * Lock terrain after setting up showdown.
 * Fixed Binge eating hagve misspelling.
@@ -100,15 +146,12 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * Move search, battle UI, and next turn into a single unified and consistent main menu, hideable by the existing button.
 * Evasion on Battle UI.
 * Dice roll buttons on Battle UI?
-* Custom severe injury board with buttons to spawn cards/tokens for each table entry.
 * Support for PotStars constellations on survivor sheets
 * "Spawn Anything": similar to the existing search for rules, but search for any item.
 * Timeline custom hunt event.
 * Add more decorations: Rules Nav, Survivor Board
 * Add all glossary terms to rules search.
 * Add all rules subsections to rules search.
-* Remember player figurine when packed.
-* Dedicated board for new survivor bonuses instead of the free-form text, so it's automatically applied.
 * Icon for retired.
 * "Has Reroll" filter.
 * "Lay out gear" button for settlement locations, similar to how the Gloomhaven mod does it.
@@ -130,7 +173,8 @@ If you're experiencing search/preview issues, try clearing out your mod data dir
 * 5/6th player. Will be very difficult and time consuming to make this work cleanly.
 * Add ability card for Gigaslayer (from Gigalion).
 * Export/import should record permanent tokens.
-* Packing/unpacking a survivor should include cursed gear.
+* Auto innovation consequences
+* Config menu: make snapping optional
 
 # Console Commands
 You can access console commands by entrying a chat message starting with '>' (no quotes).

@@ -1,0 +1,366 @@
+local Console = require("Kdm/Console")
+
+local SpawnStuff = {}
+
+---------------------------------------------------------------------------------------------------
+
+function SpawnStuff.Init()
+    Console.AddCommand("spawnstuff", function(args)
+        local gearScale = { x = 0.894295633, y = 1.0, z = 0.894295633 }
+        local cardScale = { x = 1.3656503, y = 1.0, z = 1.3656503 }
+        SpawnStuff.Spawn(
+            {
+                {
+                    name = "Plumery Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Plumery Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Plumery Gear Back.png",
+                    width = 6,
+                    height = 3,
+                    position = { x = -20, y = 5, z = -20 },
+                    scale = gearScale,
+                    cards = {
+                        "Arc Bow",
+                        "Bird Bread",
+                        "Blood Sheath",
+                        "Bloom Sphere",
+                        "Crest Crown",
+                        "Feather Mantle",
+                        "Feather Shield",
+                        "Finger of God",
+                        "Hollow Sword",
+                        "Hollowpoint Arrow",
+                        "Hours Ring",
+                        "Phoenix Faulds",
+                        "Phoenix Gauntlet",
+                        "Phoenix Greaves",
+                        "Phoenix Helm",
+                        "Phoenix Plackart",
+                        "Rainbow Katana",
+                        "Sonic Tomahawk",
+                    },
+                },
+                {
+                    name = "Barber Surgeon Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Barber Surgeon Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Barber Surgeon Gear Back.png",
+                    width = 4,
+                    height = 2,
+                    position = { x = -15, y = 5, z = -20 },
+                    scale = gearScale,
+                    cards = {
+                        "Almanac",
+                        "Blue Charm",
+                        "Bug Trap",
+                        "First Aid Kit",
+                        "Green Charm",
+                        "Musk Bomb",
+                        "Red Charm",
+                        "Scavenger Kit",
+                    },
+                },
+                {
+                    name = "Stone Circle Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Stone Circle Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Stone Circle Gear Back.png",
+                    width = 5,
+                    height = 3,
+                    position = { x = -10, y = 5, z = -20 },
+                    scale = gearScale,
+                    cards = {
+                        "Beast Knuckle",
+                        "Blood Paint",
+                        "Bone Earrings",
+                        "Boss Mehndi",
+                        "Brain Mint",
+                        "Elder Earrings",
+                        "Lance of Longinus",
+                        "Screaming Bracers",
+                        "Screaming Coat",
+                        "Screaming Horns",
+                        "Screaming Leg Warmers",
+                        "Screaming Skirt",
+                        "Speed Powder",
+                    },
+                },
+                {
+                    name = "Catarium Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Catarium Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Catarium Gear Back.png",
+                    width = 5,
+                    height = 4,
+                    position = { x = -5, y = 5, z = -20 },
+                    scale = gearScale,
+                    cards = {
+                        "Cat Eye Circlet",
+                        "Cat Fang Knife",
+                        "Cat Gut Bow",
+                        "Claw Head Arrow",
+                        "Dense Bone Arrows",
+                        "Frenzy Drink",
+                        "Hooked Claw Knife",
+                        "King Spear",
+                        "Lion Beast Katar",
+                        "Lion Headdress",
+                        "Lion Skin Cloak",
+                        "Lion Slayer Cape",
+                        "Oxidized Beast Katar",
+                        "Whisker Harp",
+                        "White Lion Boots",
+                        "White Lion Coat",
+                        "White Lion Gauntlet",
+                        "White Lion Helm",
+                        "White Lion Skirt",
+                    },
+                },
+                {
+                    name = "Weapon Crafter Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Weapon Crafter Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Weapon Crafter Gear Back.png",
+                    width = 5,
+                    height = 2,
+                    position = { x = 0, y = 5, z = -20 },
+                    scale = gearScale,
+                    cards = {
+                        "Calcified Zanbato",
+                        "Counterweighted Axe",
+                        "Scrap Bone Spear",
+                        "Scrap Dagger",
+                        "Scrap Lantern",
+                        "Scrap Rebar",
+                        "Scrap Sword",
+                        "Skullcap Hammer",
+                        "Whistling Mace",
+                        "Zanbato",
+                    },
+                },
+                {
+                    name = "Strain Fighting Arts",
+                    gmNotes = "Fighting Arts",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Strain Fighting Arts/Strain Fighting Arts.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Fighting Arts/Fighting Arts Back.png",
+                    width = 4,
+                    height = 4,
+                    position = { x = 5, y = 5, z = -20 },
+                    scale = cardScale,
+                    cards = {
+                        "Armored Fist",
+                        "Backstabber",
+                        "Convalescer",
+                        "Dark Manifestation",
+                        "Ethereal Pact",
+                        "Giant's Blood",
+                        "Infernal Rhythm",
+                        "Infinite Lives",
+                        "Rolling Gait",
+                        "Shielderang",
+                        "Stockist",
+                        "Story of Blood 1",
+                        "Story of Blood 2",
+                        "Story of Blood 3",
+                        "Story of Blood 4",
+                        "Sword Oath",
+                    },
+                },
+                {
+                    name = "Strain Milstones",
+                    gmNotes = "Strain Milstones",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Strain Milestones/Strain Milestones.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Strain Milestones/Strain Milestones Back.png",
+                    width = 7,
+                    height = 2,
+                    position = { x = 10, y = 5, z = -20 },
+                    scale = cardScale,
+                    cards = {
+                        "Ashen Claw Strain",
+                        "Carnage Worms",
+                        "Ethereal Culture Strain",
+                        "Giant's Strain",
+                        "Hyper Cerebellum",
+                        "Marrow Transformation",
+                        "Material Feedback Strain",
+                        "Memetic Symphony",
+                        "Opportunist Strain",
+                        "Plot Twist",
+                        "Somatotropin Surge",
+                        "Surgical Sight",
+                        "Sweat Stained Oath",
+                        "Trepanning Strain",
+                    },
+                },
+                {
+                    name = "Vignette Survivors",
+                    gmNotes = "Vignette Survivors",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Vignette Survivors/Vignette Survivors.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Vignette Survivors/Vignette Survivors Back.png",
+                    width = 2,
+                    height = 2,
+                    position = { x = 15, y = 5, z = -20 },
+                    scale = cardScale,
+                    cards = {
+                        "Breccia of Deadrock",
+                        "Gadrock of Deadrock",
+                        "Hungry Basalt of Deadrock",
+                        "Rock Knight of Deadrock",
+                    },
+                },
+                {
+                    name = "Vermin",
+                    gmNotes = "Vermin",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Vermin/Vermin.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Vermin/Vermin Back.png",
+                    width = 4,
+                    height = 2,
+                    position = { x = 20, y = 5, z = -20 },
+                    scale = cardScale,
+                    cards = {
+                        "Crab Spider",
+                        "Cyclops Fly",
+                        "Fiddler Crab Spider",
+                        "Hissing Cockroach",
+                        "Lonely Ant",
+                        "Nightmare Tick",
+                        "Sword Beetle",
+                    },
+                },
+                {
+                    name = "Exhausted Lantern Hoard Gear",
+                    gmNotes = "Gear",
+                    front = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Exhausted Lantern Hoard Gear.jpg",
+                    back = "file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Gear/Exhausted Lantern Hoard Gear Back.png",
+                    width = 3,
+                    height = 3,
+                    position = { x = -20, y = 5, z = -15 },
+                    scale = gearScale,
+                    cards = {
+                        "Final Lantern",
+                        "Final Lantern",
+                        "Oxidized Beacon Shield",
+                        "Oxidized Lantern Dagger",
+                        "Oxidized Lantern Glaive",
+                        "Oxidized Lantern Helm",
+                        "Oxidized Lantern Sword",
+                        "Oxidized Ring Whip",
+                        "Survi",
+                    },
+                },
+            },
+            {}
+        )
+    end, "spawns stuff")
+end
+--[[
+http://cloud-3.steamusercontent.com/ugc/1054351998762601594/720F5D60DF089D2DA6A2E6A0C78A7413F1225569/
+file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Screaming Antelope/Hit Locations/Screaming Antelope Hit Locations.jpg
+
+http://cloud-3.steamusercontent.com/ugc/1054351998762610628/C4CD97605D26BD8C14CEB64AFF7036E1546AF0EE/
+file:///C:/Users/Jordan Chavez/Desktop/KDM Assets/Dung Beetle Knight/Dung Beetle Knight Hit Locations.jpg
+]]
+---------------------------------------------------------------------------------------------------
+
+function SpawnStuff.Spawn(decks, cards)
+    local nextDeckId = 21
+    for _, obj in ipairs(getAllObjects()) do
+        for deckId in pairs(obj.getData().CustomDeck or {}) do
+            if deckId >= nextDeckId then
+                nextDeckId = deckId + 1
+            end
+        end
+    end
+
+    for _, deck in ipairs(decks) do
+        local deckId = nextDeckId
+        nextDeckId = nextDeckId + 1
+        local deckIdString = tostring(deckId)
+
+        local deckData = {}
+        deckData.GUID = "baddad"
+        deckData.Name = "Deck"
+        deckData.Transform = {
+            posX = deck.position.x, posY = deck.position.y, posZ = deck.position.z,
+            rotX = 0, rotY = 180, rotZ = 0,
+            scaleX = deck.scale.x, scaleY = deck.scale.y, scaleZ = deck.scale.z,
+        }
+        deckData.Nickname = deck.name
+        deckData.Description = ""
+        deckData.GMNotes = deck.gmNotes
+        deckData.ColorDiffuse = { r = 1, g = 1, b = 1 }
+        deckData.Locked = false
+        deckData.Grid = true
+        deckData.Snap = true
+        deckData.Autoraise = true
+        deckData.Sticky = true
+        deckData.Tooltip = true
+        deckData.GridProjection = false
+        deckData.HideWhenFaceDown = true
+        deckData.SidewaysCard = false
+        deckData.DeckIDs = {}
+        deckData.CustomDeck = {
+          [deckIdString] = {
+            FaceURL = deck.front,
+            BackURL = deck.back,
+            NumWidth = deck.width,
+            NumHeight = deck.height,
+            BackIsHidden = false,
+            UniqueBack = false,
+            Type = 0
+          }
+        }
+        deckData.LuaScript = ""
+        deckData.LuaScriptState = ""
+        deckData.XmlUI = ""
+        deckData.ContainedObjects = {}
+
+        for i, card in ipairs(deck.cards) do
+            local cardIdString = deckIdString .. string.format("%02d", i - 1)
+            local cardId = tonumber(cardIdString)
+
+            table.insert(deckData.DeckIDs, cardId)
+
+            local cardData = {
+              GUID = "baddad",
+              Name = "Card",
+              Transform = {
+                  posX = 0, posY = 5, posZ = 0,
+                  rotX = 0, rotY = 180, rotZ = 0,
+                  scaleX = deck.scale.x, scaleY = deck.scale.y, scaleZ = deck.scale.z,
+              },
+              Nickname = card,
+              Description = "",
+              GMNotes = deck.gmNotes,
+              ColorDiffuse = { r = 1, g = 1, b = 1 },
+              LayoutGroupSortIndex = 0,
+              Locked = false,
+              Grid = true,
+              Snap = true,
+              Autoraise = true,
+              Sticky = true,
+              Tooltip = true,
+              GridProjection = false,
+              HideWhenFaceDown = true,
+              SidewaysCard = false,
+              CardID = cardId,
+              CustomDeck = deckData.CustomDeck,
+              LuaScript = "",
+              LuaScriptState = "",
+              XmlUI = ""
+            }
+            table.insert(deckData.ContainedObjects, cardData)
+        end
+
+        spawnObjectData({ data = deckData })
+    end
+
+    for _, card in ipairs(cards or {}) do
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+
+return {
+    Init = SpawnStuff.Init
+}

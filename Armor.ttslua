@@ -8,7 +8,7 @@ Armor.__index = Armor
 
 ---------------------------------------------------------------------------------------------------
 
-function Armor.Init(saveState)
+function Armor.Init()
     Armor.armor = {}
     for _, expansion in ipairs(Expansion.All()) do
         for name, stats in pairs(expansion.armorStats or {}) do

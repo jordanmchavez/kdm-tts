@@ -1,4 +1,4 @@
-KDM_VERSION = "1.2"
+KDM_VERSION = "1.3"
 
 GLOBAL_OBJECT = self
 
@@ -21,6 +21,7 @@ local NamedObject = require("Kdm/NamedObject")
 local Player = require("Kdm/Player")
 local Rules = require("Kdm/Rules")
 local Settlement = require("Kdm/Settlement")
+local SpawnStuff = require("Kdm/SpawnStuff")
 local Showdown = require("Kdm/Showdown")
 local Survivor = require("Kdm/Survivor")
 local Terrain = require("Kdm/Terrain")
@@ -31,7 +32,7 @@ local Weapon = require("Kdm/Weapon")
 ---------------------------------------------------------------------------------------------------
 
 function onSave()
-    local saveState = {
+    return JSON.encode({
         Campaign = Campaign.Save(),
         Expansion = Expansion.Save(),
         Monster = Monster.Save(),
@@ -39,9 +40,7 @@ function onSave()
         Survivor = Survivor.Save(),
         Timeline = Timeline.Save(),
         BattleUi = BattleUi.Save(),
-    }
-
-    return JSON.encode(saveState)
+    })
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -52,19 +51,20 @@ function onLoad(saveJson)
     -- Init() = everything before the UI is first rendered (includes UI setup)
     --
     Console.Init()
+    SpawnStuff.Init()
     Expansion.Init(saveState.Expansion or {})
     --
-    Log.Init(e)
+    Log.Init()
     log:Printf("Misterslack's Kingdom Death: Monster Mod v%s", KDM_VERSION)
     --
-    Armor.Init(e)
-    NamedObject.Init(e)
-    Terrain.Init(e)
-    Ui.Init(e)
-    Weapon.Init(e)
+    Armor.Init()
+    NamedObject.Init()
+    Terrain.Init()
+    Ui.Init()
+    Weapon.Init()
     --
-    Archive.Init(e)
-    Location.Init(e)
+    Archive.Init()
+    Location.Init()
     --
     Deck.Init()
     Hunt.Init()
@@ -101,5 +101,3 @@ function onLoad(saveJson)
         BattleUi.PostInit()
     end, 20)
 end
-
----------------------------------------------------------------------------------------------------

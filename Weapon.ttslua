@@ -8,7 +8,7 @@ Weapon.__index = Weapon
 
 ---------------------------------------------------------------------------------------------------
 
-function Weapon.Init(saveState)
+function Weapon.Init()
     Weapon.weapons = {}
     for _, expansion in ipairs(Expansion.All()) do
         for name, stats in pairs(expansion.weaponStats or {}) do
